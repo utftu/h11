@@ -1,0 +1,14 @@
+{
+  "name": "h4",
+  "module": "src/h4.ts",
+  "type": "module",
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5.0.0"
+  },
+  "dependencies": {
+    "rou3": "^0.5.1"
+  }
+}
