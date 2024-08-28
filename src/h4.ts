@@ -1,44 +1,44 @@
-import { Radix, Node } from "./radix/radix.ts"
+import { Radix, Node } from "./radix/radix.ts";
 
 abstract class RouterEngine {
   add() {}
 }
 
 type HandlerProps = {
-  req: Request
-  params: Record<string, string>
-  data: Record<any, any>
-}
+  req: Request;
+  params: Record<string, string>;
+  data: Record<any, any>;
+};
 
 class Props implements HandlerProps {
   req: Request;
-  params: Record<string, string>
-  data: Record<any, any>
-  constructor({req, params, data}: HandlerProps) {
+  params: Record<string, string>;
+  data: Record<any, any>;
+  constructor({ req, params, data }: HandlerProps) {
     this.req = req;
     this.params = params;
     this.data = data;
   }
 }
 
-export type Handler = (props: Props) => Promise<Response>
+const;
+
+export type Handler = (props: Props) => Promise<Response>;
 export type HandlerContainer = {
-  handler: Handler,
-  method: 'GET' | 'POST'
-}
+  handler: Handler;
+  method: "GET" | "POST";
+};
 
 export type Plugin = (props: Props) => Promise<Response | null>;
-type ErrorHandlerPath = (req: Request) => Promise<Response>
-type ErrorHandler = (props: {error: Error} & Props) => Promise<Response>
+type ErrorHandlerPath = (req: Request) => Promise<Response>;
+type ErrorHandler = (props: { error: Error } & Props) => Promise<Response>;
 
 class App {
-  radix = new Radix()
+  radix = new Radix();
 
-  addNotFound(fn: () => Promise<Response>) {
+  addNotFound(fn: () => Promise<Response>) {}
 
-  }
-
-  errorHandler: ErrorHandler = (() => {}) as any
+  errorHandler: ErrorHandler = (() => {}) as any;
   addErrorHandler(errorHandler: ErrorHandler) {
     this.errorHandler = errorHandler;
   }
@@ -54,18 +54,18 @@ class App {
     const findResult = this.radix.find(url.pathname);
 
     if (!findResult) {
-      return null
+      return null;
     }
-    const props = new Props({req, params: findResult.params, data})
+    const props = new Props({ req, params: findResult.params, data });
 
     // iterate over plugins
     const nodes = [];
-    for (let currentNode: Node = findResult.node;;) {
-      nodes.push(currentNode)
+    for (let currentNode: Node = findResult.node; ; ) {
+      nodes.push(currentNode);
       if (!currentNode.parent) {
-        break
+        break;
       }
-      currentNode = currentNode.parent
+      currentNode = currentNode.parent;
     }
 
     for (let i = nodes.length; i >= 0; i--) {
@@ -73,28 +73,28 @@ class App {
 
       for (const plugin of node.plugins) {
         try {
-          const pluginResponse = await plugin(new Props(props))
+          const pluginResponse = await plugin(new Props(props));
 
           if (pluginResponse) {
             return pluginResponse;
           }
         } catch (error) {
-          this.errorHandler({...props, error: error as Error})
+          this.errorHandler({ ...props, error: error as Error });
         }
       }
     }
 
-    const handlerContainer = findResult.node.handlers.find(({method}) => method === req.method)
+    const handlerContainer = findResult.node.handlers.find(
+      ({ method }) => method === req.method
+    );
 
     if (!handlerContainer) {
-      return null
-    } 
+      return null;
+    }
 
     try {
-      const response = handlerContainer.handler(props)
-      return response
-    } catch (error) {
-
-    }
+      const response = handlerContainer.handler(props);
+      return response;
+    } catch (error) {}
   }
 }
