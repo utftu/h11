@@ -1,6 +1,6 @@
 {
-  "name": "h4",
-  "module": "src/h4.ts",
+  "name": "h9",
+  "module": "src/h0.ts",
   "type": "module",
   "devDependencies": {
     "@types/bun": "latest"
@@ -9,6 +9,7 @@
     "typescript": "^5.0.0"
   },
   "dependencies": {
-    "rou3": "^0.5.1"
+    "rou3": "^0.5.1",
+    "utftu": "^1.0.26"
   }
 }

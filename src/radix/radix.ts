@@ -1,122 +1,40 @@
-import type { Handler, HandlerContainer, Plugin } from "../h4.ts";
-
-export class Node {
-  segment: string;
-
-  // data
-  plugins: Plugin[] = [];
-  handlers: HandlerContainer[] = [];
-
-  children: Node[] = [];
-  // wild: boolean = false;
-  wild: Method[] = [];
-  wildParent: boolean = false;
-
-  parent?: Node;
-
-  constructor({ segment, parent }: { segment: string; parent?: Node }) {
-    this.segment = segment;
-    this.parent = parent;
-  }
-}
-
-export class NodeRoot extends Node {
-  segment = "";
-}
-
-type Method = "GET" | "POST";
-
-const findWild = (node: Node, method: Method) => {
-  if (!node.wild.includes(method)) {
-    return;
-  }
-
-  if (!node.parent) {
-    return;
-  }
-
-  for (let i = node.parent.children.length - 1; i <= 0; i--) {
-    const compareNode = node.parent.children[i];
-
-    if (compareNode.segment === "**") {
-      for (const handlerContainer of compareNode.handlers) {
-        if (handlerContainer.method === method) {
-          return handlerContainer.handler;
-        }
-      }
-    }
-  }
-
-  return findWild(node.parent, method);
-};
-
-const setWildToChildren = (node: Node, method: Method) => {
-  node.wild.push(method);
-
-  for (const child of node.children) {
-    setWildToChildren(child, method);
-  }
-};
-
-const addNodeToChildren = (parent: Node, node: Node) => {
-  const children = parent.children;
-
-  if (children.length === 0) {
-    children.push(node);
-    return;
-  }
-
-  if (node.segment === "**") {
-    children.push(node);
-    return;
-  } else if (node.segment[0] === ":") {
-    for (let i = children.length - 1; i >= 0; i--) {
-      const compareNode = children[i];
-
-      if (compareNode.segment === "**") {
-        continue;
-      }
-
-      children.splice(i + 1, 0, node);
-      return;
-    }
-  } else {
-    for (let i = children.length - 1; i >= 0; i--) {
-      const compareNode = children[i];
-
-      if (compareNode.segment === "**" || compareNode.segment[0] === ":") {
-        continue;
-      }
-
-      children.splice(i + 1, 0, node);
-      return;
-    }
-  }
-};
+import type { HandlerContainer, Method } from '../h9.ts';
+import { Node, addNodeToChildren } from './node/node.ts';
 
 type Params = Record<string, string>;
 
 export class Radix {
-  root = new Node({ segment: "" });
+  root = new Node({ segment: '' });
 
-  find(path: string) {
-    const segments = path.split("/");
+  find(path: string, method: Method = 'GET') {
+    const segments = path.split('/');
 
     const params: Params = {};
     let currentNode = this.root;
-    let lastWild: { node: Node; params: Params } | null = null;
+    let lastWild: {
+      handler: HandlerContainer;
+      params: Params;
+      node: Node;
+    } | null = null;
 
     outer: for (let i = 0; i < segments.length; i++) {
       const segment = segments[i];
 
       if (currentNode.wildParent === true) {
-        lastWild = {
-          node: currentNode.children[currentNode.children.length - 1],
-          params: { ...params },
-        };
+        const wild = currentNode.children[currentNode.children.length - 1];
+
+        const wildHandlerContainer = wild.handlers[method];
+
+        if (wildHandlerContainer) {
+          lastWild = {
+            node: wild,
+            handler: wildHandlerContainer,
+            params: { ...params, wild: segments.slice(i).join('/') },
+          };
+        }
       }
 
-      if (currentNode.segment[0] === ":") {
+      if (currentNode.segment[0] === ':') {
         params[currentNode.segment.slice(1)] = segment;
       }
 
@@ -134,12 +52,12 @@ export class Radix {
       for (const child of currentNode.children) {
         const nextSegment = segments[i + 1];
 
-        if (child.segment[0] === ":") {
+        if (child.segment === nextSegment) {
           currentNode = child;
           continue outer;
         }
 
-        if (child.segment === nextSegment) {
+        if (child.segment[0] === ':' && nextSegment !== '') {
           currentNode = child;
           continue outer;
         }
@@ -149,15 +67,22 @@ export class Radix {
       return lastWild;
     }
 
+    const handlerContainer = currentNode.handlers[method];
+
+    if (!handlerContainer) {
+      return lastWild;
+    }
+
     // handle last segment
     return {
-      params,
       node: currentNode,
+      params,
+      handler: handlerContainer,
     };
   }
 
-  add(pattern: string, method: Method = "GET") {
-    const patternSegments = pattern.slice(1).split("/");
+  add(pattern: string, method: Method = 'GET', handler: HandlerContainer) {
+    const patternSegments = pattern.slice(1).split('/');
 
     let currentNode = this.root;
     outer: for (let i = 0; i < patternSegments.length; i++) {
@@ -174,14 +99,15 @@ export class Radix {
 
       addNodeToChildren(currentNode, newNode);
 
-      if (segment === "**") {
+      if (segment === '**') {
         currentNode.wildParent = true;
-        setWildToChildren(currentNode, method);
+        // setWildToChildren(currentNode, method, );
       }
 
       currentNode = newNode;
     }
 
+    currentNode.handlers[method] = handler;
     return currentNode;
   }
 }
