@@ -1,19 +1,17 @@
 {
   "name": "h9",
-  "module": "src/h0.ts",
+  "module": "src/h9.ts",
   "type": "module",
+  "version": "0.0.1",
   "scripts": {
     "build": "bun build ./src/h9.ts --outdir ./dist && bun run types",
     "types": "tsc --project tsconfig.types.json"
   },
   "devDependencies": {
-    "@types/bun": "latest"
-  },
-  "peerDependencies": {
+    "@types/bun": "latest",
     "typescript": "^5.0.0"
   },
   "dependencies": {
-    "rou3": "^0.5.1",
     "utftu": "^1.0.26"
   }
 }
