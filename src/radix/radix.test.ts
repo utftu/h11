@@ -25,7 +25,7 @@ describe('radix', () => {
     expect(worldNode.children.length).toBe(0);
     expect(node).toBe(worldNode);
 
-    radix.add('/hello/:name/world2', handlerContainer);
+    radix.add('/hello/:name/world2', 'GET', handlerContainer);
     expect(nameNode.children.length).toBe(2);
     const world2Node = nameNode.children[1];
     expect(world2Node.segment).toBe('world2');

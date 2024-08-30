@@ -25,10 +25,10 @@ type NotFoundHandler = (req: Request) => HandlerResponse;
 type ErrorHandler = (props: { error: Error } & Props) => HandlerResponse;
 
 const defaultOnNotFound: NotFoundHandler = (req) => {
-  console.log(`h4: Not found ${req.url}`);
+  console.log(`h9: Not found ${req.url}`);
   return new Response('Not Found', {
     status: 404,
-    statusText: 'Not Found',
+    statusText: 'Not Found 404',
     headers: {
       'Content-Type': 'text/plain',
     },
@@ -36,10 +36,10 @@ const defaultOnNotFound: NotFoundHandler = (req) => {
 };
 
 const defaultOnError: ErrorHandler = ({ req, error }) => {
-  console.error(`h4: Error ${req.url} - ${error.message}`);
+  console.error(`h9: Error ${req.url} - ${error.message}`);
   return new Response('Error 500', {
     status: 500,
-    statusText: 'System error',
+    statusText: 'System error 500',
     headers: {
       'Content-Type': 'text/plain',
     },
