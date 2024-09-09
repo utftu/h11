@@ -1,8 +1,9 @@
-import type { HandlerContainer, Method } from '../h9.ts';
+import type { HandlerContainer, Method } from '../h11.ts';
 import { Node, addNodeToChildren } from './node/node.ts';
 
 type Params = Record<string, string>;
 
+// /hello/world/:name/:family
 export class Radix {
   root = new Node({ segment: '' });
 
@@ -81,6 +82,7 @@ export class Radix {
     };
   }
 
+  // hello/world/:name
   add(pattern: string, method: Method = 'GET', handler: HandlerContainer) {
     const patternSegments = pattern.slice(1).split('/');
 

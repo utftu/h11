@@ -1,4 +1,4 @@
-import type { HandlerContainer, Method } from '../../h9.ts';
+import type { HandlerContainer, Method } from '../../h11.ts';
 
 export class Node {
   segment: string;

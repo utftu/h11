@@ -46,7 +46,7 @@ const defaultOnError: ErrorHandler = ({ req, error }) => {
   });
 };
 
-export class H9 {
+export class H11 {
   radix = new Radix();
 
   onNotFound: NotFoundHandler = defaultOnNotFound;
