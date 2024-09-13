@@ -1,21 +1,32 @@
 import { H11 } from '../src/h11.ts';
+import { bunProviderFactory } from '../src/providers/bun.ts';
 
-const h4 = new H11();
+const h11 = new H11();
 
-h4.get('/hello/world/sasha', () => {
+h11.get('/hello/world/sasha', () => {
   return new Response(`it is a super path`);
 });
 
-h4.get('/hello/world/:name', ({ params }) => {
+h11.get('/hello/world/:name', ({ params }) => {
   return new Response(`hello world mister ${params.name}`);
 });
 
-h4.get('/hello/**', ({ params }) => {
+h11.get('/hello/**', ({ params }) => {
   return new Response(`it is a wild path ${params.wild}`);
 });
 
-Bun.serve({
-  fetch(req) {
-    return h4.exec(req);
+const bunProvider = bunProviderFactory({ h11 });
+
+const server = Bun.serve({
+  // hostname: 'hello.world',
+  port: '443',
+  async fetch(req, server) {
+    console.log('-----', 'req.url', req.url);
+    // console.log('-----', 'args', args);
+    // req.body.
+    const res = await bunProvider(req, server);
+    return res;
   },
 });
+
+console.log('-----', 'server', server.url);

@@ -1,3 +1,0 @@
-const bunProvider = () => {
-  return () => {};
-};

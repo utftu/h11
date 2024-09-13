@@ -1,9 +1,16 @@
 import { Radix } from './radix/radix.ts';
 
+const FORCE_STOP = Symbol('FORCE_STOP');
+
 export type Method = 'GET' | 'POST' | 'DELET' | 'PUT' | 'PATCH';
 
 type HandlerResponse = Promise<Response> | Response;
-type PluginReponse = HandlerResponse | Promise<void> | void;
+
+export type ExecProps = {
+  req: Request;
+  providers: Record<string, any>;
+  data: Record<any, any>;
+};
 
 export type HandlerPure = (props: Props) => HandlerResponse;
 export type HandlerContainer = {
@@ -46,7 +53,8 @@ const defaultOnError: ErrorHandler = ({ req, error }) => {
   });
 };
 
-export class H11 {
+export class H11<TExecProps extends ExecProps = ExecProps> {
+  types!: TExecProps;
   radix = new Radix();
 
   onNotFound: NotFoundHandler = defaultOnNotFound;
@@ -68,7 +76,7 @@ export class H11 {
     return this;
   }
 
-  async exec(req: Request) {
+  async exec({ req, data, providers }: TExecProps) {
     const url = new URL(req.url);
     const findResult = this.radix.find(url.pathname, req.method as any);
 
@@ -76,8 +84,7 @@ export class H11 {
       return this.onNotFound(req);
     }
 
-    const data = {};
-    const props = { req, params: findResult.params, data };
+    const props = { req, params: findResult.params, data, providers };
 
     try {
       for (const plugin of findResult.handler.plugins) {
