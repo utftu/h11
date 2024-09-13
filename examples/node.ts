@@ -1,6 +1,9 @@
 import { createServer } from 'node:http';
 import { H11 } from '../src/h11.ts';
-import { getAddress, nodeProviderFactory } from '../src/providers/nodejs.ts';
+import {
+  getAddress,
+  nodeProviderFactory,
+} from '../src/providers/nodejs-old.ts';
 
 const h11 = new H11();
 

@@ -8,6 +8,20 @@
     "build1": "bun build ./src/h11.ts --outdir ./dist && bun run types",
     "types": "tsc --project tsconfig.types.json"
   },
+  "exports": {
+    ".": {
+      "types": "./dist/types/h11.d.ts",
+      "default": "./dist/h11.ts"
+    },
+    "./bun": {
+      "types": "./dist/types/providers/bun.d.ts",
+      "default": "./dist/bun.ts"
+    },
+    "./node": {
+      "types": "./dist/types/providers/node.d.ts",
+      "default": "./dist/bun.ts"
+    }
+  },
   "devDependencies": {
     "@types/bun": "latest",
     "typescript": "^5.0.0"
