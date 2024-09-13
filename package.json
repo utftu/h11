@@ -1,7 +1,7 @@
 {
   "name": "h11",
   "type": "module",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "scripts": {
     "build": "bun run ./build.ts"
   },
@@ -11,15 +11,15 @@
   "exports": {
     ".": {
       "types": "./dist/types/h11.d.ts",
-      "default": "./dist/h11.ts"
+      "default": "./dist/h11.js"
     },
     "./bun": {
       "types": "./dist/types/providers/bun.d.ts",
-      "default": "./dist/bun.ts"
+      "default": "./dist/bun.js"
     },
     "./node": {
       "types": "./dist/types/providers/node.d.ts",
-      "default": "./dist/bun.ts"
+      "default": "./dist/bun.js"
     }
   },
   "devDependencies": {
