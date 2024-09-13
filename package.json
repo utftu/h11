@@ -1,6 +1,5 @@
 {
   "name": "h11",
-  "module": "src/h9.ts",
   "type": "module",
   "version": "0.0.1",
   "scripts": {
