@@ -27,7 +27,7 @@
     "mitata": "^0.1.14",
     "serve-static": "^2.2.0",
     "typescript": "^5.0.0",
-    "utftu": "1.0.30"
+    "utftu": "1.0.31"
   },
   "dependencies": {
     "@types/serve-static": "^1.15.8",

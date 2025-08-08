@@ -1,22 +1,14 @@
-import { $ } from 'bun';
+import { defineConfig } from 'vite';
+import { resolve } from 'node:path';
 
-await $`rm -rf ./dist`;
-
-await Promise.all([
-  Bun.build({
-    entrypoints: ['./src/h11.ts'],
-    outdir: './dist',
-  }),
-  $`tsc --project tsconfig.types.json`,
-  Bun.build({
-    entrypoints: ['./src/providers/bun.ts'],
-    outdir: './dist',
-  }),
-  $`tsc --project tsconfig.types.bun.json`,
-  Bun.build({
-    entrypoints: ['./src/providers/node.ts'],
-    outdir: './dist',
-    external: ['*'],
-  }),
-  $`tsc --project tsconfig.types.node.json`,
-]);
+export default defineConfig({
+  build: {
+    rollupOptions: {
+      input: {
+        // home: import.meta.resolve('src/home/index.html'),
+        about: import.meta.resolve('src/about/about.html'),
+        // contact: import.meta.resolve('src/contact/index.html'),
+      },
+    },
+  },
+});
