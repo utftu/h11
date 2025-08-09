@@ -1,6 +1,6 @@
 import { defineConfig, build as buildVite } from 'vite';
 import { getAbsolutePath } from 'utftu';
-import { getFsApi } from './src/fs-universal/fs-universal.ts';
+import { getFsApi } from './src/fs-api/fs-universal.ts';
 
 type Inputs = { pathname: string; filename: string }[];
 

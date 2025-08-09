@@ -1,14 +1,15 @@
 import type { FileApi } from './fs-universal.ts';
-import { copyFiles, mkdirNode, rmNode } from './fs-universal.node.ts';
+import { copyFiles, mkdirNode, rmNode } from './fs-api.node.ts';
+import { file as fileBun } from 'bun';
 
-export const fsUniversalBun: FileApi = {
+export const fsApiBun: FileApi = {
   getFileStream: (path: string) => {
-    const file = Bun.file(path);
+    const file = fileBun(path);
 
     return file.stream();
   },
   checkExist: async (path: string) => {
-    const file = Bun.file(path);
+    const file = fileBun(path);
 
     return await file.exists();
   },

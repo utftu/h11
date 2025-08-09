@@ -1,5 +1,5 @@
 import type { Handler } from '../types.ts';
-import { getFsApi } from '../fs-universal/fs-universal.ts';
+import { getFsApi } from '../fs-api/fs-universal.ts';
 import { joinUserPath } from '../utils/join.ts';
 
 export const serveFilesModule = (dirToServe: string, prefix: string = '') => {

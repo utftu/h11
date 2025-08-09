@@ -18,7 +18,7 @@ export const rmNode = async (path: string) => {
   await rm(path, { recursive: true, force: true });
 };
 
-export const fsUniversalNode: FileApi = {
+export const fsApiNode: FileApi = {
   getFileStream: (path: string) => {
     const file = createReadStream(path);
 

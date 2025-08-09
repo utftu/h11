@@ -1,5 +1,5 @@
-import { fsUniversalBun } from './fs-universal.bun.ts';
-import { fsUniversalNode } from './fs-universal.node.ts';
+import { fsApiBun } from './fs-api.bun.ts';
+import { fsApiNode } from './fs-api.node.ts';
 
 export type FileApi = {
   getFileStream: (path: string) => ReadableStream;
@@ -36,10 +36,22 @@ export const getFsApi = () => {
   const runtime = getRuntime();
 
   if (runtime === 'bun') {
-    return fsUniversalBun;
+    return fsApiBun;
   } else if (runtime === 'node') {
-    return fsUniversalNode;
+    return fsApiNode;
   }
 
-  throw new Error('Unknown');
+  throw new Error('Unknown runtime');
+};
+
+export const getFsApi2 = async () => {
+  const runtime = getRuntime();
+
+  if (runtime === 'bun') {
+    return (await import('./fs-api.bun.ts')).fsApiBun;
+  } else if (runtime === 'node') {
+    return (await import('./fs-api.node.ts')).fsApiNode;
+  }
+
+  throw new Error('Unknown runtime');
 };

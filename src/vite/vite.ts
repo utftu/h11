@@ -1,6 +1,6 @@
 // import { readFile } from 'node:fs/promises';
 import { type ViteDevServer } from 'vite';
-import { getFsApi } from '../fs-universal/fs-universal.ts';
+import { getFsApi } from '../fs-api/fs-universal.ts';
 import { getText } from '../utils/stream.ts';
 
 export const createHtml = ({

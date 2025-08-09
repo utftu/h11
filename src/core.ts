@@ -1,3 +1,4 @@
+import type { FsApi } from './fs-api/fs-api.ts';
 import { Radix } from './radix/radix.ts';
 import type { Context, Handler, HandlerResponse, Method } from './types.ts';
 
@@ -64,6 +65,7 @@ const defaultOnError: ErrorHandler = ({ req, error }) => {
 export class H11<TExecProps extends ExecProps = ExecProps> {
   types!: TExecProps;
   radix = new Radix();
+  fsApi?: FsApi;
 
   onNotFound: NotFoundHandler = defaultOnNotFound;
   onError: ErrorHandler = defaultOnError;

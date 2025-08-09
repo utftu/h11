@@ -28,7 +28,8 @@
     "serve-static": "^2.2.0",
     "typescript": "^5.0.0",
     "utftu": "1.0.31",
-    "vite": "^7.1.1"
+    "vite": "^7.1.1",
+    "vite-plugin-dts": "^4.5.4"
   },
   "dependencies": {
     "@types/serve-static": "^1.15.8",

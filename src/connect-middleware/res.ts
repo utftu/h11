@@ -1,5 +1,9 @@
-import { IncomingMessage, type ServerResponse, STATUS_CODES } from 'http';
-import { Readable, Transform, type TransformCallback } from 'stream';
+import {
+  type IncomingMessage,
+  type ServerResponse,
+  STATUS_CODES,
+} from 'node:http';
+import { Readable, Transform, type TransformCallback } from 'node:stream';
 import { createControlledPromise } from 'utftu';
 
 export const convertNodeResToRes = (res: MockServerResponse): Response => {
