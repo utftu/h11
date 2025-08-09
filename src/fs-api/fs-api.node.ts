@@ -1,8 +1,8 @@
 import { createReadStream } from 'node:fs';
-import type { FileApi } from './fs-universal.ts';
-import { mkdir, copyFile, exists, rm } from 'node:fs/promises';
+import { mkdir, copyFile, exists, rm, writeFile } from 'node:fs/promises';
 import { dirname } from 'node:path';
 import { Readable } from 'node:stream';
+import type { FsApi } from './fs-api.ts';
 
 export const copyFiles = async (from: string, to: string) => {
   const destDir = dirname(from);
@@ -18,11 +18,14 @@ export const rmNode = async (path: string) => {
   await rm(path, { recursive: true, force: true });
 };
 
-export const fsApiNode: FileApi = {
+export const fsApiNode: FsApi = {
   getFileStream: (path: string) => {
     const file = createReadStream(path);
 
     return Readable.toWeb(file) as any as ReadableStream;
+  },
+  writeFile: async (path: string, text: string) => {
+    await writeFile(path, text);
   },
   checkExist: async (path: string) => {
     return exists(path);

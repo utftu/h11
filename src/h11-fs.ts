@@ -1,4 +1,4 @@
 import { handleConnectMiddleware } from './connect-middleware/connect-middleware.ts';
-import { getFsApi2 } from './fs-api/fs-universal.ts';
+import { getFsApi } from './fs-api/fs-universal.ts';
 
-export { handleConnectMiddleware, getFsApi2 };
+export { handleConnectMiddleware, getFsApi as getFsApi2 };

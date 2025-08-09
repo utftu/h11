@@ -48,10 +48,6 @@ const build = async (config: BuildConfig) => {
       `dist/${filename.slice(currentDir.length + 1)}`,
       `dist/${pathname}.html`
     );
-    // await copyWithDirs(
-    //   filename.slice(currentDir.length + 1),
-    //   `dist/${pathname}`
-    // );
   }
 
   console.log('-----', '123');

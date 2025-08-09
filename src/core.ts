@@ -1,10 +1,6 @@
 import type { FsApi } from './fs-api/fs-api.ts';
 import { Radix } from './radix/radix.ts';
-import type { Context, Handler, HandlerResponse, Method } from './types.ts';
-
-// export type Method = 'GET' | 'POST' | 'DELET' | 'PUT' | 'PATCH';
-
-// type HandlerResponse = Promise<Response> | Response;
+import type { Context, Handler, Method } from './types.ts';
 
 export type ExecProps = {
   req: Request;
@@ -12,36 +8,13 @@ export type ExecProps = {
   data: Record<any, any>;
 };
 
-// export type Context = {
-//   req: Request;
-//   providers: Record<string, any>;
-//   params: Record<string, string>;
-//   data: Record<any, any>;
-// };
-
-// export type HandlerPure = (props: Props) => HandlerResponse;
-// export type HandlerContainer = {
-//   handler: HandlerPure;
-//   plugins: Plugin[];
-// };
-
-// type Props = {
-//   req: Request;
-//   params: Record<string, string>;
-//   data: Record<any, any>;
-// };
-
-// type Handler = HandlerPure | HandlerContainer;
-
-// export type Plugin = (props: Props) => HandlerResponse | void;
-
 type NotFoundHandler = (req: Request) => Response | Promise<Response>;
 type ErrorHandler = (
   props: { error: Error } & Context
 ) => Response | Promise<Response>;
 
 const defaultOnNotFound: NotFoundHandler = (req) => {
-  console.log(`h9: Not found ${req.url}`);
+  console.log(`h11: Not found ${req.url}`);
   return new Response('Not Found', {
     status: 404,
     statusText: 'Not Found 404',
