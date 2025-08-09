@@ -5,7 +5,6 @@ import { Readable } from 'node:stream';
 import type { Handler } from '../types.ts';
 import { convertNodeResToRes, createNodeRes } from './res.ts';
 import { createControlledPromise } from 'utftu';
-import * as util from 'node:util';
 
 const deletePrefix = (url: string, prefix: string) => {
   const parsedUrl = new URL(url);

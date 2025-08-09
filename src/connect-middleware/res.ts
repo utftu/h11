@@ -1,7 +1,6 @@
 import { IncomingMessage, type ServerResponse, STATUS_CODES } from 'http';
 import { Readable, Transform, type TransformCallback } from 'stream';
 import { createControlledPromise } from 'utftu';
-import * as util from 'node:util';
 
 export const convertNodeResToRes = (res: MockServerResponse): Response => {
   const stream = Readable.toWeb(res);
