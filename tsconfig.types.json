@@ -6,6 +6,6 @@
     "declaration": true,
     "noEmit": false
   },
-  "include": ["src/h11.ts"],
+  // "include": ["src/h11.ts"],
   "files": ["src/**"]
 }

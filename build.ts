@@ -5,7 +5,16 @@ import dts from 'vite-plugin-dts';
 const nodeModuleRegexp = /^node:/;
 
 const h11Config = defineConfig({
-  plugins: [dts({ entryRoot: './src/h11.ts' })],
+  plugins: [
+    dts({
+      // entryRoot: './src',
+      // include: ['src/**/*.ts'],
+      outDir: './dist/types',
+      include: ['src/**/*.ts'],
+      insertTypesEntry: true,
+      // rollupTypes: true,
+    }),
+  ],
   build: {
     emptyOutDir: false,
     target: 'esnext',
