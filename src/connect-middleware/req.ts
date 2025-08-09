@@ -1,6 +1,6 @@
-import { Socket } from 'net';
-import type { IncomingMessage } from 'http';
-import { Transform, type TransformCallback } from 'stream';
+import { Socket } from 'node:net';
+import type { IncomingMessage } from 'node:http';
+import { Transform, type TransformCallback } from 'node:stream';
 
 export const convertReqToNodeReq = ({
   req,
