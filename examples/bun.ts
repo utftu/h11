@@ -1,4 +1,5 @@
-import { H11, handleConnectMiddleware, type Handler } from '../src/h11.ts';
+import { handleConnectMiddleware } from '../src/h11-fs.ts';
+import { H11, type Handler } from '../src/h11.ts';
 import { createRateLimiterModule } from '../src/modules/limit.ts';
 import { proxyReq } from '../src/modules/proxy.ts';
 import { createBunProvider } from '../src/providers/bun.ts';
@@ -6,7 +7,6 @@ import serveStatic from 'serve-static';
 import { createServer as createViteServer } from 'vite';
 
 const vite = await createViteServer({
-  base: '',
   server: { middlewareMode: true },
   appType: 'custom',
 });
