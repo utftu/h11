@@ -4,10 +4,10 @@ export const createHtml = ({
   pathToJs,
   lang = 'en',
 }: {
-  pathToJs: string;
+  pathToJs?: string;
   bodyApp: string;
   title: string;
-  lang: string;
+  lang?: string;
 }) => `<!DOCTYPE html>
 <html lang="${lang}">
   <head>
@@ -17,6 +17,6 @@ export const createHtml = ({
   </head>
   <body>
     <div id="app">${bodyApp}</div>
-    ${pathToJs ? '<script type="module" src="${pathToJs}">' : ''}
+    ${pathToJs ? `<script type="module" src="${pathToJs}">` : ''}
   </body>
 </html>`;

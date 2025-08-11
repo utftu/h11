@@ -1,4 +1,10 @@
-export const checkFile = async (dir: string, nameWithoutExt: string) => {
+import type { FsApi } from '../fs-api/fs-api.ts';
+
+export const checkFile = async (
+  dir: string,
+  nameWithoutExt: string,
+  fsApi: FsApi
+) => {
   const exts = ['.ts', '.tsx'];
   const variantsEnt = exts.map((ext) => {
     const filename = dir + '/' + nameWithoutExt + ext;

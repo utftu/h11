@@ -1,13 +1,18 @@
-import { type ViteDevServer, defineConfig } from 'vite';
+import {
+  type ViteDevServer,
+  defineConfig,
+  createServer as createViteServer,
+  build as buildVite,
+} from 'vite';
 import { getFsApi } from '../fs-api/fs-universal.ts';
 import { checkFile } from './utils.ts';
 import type { Page, SsgRoute } from './types.ts';
-import { createServer as createViteServer } from 'vite';
+import path from 'node:path';
 
 const fsApi = await getFsApi();
 
 const getEntName = (str: string) => {
-  return str.split('/')[-1];
+  return str.split('/').at(-1);
 };
 
 const getHtmlPath = (pathname: string) => {
@@ -21,13 +26,13 @@ const makeSsg = async ({
   vite: ViteDevServer;
   routes: SsgRoute[];
 }) => {
-  await fsApi.mkdir('.h11/html');
+  await fsApi.mkdir('.h11x/html');
 
   const htmlEntries: (SsgRoute & Page)[] = [];
   const serverEntries = [];
   for (const { dir, type } of routes) {
     const entName = getEntName(dir);
-    const htmlEntry = await checkFile(`${dir}`, entName + '.ssg');
+    const htmlEntry = await checkFile(dir, entName + '.ssg', fsApi);
     const { getHtmls } = await vite.ssrLoadModule(htmlEntry);
     const pages = (await getHtmls()) as Page[];
 
@@ -45,7 +50,8 @@ const makeSsg = async ({
 
   const input = htmlEntries.reduce<Record<string, string>>(
     (store, { pathname }) => {
-      store[pathname] = getHtmlPath(pathname);
+      //delete /
+      store[pathname.slice(1)] = path.resolve(getHtmlPath(pathname));
       return store;
     },
     {}
@@ -55,10 +61,18 @@ const makeSsg = async ({
       rollupOptions: {
         input,
       },
+      emptyOutDir: false,
     },
   });
 
-  // const a = await build(buildHtmls);
+  const a = await buildVite(buildHtmls);
+
+  const copyPromises = htmlEntries.map(({ pathname }) =>
+    fsApi.copyFile(`dist/${getHtmlPath(pathname)}`, `dist/${pathname}.html`)
+  );
+  await Promise.all(copyPromises);
+
+  await fsApi.rm('dist/.h11x');
 };
 
 const vite = await createViteServer({
@@ -66,7 +80,8 @@ const vite = await createViteServer({
   appType: 'custom',
 });
 
-makeSsg({ vite, routes: [{ type: 'ssg', dir: './src/routes' }] });
+await makeSsg({ vite, routes: [{ type: 'ssg', dir: './src/routes/about' }] });
+vite.close();
 
 // const a = async ({
 //   pathToHtml,
