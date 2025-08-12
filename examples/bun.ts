@@ -1,5 +1,6 @@
 import { handleConnectMiddleware } from '../src/h11-fs.ts';
 import { H11, type Handler } from '../src/h11.ts';
+import { getSsrHtml } from '../src/h11x/ssr.ts';
 import { createRateLimiterModule } from '../src/modules/limit.ts';
 import { proxyReq } from '../src/modules/proxy.ts';
 import { createBunProvider } from '../src/providers/bun.ts';
@@ -50,6 +51,22 @@ h11.get('/', async ({ req }) => {
   const appHtml = await render();
   const html = template.replace(`<!--ssr-outlet-->`, () => appHtml);
   return new Response(html, { headers: { 'Content-Type': 'text/html' } });
+});
+
+h11.get('/about', async () => {
+  const getHtml = await getSsrHtml({
+    isProd: false,
+    pathname: 'about',
+    pathToFile: './src/routes/about/about.ssr.ts',
+    vite,
+  });
+  let html = getHtml();
+  const html2 = await vite.transformIndexHtml('/about', html);
+  return new Response(html2, {
+    headers: {
+      'Content-Type': 'text/html; charset=utf-8',
+    },
+  });
 });
 
 h11.get(

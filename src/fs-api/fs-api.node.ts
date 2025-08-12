@@ -1,8 +1,9 @@
-import { createReadStream } from 'node:fs';
+import { createReadStream, createWriteStream } from 'node:fs';
 import { mkdir, copyFile, exists, rm, writeFile } from 'node:fs/promises';
 import { dirname } from 'node:path';
 import { Readable } from 'node:stream';
 import type { FsApi } from './fs-api.ts';
+import { pipeline } from 'node:stream/promises';
 
 export const copyFiles = async (from: string, to: string) => {
   const destDir = dirname(from);
@@ -23,6 +24,11 @@ export const fsApiNode: FsApi = {
     const file = createReadStream(path);
 
     return Readable.toWeb(file) as any as ReadableStream;
+  },
+  async writeFileStream(path, stream) {
+    const nodeReadable = Readable.fromWeb(stream as any);
+    const file = createWriteStream(path);
+    await pipeline(nodeReadable, file); // дождётся 'finish' и пробросит ошибки
   },
   writeFile: async (path: string, text: string) => {
     await writeFile(path, text);

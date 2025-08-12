@@ -1,14 +1,3 @@
-import { fsApiBun } from './fs-api.bun.ts';
-import { fsApiNode } from './fs-api.node.ts';
-
-// export type FileApi = {
-//   getFileStream: (path: string) => ReadableStream;
-//   checkExist: (path: string) => Promise<boolean>;
-//   mkdir: (path: string) => Promise<void>;
-//   copyFile: (from: string, to: string) => Promise<void>;
-//   rm: (path: string) => Promise<void>;
-// };
-
 export function getRuntime() {
   if (typeof Bun !== 'undefined') return 'bun';
 
@@ -32,18 +21,6 @@ export function getRuntime() {
   return 'unknown';
 }
 
-// export const getFsApi = () => {
-//   const runtime = getRuntime();
-
-//   if (runtime === 'bun') {
-//     return fsApiBun;
-//   } else if (runtime === 'node') {
-//     return fsApiNode;
-//   }
-
-//   throw new Error('Unknown runtime');
-// };
-
 export const getFsApi = async () => {
   const runtime = getRuntime();
 
@@ -55,3 +32,5 @@ export const getFsApi = async () => {
 
   throw new Error('Unknown runtime');
 };
+
+export const fsApi = await getFsApi();

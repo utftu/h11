@@ -4,19 +4,19 @@ export const getHtmls = () => {
   return [
     {
       pathname: '/about1',
-      html: createHtml({ bodyApp: '<div>about1</div>', title: 'about2' }),
+      html: createHtml({
+        bodyApp: '<div>about1</div>',
+        title: 'about2',
+        pathToJs: '/src/routes/about/about.client.ts',
+      }),
     },
     {
       pathname: '/about2',
-      html: createHtml({ bodyApp: '<div>about2</div>', title: 'about2' }),
+      html: createHtml({
+        bodyApp: '<div>about2</div>',
+        title: 'about2',
+        pathToJs: '/src/routes/about/about.client.ts',
+      }),
     },
-    // {
-    //   pathname: '/about1',
-    //   html: '<div>about1</div>',
-    // },
-    // {
-    //   pathname: '/about2',
-    //   html: '<div>about2</div>',
-    // },
   ];
 };

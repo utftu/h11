@@ -24,3 +24,13 @@ export const checkFile = async (
 
   throw new Error('Unknown file pattern');
 };
+
+export const getEntName = (str: string) => {
+  return str.split('/').at(-1);
+};
+
+export const getEntPath = (pathname: string, dir: string) => {
+  const name = getEntName(dir);
+
+  return [...pathname.split('/').slice(0, -1), name].join('/');
+};

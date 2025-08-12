@@ -8,6 +8,9 @@ export const fsApiBun: FsApi = {
 
     return file.stream();
   },
+  async writeFileStream(path, stream) {
+    await Bun.write(path, new Response(stream));
+  },
   writeFile: async (path: string, text: string) => {
     await write(path, text);
   },

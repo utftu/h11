@@ -17,6 +17,6 @@ export const createHtml = ({
   </head>
   <body>
     <div id="app">${bodyApp}</div>
-    ${pathToJs ? `<script type="module" src="${pathToJs}">` : ''}
+    ${pathToJs ? `<script type="module" src="${pathToJs}"></script>` : ''}
   </body>
 </html>`;

@@ -37,6 +37,7 @@ const makeSsg = async ({
     const pages = (await getHtmls()) as Page[];
 
     for (const page of pages) {
+      console.log('');
       const htmlPath = `.h11x/html/${page.pathname}.html`;
       await fsApi.writeFile(htmlPath, page.html);
 
@@ -58,14 +59,38 @@ const makeSsg = async ({
   );
   const buildHtmls = defineConfig({
     build: {
+      modulePreload: {
+        polyfill: false,
+      },
       rollupOptions: {
         input,
+        output: {
+          entryFileNames: ({ name }) => {
+            // убираем ".client" перед хешем
+            // console.log('-----', 'entry');
+            const cleanName = name?.replace(/\.client$/, '');
+            // console.log('-----', 'cleanName', cleanName);
+            return `assets/${cleanName}-[hash].js`;
+          },
+          chunkFileNames: ({ name }) => {
+            console.log('-----', 'name', name);
+            const cleanName = name?.replace(/\.client$/, '');
+            return `assets/${cleanName}-[hash].js`;
+          },
+          assetFileNames: ({ name }) => {
+            // для статики тоже можем почистить, если надо
+            // console.log('-----', 'asset', name);
+            const base = name?.replace(/\.client(\.\w+)$/, '$1');
+            return `assets/${base}`;
+          },
+        },
       },
       emptyOutDir: false,
     },
   });
 
   const a = await buildVite(buildHtmls);
+  // console.log('-----', 'a', a);
 
   const copyPromises = htmlEntries.map(({ pathname }) =>
     fsApi.copyFile(`dist/${getHtmlPath(pathname)}`, `dist/${pathname}.html`)
@@ -82,24 +107,3 @@ const vite = await createViteServer({
 
 await makeSsg({ vite, routes: [{ type: 'ssg', dir: './src/routes/about' }] });
 vite.close();
-
-// const a = async ({
-//   pathToHtml,
-//   pathToJs,
-//   vite,
-//   url,
-// }: {
-//   pathToHtml: string;
-//   pathToJs: string;
-//   vite: ViteDevServer;
-//   url: string;
-// }) => {
-//   const stream = fsApi.getFileStream(pathToHtml);
-//   const fileText = await getText(stream);
-//   // const fileText = await readFile(pathToHtml, { encoding: 'utf-8' });
-//   const template = await vite.transformIndexHtml(url, fileText);
-//   // ????
-//   const { render } = await vite.ssrLoadModule(pathToJs);
-//   const appHtml = await render();
-//   const html = template.replace(`<!--ssr-outlet-->`, () => appHtml);
-// };
