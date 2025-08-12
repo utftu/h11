@@ -1,4 +1,4 @@
-import { fsApi } from '../fs-api/fs-universal.ts';
+import { fsApi } from '../fs-universal.ts';
 import { readdir } from 'node:fs/promises';
 import { createReadStream, createWriteStream } from 'node:fs';
 import { pipeline } from 'node:stream/promises';
@@ -12,7 +12,7 @@ import {
 
 const formats = {
   gzip: 'gz',
-  deflate: 'defalte',
+  deflate: 'deflate',
   brotli: 'br',
 } as const;
 
@@ -74,12 +74,16 @@ export async function brotliFile(
 // };
 
 const compress = async (path: string, format: Format) => {
+  // console.log('-----', 'format', format);
   if (format === 'brotli') {
     await brotliFile(path, `${path}.br`);
+    return;
   } else if (format === 'deflate') {
     await deflateFile(path, `${path}.deflate`);
+    return;
   } else if (format === 'gzip') {
     await gzipFile(path, `${path}.gz`);
+    return;
   }
 
   throw new Error('Unknow compress format');
@@ -87,15 +91,26 @@ const compress = async (path: string, format: Format) => {
 
 const recComporess = async (pathToDir: string) => {
   const ents = await readdir(pathToDir, { withFileTypes: true });
+  // console.log('-----', 'ents', [...ents]);
 
-  for (const ent of ents) {
+  file_for: for (const ent of ents) {
     if (ent.isFile()) {
+      console.log('-----', 'file', ent.name);
+      for (const allowedCompressFormat of allowedCompressFormats) {
+        console.log(
+          '-----',
+          '`.${formats[allowedCompressFormat]}`',
+          `.${formats[allowedCompressFormat]}`
+        );
+        if (ent.name.endsWith(`.${formats[allowedCompressFormat]}`)) {
+          continue file_for;
+        }
+      }
+      console.log('after');
+
       const pathToFile = `${pathToDir}/${ent.name}`;
       for (const format of allowedCompressFormats) {
         await compress(pathToFile, format);
-        // if (format === 'brotli') {
-        //   await brotliFile(pathToFile, `${pathToFile}.br`);
-        // }
       }
       continue;
     }
