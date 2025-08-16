@@ -1,6 +1,6 @@
 import type { Handler } from '../../types.ts';
 import { joinUserPath } from '../../utils/join.ts';
-import { fsApi } from './fs-universal.ts';
+import { fsApi } from './fs.ts';
 
 export const serveFilesModule = (dirToServe: string, prefix: string = '') => {
   const handler: Handler = async ({ req }) => {

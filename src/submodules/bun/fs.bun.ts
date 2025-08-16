@@ -1,6 +1,6 @@
-import type { FsApi } from '../fs/fs-api.ts';
+import type { FsApi } from '../fs/fs.types.ts';
 import { file as fileBun, write } from 'bun';
-import { copyFiles, mkdirNode, rmNode } from '../node/fs-api.node.ts';
+import { copyFiles, mkdirNode, rmNode } from '../node/fs.node.ts';
 
 export const fsApiBun: FsApi = {
   getFileStream: (path: string) => {

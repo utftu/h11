@@ -1,10 +1,10 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { convertReqToNodeReq } from './req.ts';
-import { copyReq } from '../modules/limit.ts';
 import { Readable } from 'node:stream';
-import type { Handler } from '../types.ts';
 import { convertNodeResToRes, createNodeRes } from './res.ts';
 import { createControlledPromise } from 'utftu';
+import type { Handler } from '../../../types.ts';
+import { copyReq } from '../../../utils/req.ts';
 
 const deletePrefix = (url: string, prefix: string) => {
   const parsedUrl = new URL(url);

@@ -1,16 +1,9 @@
 import type { Handler } from '../types.ts';
+import { copyReq } from '../utils/req.ts';
 
 export const SIZE_1b = 1;
 export const SIZE_1kb = 1;
 export const SIZE_1mb = 1024 * 1024;
-
-export const copyReq = (req: Request, body: ReadableStream | void) => {
-  const newReq = new Request(req.url, {
-    ...req,
-    body: body ?? undefined,
-  });
-  return newReq;
-};
 
 export const createRateLimiterModule = (limit: number): Handler => {
   return (ctx) => {
