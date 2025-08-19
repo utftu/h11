@@ -1,0 +1,16 @@
+{
+  "name": "h11-bun",
+  "version": "1.0.0",
+  "description": "",
+  "license": "ISC",
+  "author": "",
+  "type": "module",
+  "types": "dist/h11-bun.d.ts",
+  "main": "dist/h11-bun.js",
+  "scripts": {
+    "build": "bun build ./src/h11-bun.ts --target bun --outdir ./dist"
+  },
+  "dependencies": {
+    "h11": "workspace:*"
+  }
+}

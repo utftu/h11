@@ -22,6 +22,9 @@
       "default": "./dist/bun.js"
     }
   },
+  "workspaces": [
+    "packages/*"
+  ],
   "devDependencies": {
     "@types/bun": "latest",
     "mitata": "^0.1.14",
