@@ -1,0 +1,16 @@
+{
+  "name": "h11-node",
+  "version": "1.0.0",
+  "description": "",
+  "license": "ISC",
+  "author": "",
+  "type": "module",
+  "types": "dist/h11-npde.d.ts",
+  "main": "dist/h11-node.js",
+  "scripts": {
+    "build": "bun build ./src/h11-node.ts --target node --outdir ./dist"
+  },
+  "dependencies": {
+    "h11": "workspace:*"
+  }
+}

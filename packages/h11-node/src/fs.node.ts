@@ -1,9 +1,9 @@
+import type { FsApi } from 'h11';
 import { createReadStream, createWriteStream } from 'node:fs';
 import { mkdir, copyFile, exists, rm, writeFile } from 'node:fs/promises';
 import { dirname } from 'node:path';
 import { Readable } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
-import type { FsApi } from '../fs/fs.types.ts';
 
 export const copyFiles = async (from: string, to: string) => {
   const destDir = dirname(from);

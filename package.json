@@ -36,6 +36,7 @@
   },
   "dependencies": {
     "@types/serve-static": "^1.15.8",
+    "dapes": "^0.0.38",
     "express": "^5.1.0",
     "regan": "^0.0.3",
     "vitest": "^3.2.4"

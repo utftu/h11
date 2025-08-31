@@ -1,6 +1,5 @@
-import type { FsApi } from './fs-api/fs-api.ts';
 import { Radix } from './radix/radix.ts';
-import type { Context, Handler, Method } from './types.ts';
+import type { Context, FsApi, Handler, Method } from './types.ts';
 
 export type ExecProps = {
   req: Request;

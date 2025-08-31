@@ -1,6 +1,6 @@
+import type { H11 } from 'h11';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { Readable } from 'node:stream';
-import type { H11 } from '../../core.ts';
 
 const joinPaths = (elem1: string, elem2: string): string => {
   if (elem1.at(-1) === '/') {
