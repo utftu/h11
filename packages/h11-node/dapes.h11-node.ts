@@ -1,5 +1,5 @@
 import { Group, startIfMain, Task } from 'dapes';
-import { groupH11 } from 'h11/dapes.h11.ts';
+import { groupH11 } from '../h11/dapes.h11.ts';
 import { getAbsolutePath } from 'utftu';
 
 const types = new Task({
@@ -20,9 +20,9 @@ const build = new Task({
   },
 });
 
-export const groupH11Bun = new Group({
-  name: 'h11-bun',
+export const groupH11Node = new Group({
+  name: 'h11-node',
   tasks: [build],
 });
 
-startIfMain(groupH11Bun, import.meta);
+startIfMain(groupH11Node, import.meta);

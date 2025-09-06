@@ -25,9 +25,9 @@ export const getFsApi = async () => {
   const runtime = getRuntime();
 
   if (runtime === 'bun') {
-    return (await import('../bun/fs.bun.ts')).fsApiBun;
+    return (await import('../../h11-bun')).fsApiBun;
   } else if (runtime === 'node') {
-    return (await import('../node/fs.node.ts')).fsApiNode;
+    return (await import('../../h11-node')).fsApiNode;
   }
 
   throw new Error('Unknown runtime');

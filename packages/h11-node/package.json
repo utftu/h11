@@ -5,10 +5,11 @@
   "license": "ISC",
   "author": "",
   "type": "module",
-  "types": "dist/h11-npde.d.ts",
+  "types": "dist/h11-node.d.ts",
   "main": "dist/h11-node.js",
   "scripts": {
-    "build": "bun build ./src/h11-node.ts --target node --outdir ./dist"
+    "build": "bun build ./src/h11-node.ts --target node --outdir ./dist",
+    "types": "tsc --project tsconfig.types.json"
   },
   "dependencies": {
     "h11": "workspace:*"
