@@ -1,6 +1,6 @@
 import { file as fileBun, write } from 'bun';
 import { type FsApi } from 'h11';
-import { copyFiles, mkdirNode, rmNode } from '../node/fs.node.ts';
+import { copyFiles, mkdirNode, rmNode } from '../../h11-node/src/fs.node.ts';
 
 export const fsApiBun: FsApi = {
   getFileStream: (path: string) => {
