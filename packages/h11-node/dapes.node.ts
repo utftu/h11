@@ -1,5 +1,5 @@
 import { Group, startIfMain, Task } from 'dapes';
-import { groupH11 } from '../h11/dapes.h11.ts';
+import { groupH11 } from 'h11/dapes.h11.ts';
 import { getAbsolutePath } from 'utftu';
 
 const types = new Task({
