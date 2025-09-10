@@ -1,0 +1,17 @@
+{
+  "name": "h11-fs",
+  "version": "1.0.0",
+  "description": "",
+  "license": "ISC",
+  "author": "",
+  "type": "module",
+  "types": "dist/h11-fs.d.ts",
+  "main": "dist/h11-fs.js",
+  "scripts": {
+    "build": "bun build ./src/h11-fs.ts --target node --splitting --outdir ./dist",
+    "types": "tsc --project tsconfig.types.json"
+  },
+  "dependencies": {
+    "h11": "workspace:*"
+  }
+}
