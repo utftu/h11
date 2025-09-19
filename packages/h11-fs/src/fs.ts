@@ -27,11 +27,11 @@ export const getFsApi = async () => {
   const runtime = getRuntime();
 
   if (runtime === 'bun') {
-    return (await import('../../h11-bun')).fsApiBun as unknown as FsApi;
+    return (await import('h11-bun')).fsApiBun as unknown as FsApi;
     // // @ts-ignore
     // return (await import('../../h11-bun')).fsApiBun;
   } else if (runtime === 'node') {
-    return (await import('../../h11-node')).fsApiNode as unknown as FsApi;
+    return (await import('h11-node')).fsApiNode as unknown as FsApi;
     // // @ts-ignore
     // return (await import('../../h11-node')).fsApiNode;
   }

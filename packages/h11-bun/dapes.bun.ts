@@ -21,26 +21,9 @@ const build = new Task({
   },
 });
 
-const build2 = new Task({
-  name: 'build2',
-  // parents: [groupH11.getTaskControl('build')],
-  // children: [types],
-  exec: async ({ command }) => {
-    await esbuildBuild({
-      entryPoints: ['./src/h11-bun.ts'],
-      outdir: './dist',
-      bundle: true,
-      splitting: true,
-      format: 'esm',
-      target: ['esnext'], // или ближе всего к "bun"
-      external: ['h11', 'node:*', 'bun'],
-    });
-  },
-});
-
 export const groupH11Bun = new Group({
   name: 'bun',
-  tasks: [build, build2],
+  tasks: [build],
 });
 
 startIfMain(groupH11Bun, import.meta);

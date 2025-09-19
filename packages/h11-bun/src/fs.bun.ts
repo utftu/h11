@@ -1,5 +1,5 @@
 import { file as fileBun, write } from 'bun';
-import { type FsApi } from 'h11';
+import type { FsApi } from 'h11';
 import { copyFiles, mkdirNode, rmNode } from '../../h11-node/src/fs.node.ts';
 
 export const fsApiBun: FsApi = {

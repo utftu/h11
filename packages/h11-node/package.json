@@ -5,7 +5,7 @@
   "license": "ISC",
   "author": "",
   "type": "module",
-  "types": "dist/h11-node.d.ts",
+  "types": "dist/types/h11-node.d.ts",
   "main": "dist/h11-node.js",
   "scripts": {
     "build": "bun build ./src/h11-node.ts --target node --outdir ./dist",
