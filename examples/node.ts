@@ -1,6 +1,6 @@
 import { createServer } from 'node:http';
-import { H11 } from '../src/h11.ts';
-import { createNodeProvider } from '../src/h11-node.ts';
+import { H11 } from 'h11';
+import { createNodeProvider } from 'h11-node';
 
 const h11 = new H11();
 

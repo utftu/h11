@@ -1,5 +1,5 @@
 import { defineConfig, build as buildVite, type ViteDevServer } from 'vite';
-import { getFsApi } from '../fs-api/fs-universal.ts';
+import { getFsApi } from 'h11-fs';
 import { checkFile, getEntName, getEntPath } from './utils.ts';
 import type { SsrRoute } from './types.ts';
 

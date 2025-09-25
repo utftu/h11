@@ -1,5 +1,5 @@
-import { handleConnectMiddleware } from '../src/h11-fs.ts';
-import { H11, type Handler } from '../src/h11.ts';
+import { handleConnectMiddleware } from 'h11-fs';
+import { H11 } from 'h11';
 import { getSsrHtml } from '../src/h11x/ssr.ts';
 import { createRateLimiterModule } from '../src/modules/limit.ts';
 import { proxyReq } from '../src/modules/proxy.ts';

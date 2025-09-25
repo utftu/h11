@@ -1,0 +1,6 @@
+{
+  "name": "h11-x",
+  "dependencies": {
+    "h11-fs": "*"
+  }
+}
