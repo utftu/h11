@@ -5,32 +5,34 @@ import type { SsrRoute } from './types.ts';
 
 const fsApi = await getFsApi();
 
+type SsrRouteFull = SsrRoute & { ssrFile: string; clientFile: string };
+
 const makeSsr = async ({ routes }: { routes: SsrRoute[] }) => {
-  const jsEnts: (SsrRoute & { ssrFile: string; clientFile: string })[] = [];
+  const jsEnts: SsrRouteFull[] = [];
 
   const routesPromises = routes.map(async ({ dir, pathname }) => {
     const entName = getEntName(dir);
 
-    const file = await checkFile(dir, `${entName}.ssr`, fsApi);
+    const ssrFile = await checkFile(dir, `${entName}.ssr`, fsApi);
     const clientFile = await checkFile(dir, `${entName}.client`, fsApi);
 
     jsEnts.push({
       type: 'ssr',
       dir,
       pathname,
-      ssrFile: file,
+      ssrFile,
       clientFile,
     });
   });
 
   await Promise.all(routesPromises);
 
-  const builds = jsEnts.map(async ({ ssrFile: filename, pathname }) => {
+  const builds = jsEnts.map(async ({ ssrFile, pathname }) => {
     const config = defineConfig({
       build: {
         outDir: '.h11x/server',
         lib: {
-          entry: filename,
+          entry: ssrFile,
           formats: ['es'],
           fileName: pathname,
         },

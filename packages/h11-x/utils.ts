@@ -1,4 +1,4 @@
-import type { FsApi } from '../fs-api/fs-api.ts';
+import type { FsApi } from 'h11';
 
 export const checkFile = async (
   dir: string,

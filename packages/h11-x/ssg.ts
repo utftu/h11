@@ -1,109 +1,88 @@
-import {
-  type ViteDevServer,
-  defineConfig,
-  createServer as createViteServer,
-  build as buildVite,
-} from 'vite';
-import { getFsApi } from '../fs-api/fs-universal.ts';
-import { checkFile } from './utils.ts';
-import type { Page, SsgRoute } from './types.ts';
-import path from 'node:path';
+import { defineConfig, build as buildVite, type ViteDevServer } from 'vite';
+import { getFsApi } from 'h11-fs';
+import { checkFile, getEntName, getEntPath } from './utils.ts';
+import type { SsrRoute } from './types.ts';
 
 const fsApi = await getFsApi();
 
-const getEntName = (str: string) => {
-  return str.split('/').at(-1);
-};
+type SsrRouteFull = SsrRoute & { ssrFile: string; clientFile: string };
 
-const getHtmlPath = (pathname: string) => {
-  return `.h11x/html/${pathname}.html`;
-};
+const makeSsr = async ({ routes }: { routes: SsrRoute[] }) => {
+  const jsEnts: SsrRouteFull[] = [];
 
-const makeSsg = async ({
-  vite,
-  routes,
-}: {
-  vite: ViteDevServer;
-  routes: SsgRoute[];
-}) => {
-  await fsApi.mkdir('.h11x/html');
-
-  const htmlEntries: (SsgRoute & Page)[] = [];
-  const serverEntries = [];
-  for (const { dir, type } of routes) {
+  const routesPromises = routes.map(async ({ dir, pathname }) => {
     const entName = getEntName(dir);
-    const htmlEntry = await checkFile(dir, entName + '.ssg', fsApi);
-    const { getHtmls } = await vite.ssrLoadModule(htmlEntry);
-    const pages = (await getHtmls()) as Page[];
 
-    for (const page of pages) {
-      console.log('');
-      const htmlPath = `.h11x/html/${page.pathname}.html`;
-      await fsApi.writeFile(htmlPath, page.html);
+    const ssrFile = await checkFile(dir, `${entName}.ssr`, fsApi);
+    const clientFile = await checkFile(dir, `${entName}.client`, fsApi);
 
-      htmlEntries.push({
-        type,
-        dir,
-        ...page,
-      });
-    }
-  }
+    jsEnts.push({
+      type: 'ssr',
+      dir,
+      pathname,
+      ssrFile,
+      clientFile,
+    });
+  });
 
-  const input = htmlEntries.reduce<Record<string, string>>(
-    (store, { pathname }) => {
-      //delete /
-      store[pathname.slice(1)] = path.resolve(getHtmlPath(pathname));
+  await Promise.all(routesPromises);
+
+  const builds = jsEnts.map(async ({ ssrFile, pathname }) => {
+    const config = defineConfig({
+      build: {
+        outDir: '.h11x/server',
+        lib: {
+          entry: ssrFile,
+          formats: ['es'],
+          fileName: pathname,
+        },
+        emptyOutDir: false,
+      },
+    });
+    await buildVite(config);
+  });
+
+  await Promise.all(builds);
+
+  const inputs = jsEnts.reduce<Record<string, string>>(
+    (store, { pathname, clientFile, dir }) => {
+      store[getEntPath(pathname, dir)] = clientFile;
       return store;
     },
     {}
   );
-  const buildHtmls = defineConfig({
+
+  const clientConfig = defineConfig({
     build: {
-      modulePreload: {
-        polyfill: false,
-      },
       rollupOptions: {
-        input,
-        output: {
-          entryFileNames: ({ name }) => {
-            // убираем ".client" перед хешем
-            // console.log('-----', 'entry');
-            const cleanName = name?.replace(/\.client$/, '');
-            // console.log('-----', 'cleanName', cleanName);
-            return `assets/${cleanName}-[hash].js`;
-          },
-          chunkFileNames: ({ name }) => {
-            console.log('-----', 'name', name);
-            const cleanName = name?.replace(/\.client$/, '');
-            return `assets/${cleanName}-[hash].js`;
-          },
-          assetFileNames: ({ name }) => {
-            // для статики тоже можем почистить, если надо
-            // console.log('-----', 'asset', name);
-            const base = name?.replace(/\.client(\.\w+)$/, '$1');
-            return `assets/${base}`;
-          },
-        },
+        input: inputs,
       },
-      emptyOutDir: false,
     },
   });
 
-  const a = await buildVite(buildHtmls);
-  // console.log('-----', 'a', a);
-
-  const copyPromises = htmlEntries.map(({ pathname }) =>
-    fsApi.copyFile(`dist/${getHtmlPath(pathname)}`, `dist/${pathname}.html`)
-  );
-  await Promise.all(copyPromises);
-
-  await fsApi.rm('dist/.h11x');
+  await buildVite(clientConfig);
 };
 
-const vite = await createViteServer({
-  server: { middlewareMode: true },
-  appType: 'custom',
-});
+export const getSsrHtml = async ({
+  isProd,
+  pathToFile,
+  pathname,
+  vite,
+}: {
+  pathToFile: string;
+  isProd: boolean;
+  pathname: string;
+  vite?: ViteDevServer;
+}) => {
+  if (isProd) {
+    const { getHtml } = await import(`.h11x/server/${pathname}.js`);
+    return getHtml;
+  } else {
+    const { getHtml } = await vite!.ssrLoadModule(pathToFile);
+    return getHtml;
+  }
+};
 
-await makeSsg({ vite, routes: [{ type: 'ssg', dir: './src/routes/about' }] });
-vite.close();
+await makeSsr({
+  routes: [{ type: 'ssr', dir: './src/routes/about', pathname: 'about.ssr' }],
+});
