@@ -7,11 +7,15 @@ export type SsrRoute = {
 export type SsgRoute = {
   type: 'ssg';
   dir: string;
+  name: string;
 };
 
 export type Route = SsrRoute | SsgRoute;
 
-export type Page = {
-  pathname: string;
-  html: string;
-};
+export type GetHtml = (props: { req: Request }) => Promise<string>;
+export type GetHtmlSsg = (props: { pathname: string }) => Promise<string>;
+
+// export type Page = {
+//   pathname: string;
+//   html: string;
+// };
