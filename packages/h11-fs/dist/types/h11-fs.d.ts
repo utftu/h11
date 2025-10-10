@@ -1,3 +1,4 @@
 import { handleConnectMiddleware } from './connect/connect.ts';
 import { getFsApi, fsApi } from './fs.ts';
-export { handleConnectMiddleware, getFsApi, fsApi };
+import { serveFilesModule } from './serve.ts';
+export { handleConnectMiddleware, getFsApi, fsApi, serveFilesModule };

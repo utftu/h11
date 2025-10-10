@@ -1,4 +1,0 @@
-{
-  "extends": "./tsconfig.types.json",
-  "include": ["src/providers/node.ts"]
-}

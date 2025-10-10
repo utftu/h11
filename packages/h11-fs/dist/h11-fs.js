@@ -1,4 +1,9 @@
-// packages/h11-fs/src/connect/req.ts
+import {
+  __require,
+  __toESM
+} from "./h11-fs-zbk6z3qc.js";
+
+// src/connect/req.ts
 import { Socket } from "node:net";
 import { Transform } from "node:stream";
 var convertReqToNodeReq = ({
@@ -16,15 +21,15 @@ var convertReqToNodeReq = ({
   });
   return nodeReq;
 };
-var socket = new Socket();
-var MockIncomingMessage = class extends Transform {
+var socket = new Socket;
+
+class MockIncomingMessage extends Transform {
   method;
   url;
   headers = {};
   headersDistinct = {};
   rawHeaders = [];
   _failError;
-  // mock for IncomingMessage
   aborted = false;
   httpVersion = "1.1";
   httpVersionMajor = 1;
@@ -59,7 +64,7 @@ var MockIncomingMessage = class extends Transform {
     if (options.headers) {
       Object.keys(options.headers).forEach((key) => {
         const val = options.headers[key];
-        if (val !== void 0) {
+        if (val !== undefined) {
           const headerValue = typeof val !== "string" ? String(val) : val;
           this.headers[key.toLowerCase()] = headerValue;
           this.rawHeaders.push(key);
@@ -83,18 +88,18 @@ var MockIncomingMessage = class extends Transform {
   _fail(error) {
     this._failError = error;
   }
-};
+}
 
-// packages/h11-fs/src/connect/connect.ts
+// src/connect/connect.ts
 import { Readable as Readable2 } from "node:stream";
 
-// packages/h11-fs/src/connect/res.ts
+// src/connect/res.ts
 import {
   STATUS_CODES
 } from "node:http";
 import { Readable, Transform as Transform2 } from "node:stream";
 
-// node_modules/utftu/dist/utftu.js
+// ../../node_modules/utftu/dist/utftu.js
 function u() {
   let n, t;
   return { promise: new Promise((e, o) => {
@@ -102,7 +107,7 @@ function u() {
   }), controls: { resolve: n, reject: t } };
 }
 
-// packages/h11-fs/src/connect/res.ts
+// src/connect/res.ts
 var convertNodeResToRes = (res) => {
   const stream = Readable.toWeb(res);
   const newRes = new Response(stream, {
@@ -113,10 +118,11 @@ var convertNodeResToRes = (res) => {
   return newRes;
 };
 var createNodeRes = () => {
-  const nodeRes = new MockServerResponse();
+  const nodeRes = new MockServerResponse;
   return nodeRes;
 };
-var MockServerResponse = class extends Transform2 {
+
+class MockServerResponse extends Transform2 {
   statusCode = 200;
   statusMessage = STATUS_CODES[200];
   _headers = {};
@@ -128,11 +134,9 @@ var MockServerResponse = class extends Transform2 {
     super();
     this._onEnd = onEnd;
   }
-  assignSocket() {
-  }
+  assignSocket() {}
   strictContentLength = false;
-  detachSocket = () => {
-  };
+  detachSocket = () => {};
   _transform(chunk, encoding, callback) {
     if (!this.started) {
       this.started = true;
@@ -154,7 +158,6 @@ var MockServerResponse = class extends Transform2 {
   removeHeader(name) {
     delete this._headers[name.toLowerCase()];
   }
-  // @ts-ignore
   writeHead(statusCode, reasonOrHeaders, headers) {
     this.statusCode = statusCode;
     if (typeof reasonOrHeaders === "string") {
@@ -170,12 +173,6 @@ var MockServerResponse = class extends Transform2 {
     }
     return this;
   }
-  // get bodyString(): string {
-  //   return Buffer.concat(this._responseData).toString();
-  // }
-  // get bodyJSON(): unknown {
-  //   return JSON.parse(this.bodyString);
-  // }
   end(...args) {
     super.end(...args);
     this.finished = true;
@@ -183,16 +180,225 @@ var MockServerResponse = class extends Transform2 {
     this.promiseEnt.controls.resolve();
     return this;
   }
-  // Not implemented methods can be stubbed or extended later
-  // writeContinue?(): void;
-  // setTimeout?(msecs: number, callback?: () => void): this;
-  // get headersSent(): boolean;
-  // sendDate?: boolean;
-  // addTrailers?(headers: NodeJS.OutgoingHttpHeaders): void;
+}
+
+// ../h11/dist/h11.js
+class Node {
+  segment;
+  handlers = {};
+  children = [];
+  wildParent = false;
+  parent;
+  constructor({ segment, parent }) {
+    this.segment = segment;
+    this.parent = parent;
+  }
+}
+var addNodeToChildren = (parent, node) => {
+  const children = parent.children;
+  if (children.length === 0) {
+    children.push(node);
+    return;
+  }
+  if (node.segment === "**") {
+    children.push(node);
+    return;
+  } else if (node.segment[0] === ":") {
+    for (let i = children.length - 1;i >= 0; i--) {
+      const compareNode = children[i];
+      if (compareNode.segment === "**") {
+        continue;
+      }
+      children.splice(i + 1, 0, node);
+      return;
+    }
+    children.unshift(node);
+  } else {
+    for (let i = children.length - 1;i >= 0; i--) {
+      const compareNode = children[i];
+      if (compareNode.segment === "**" || compareNode.segment[0] === ":") {
+        continue;
+      }
+      children.splice(i + 1, 0, node);
+      return;
+    }
+    children.unshift(node);
+  }
 };
 
-// packages/h11-fs/src/connect/connect.ts
-import { copyReq } from "h11";
+class Radix {
+  root = new Node({ segment: "" });
+  find(path, method = "GET") {
+    const segments = path.split("/");
+    const params = {};
+    let currentNode = this.root;
+    let lastWild = undefined;
+    outer:
+      for (let i = 0;i < segments.length; i++) {
+        const segment = segments[i];
+        if (currentNode.wildParent === true) {
+          const wild = currentNode.children[currentNode.children.length - 1];
+          const wildHandlerContainer = wild.handlers[method];
+          if (wildHandlerContainer) {
+            lastWild = {
+              node: wild,
+              handlerEnt: wildHandlerContainer,
+              params: { ...params, wild: segments.slice(i).join("/") }
+            };
+          }
+        }
+        if (currentNode.segment[0] === ":") {
+          params[currentNode.segment.slice(1)] = segment;
+        }
+        const isLastSegment = i + 1 === segments.length;
+        if (isLastSegment) {
+          break;
+        }
+        if (currentNode.children.length === 0) {
+          return lastWild;
+        }
+        for (const child of currentNode.children) {
+          const nextSegment = segments[i + 1];
+          if (child.segment === nextSegment) {
+            currentNode = child;
+            continue outer;
+          }
+          if (child.segment[0] === ":" && nextSegment !== "") {
+            currentNode = child;
+            continue outer;
+          }
+        }
+        return lastWild;
+      }
+    const handlerContainer = currentNode.handlers[method];
+    if (!handlerContainer) {
+      return lastWild;
+    }
+    return {
+      node: currentNode,
+      params,
+      handlerEnt: handlerContainer
+    };
+  }
+  add(pattern, method = "GET", handler) {
+    const patternSegments = pattern.slice(1).split("/");
+    let currentNode = this.root;
+    outer:
+      for (let i = 0;i < patternSegments.length; i++) {
+        const segment = patternSegments[i];
+        for (const child of currentNode.children) {
+          if (child.segment === segment) {
+            currentNode = child;
+            continue outer;
+          }
+        }
+        const newNode = new Node({ segment, parent: currentNode });
+        addNodeToChildren(currentNode, newNode);
+        if (segment === "**") {
+          currentNode.wildParent = true;
+        }
+        currentNode = newNode;
+      }
+    currentNode.handlers[method] = handler;
+    return currentNode;
+  }
+}
+var defaultOnNotFound = (req) => {
+  console.log(`h11: Not found ${req.url}`);
+  return new Response("Not Found", {
+    status: 404,
+    statusText: "Not Found 404",
+    headers: {
+      "Content-Type": "text/plain"
+    }
+  });
+};
+var defaultOnError = ({ req, error }) => {
+  console.error(`h11: Error ${req.url} - ${error.message}`);
+  return new Response(error.message || "Error 500", {
+    status: 500,
+    statusText: "System error 500",
+    headers: {
+      "Content-Type": "text/plain"
+    }
+  });
+};
+
+class H11 {
+  types;
+  radix = new Radix;
+  fsApi;
+  onNotFound = defaultOnNotFound;
+  onError = defaultOnError;
+  addRoute(pattern, method, handlers) {
+    const preparedHandler = { handlers };
+    this.radix.add(pattern, method, preparedHandler);
+  }
+  get(pattern, ...handlers) {
+    this.addRoute(pattern, "GET", handlers);
+    return this;
+  }
+  post(pattern, ...handlers) {
+    this.addRoute(pattern, "POST", handlers);
+    return this;
+  }
+  async exec({ req, data, providers }) {
+    const url = new URL(req.url);
+    const findResult = this.radix.find(url.pathname, req.method);
+    if (!findResult) {
+      return this.onNotFound(req);
+    }
+    const props = {
+      req,
+      params: findResult.params,
+      data,
+      providers
+    };
+    try {
+      for (const handler of findResult.handlerEnt.handlers) {
+        const response = await handler(props);
+        if (response) {
+          return response;
+        }
+      }
+      return defaultOnNotFound(req);
+    } catch (error) {
+      return this.onError({ ...props, error });
+    }
+  }
+}
+var joinUserPath = (basePath, userPath) => {
+  if (userPath[0] === "/") {
+    return "";
+  }
+  const segments = userPath.split("/");
+  const resolved = [];
+  for (const segment of segments) {
+    if (segment === "") {
+      continue;
+    }
+    if (segment === "..") {
+      return "";
+    } else if (segment !== ".") {
+      resolved.push(segment);
+    }
+  }
+  let result = basePath;
+  if (!basePath.endsWith("/")) {
+    result += "/";
+  }
+  result += resolved.join("/");
+  return result;
+};
+var copyReq = (req, body) => {
+  const newReq = new Request(req.url, {
+    ...req,
+    body: body ?? undefined
+  });
+  return newReq;
+};
+
+// src/connect/connect.ts
 var deletePrefix = (url, prefix) => {
   const parsedUrl = new URL(url);
   parsedUrl.pathname = parsedUrl.pathname.slice(prefix.length);
@@ -209,9 +415,7 @@ var handleConnectMiddleware = ({
   return async (ctx) => {
     const nodeReq = convertReqToNodeReq({
       req: ctx.req,
-      url: makePath(
-        prefixToRemove ? deletePrefix(ctx.req.url, prefixToRemove) : ctx.req.url
-      )
+      url: makePath(prefixToRemove ? deletePrefix(ctx.req.url, prefixToRemove) : ctx.req.url)
     });
     let newBody;
     if (ctx.req.body) {
@@ -230,18 +434,14 @@ var handleConnectMiddleware = ({
       promiseEnt.controls.reject(error);
     });
     let goNext = false;
-    await connectMiddleware(
-      nodeReq,
-      nodeRes,
-      (err) => {
-        if (err) {
-          promiseEnt.controls.reject(err);
-          return;
-        }
-        goNext = true;
-        promiseEnt.controls.resolve();
+    await connectMiddleware(nodeReq, nodeRes, (err) => {
+      if (err) {
+        promiseEnt.controls.reject(err);
+        return;
       }
-    );
+      goNext = true;
+      promiseEnt.controls.resolve();
+    });
     await Promise.race([promiseEnt.promise, nodeRes.promiseEnt.promise]);
     if (goNext) {
       return;
@@ -251,20 +451,27 @@ var handleConnectMiddleware = ({
   };
 };
 
-// packages/h11-fs/src/fs.ts
+// src/fs.ts
 function getRuntime() {
-  if (typeof Bun !== "undefined") return "bun";
+  if (typeof Bun !== "undefined")
+    return "bun";
   if (typeof process !== "undefined" && process.versions?.node) {
     return "node";
   }
-  if (typeof Deno !== "undefined") return "deno";
-  if (typeof EdgeRuntime !== "undefined") return "vercel-edge";
-  if (typeof WebSocketPair !== "undefined") return "cloudflare-worker";
+  if (typeof Deno !== "undefined")
+    return "deno";
+  if (typeof EdgeRuntime !== "undefined")
+    return "vercel-edge";
+  if (typeof WebSocketPair !== "undefined")
+    return "cloudflare-worker";
   if (typeof process !== "undefined") {
-    if (process.env.AWS_EXECUTION_ENV) return "aws-lambda";
-    if (process.env.NETLIFY) return "netlify";
+    if (process.env.AWS_EXECUTION_ENV)
+      return "aws-lambda";
+    if (process.env.NETLIFY)
+      return "netlify";
   }
-  if (typeof window !== "undefined") return "browser";
+  if (typeof window !== "undefined")
+    return "browser";
   if (typeof self !== "undefined" && typeof self.skipWaiting === "function")
     return "service-worker";
   return "unknown";
@@ -272,15 +479,43 @@ function getRuntime() {
 var getFsApi = async () => {
   const runtime = getRuntime();
   if (runtime === "bun") {
-    return (await import("h11-bun")).fsApiBun;
+    return (await import("./h11-bun-0696pprm.js")).fsApiBun;
   } else if (runtime === "node") {
-    return (await import("h11-node")).fsApiNode;
+    return (await import("./h11-node-1s6025vj.js")).fsApiNode;
   }
   throw new Error("Unknown runtime");
 };
 var fsApi = await getFsApi();
+
+// src/serve.ts
+var serveFilesModule = (dirToServe, prefix = "") => {
+  const handler = async ({ req }) => {
+    const url = new URL(req.url);
+    const resultPathname = url.pathname.slice(prefix.length);
+    const filePath = joinUserPath(dirToServe, resultPathname);
+    console.log("-----", "filePath", filePath);
+    console.log("-----", "dirToServe", dirToServe);
+    console.log("-----", "resultPathname", resultPathname);
+    if (await fsApi.checkExist(filePath) === false) {
+      console.log(`h11: Not found ${req.url}`);
+      return new Response("Not Found", {
+        status: 404,
+        statusText: "Not Found 404",
+        headers: {
+          "Content-Type": "text/plain"
+        }
+      });
+    }
+    const stream = fsApi.getFileStream(filePath);
+    return new Response(stream, {
+      status: 200
+    });
+  };
+  return handler;
+};
 export {
-  fsApi,
+  serveFilesModule,
+  handleConnectMiddleware,
   getFsApi,
-  handleConnectMiddleware
+  fsApi
 };

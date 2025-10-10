@@ -1,0 +1,10 @@
+{
+  "name": "h11-x-example",
+  "module": "index.ts",
+  "type": "module",
+  "private": true,
+  "dependencies": {
+    "h11-x": "*",
+    "regan": "^0.0.3"
+  }
+}

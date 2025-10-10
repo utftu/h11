@@ -1,6 +1,16 @@
 {
   "name": "h11-x",
   "dependencies": {
-    "h11-fs": "*"
+    "h11-fs": "*",
+    "regan": "^0.0.5",
+    "regan-vite": "^1.0.1",
+    "strangelove": "^2.1.4"
+  },
+  "type": "module",
+  "types": "dist/types/h11-x.d.ts",
+  "main": "dist/h11-x.js",
+  "scripts": {
+    "build": "bun build ./src/h11-x.ts --target bun --external vite --outdir ./dist",
+    "types": "tsc --project tsconfig.types.json"
   }
 }
