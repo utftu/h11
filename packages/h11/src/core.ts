@@ -1,19 +1,18 @@
 import { Radix } from './radix/radix.ts';
 import type { Context, FsApi, Handler, Method } from './types.ts';
+import { createEventEmitter, type EE } from 'utftu';
 
-export type ExecProps = {
-  req: Request;
-  providers: Record<string, any>;
-  data: Record<any, any>;
-};
-
-type NotFoundHandler = (req: Request) => Response | Promise<Response>;
+type NotFoundHandler = (props: Context) => Response | Promise<Response>;
 type ErrorHandler = (
   props: { error: Error } & Context
 ) => Response | Promise<Response>;
 
-const defaultOnNotFound: NotFoundHandler = (req) => {
-  console.log(`h11: Not found ${req.url}`);
+const defaultOnNotFound: NotFoundHandler = ({ req, h11 }) => {
+  h11.ee.emit('code', {
+    code: 404,
+    text: `h11: Not found ${req.url}`,
+  });
+
   return new Response('Not Found', {
     status: 404,
     statusText: 'Not Found 404',
@@ -23,8 +22,12 @@ const defaultOnNotFound: NotFoundHandler = (req) => {
   });
 };
 
-const defaultOnError: ErrorHandler = ({ req, error }) => {
-  console.error(`h11: Error ${req.url} - ${error.message}`);
+const defaultOnError: ErrorHandler = ({ req, error, h11 }) => {
+  h11.ee.emit('code', {
+    code: 500,
+    text: `h11: Error ${req.url} - ${error.message}`,
+  });
+
   return new Response(error.message || 'Error 500', {
     status: 500,
     statusText: 'System error 500',
@@ -34,10 +37,22 @@ const defaultOnError: ErrorHandler = ({ req, error }) => {
   });
 };
 
-export class H11<TExecProps extends ExecProps = ExecProps> {
+export class H11<TExecProps extends Context = Context> {
   types!: TExecProps;
   radix = new Radix();
   fsApi?: FsApi;
+  ee = createEventEmitter<
+    {
+      code: {
+        code: number;
+        text: string;
+      };
+    } & Record<string, any>
+  >();
+
+  startConsole() {
+    this.ee.on('code', () => {});
+  }
 
   onNotFound: NotFoundHandler = defaultOnNotFound;
   onError: ErrorHandler = defaultOnError;
@@ -62,7 +77,13 @@ export class H11<TExecProps extends ExecProps = ExecProps> {
     const findResult = this.radix.find(url.pathname, req.method as any);
 
     if (!findResult) {
-      return this.onNotFound(req);
+      return this.onNotFound({
+        req,
+        params: {},
+        data,
+        providers,
+        h11: this,
+      });
     }
 
     const props = {
@@ -70,6 +91,7 @@ export class H11<TExecProps extends ExecProps = ExecProps> {
       params: findResult.params,
       data,
       providers,
+      h11: this,
     };
 
     try {
@@ -79,9 +101,7 @@ export class H11<TExecProps extends ExecProps = ExecProps> {
           return response;
         }
       }
-      return defaultOnNotFound(req);
-      // const response = await findResult.handlerEnt.handler(props);
-      // return response;
+      return defaultOnNotFound(props);
     } catch (error) {
       return this.onError({ ...props, error: error as Error });
     }

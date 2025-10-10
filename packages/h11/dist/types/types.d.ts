@@ -1,6 +1,8 @@
+import type { H11 } from './core.ts';
 export type Method = 'GET' | 'POST' | 'DELET' | 'PUT' | 'PATCH';
 export type Context = {
     req: Request;
+    h11: H11;
     providers: Record<string, any>;
     params: Record<string, string>;
     data: Record<any, any>;

@@ -122,9 +122,29 @@ class Radix {
   }
 }
 
+// ../../node_modules/utftu/dist/utftu.js
+class c {
+  events = /* @__PURE__ */ new Map;
+  on(t, s) {
+    return this.events.has(t) ? this.events.get(t).push(s) : this.events.set(t, [s]), () => this.off(t, s);
+  }
+  off(t, s) {
+    this.events.has(t) && this.events.set(t, this.events.get(t).filter((e) => e !== s));
+  }
+  emit(t, s) {
+    this.events.has(t) && this.events.get(t).forEach((e) => e(s)), t !== "*" && this.events.has("*") && this.events.get("*").forEach((e) => e({ name: t, value: s }));
+  }
+}
+function a() {
+  return new c;
+}
+
 // src/core.ts
-var defaultOnNotFound = (req) => {
-  console.log(`h11: Not found ${req.url}`);
+var defaultOnNotFound = ({ req, h11 }) => {
+  h11.ee.emit("code", {
+    code: 404,
+    text: `h11: Not found ${req.url}`
+  });
   return new Response("Not Found", {
     status: 404,
     statusText: "Not Found 404",
@@ -133,8 +153,11 @@ var defaultOnNotFound = (req) => {
     }
   });
 };
-var defaultOnError = ({ req, error }) => {
-  console.error(`h11: Error ${req.url} - ${error.message}`);
+var defaultOnError = ({ req, error, h11 }) => {
+  h11.ee.emit("code", {
+    code: 500,
+    text: `h11: Error ${req.url} - ${error.message}`
+  });
   return new Response(error.message || "Error 500", {
     status: 500,
     statusText: "System error 500",
@@ -148,6 +171,7 @@ class H11 {
   types;
   radix = new Radix;
   fsApi;
+  ee = a();
   onNotFound = defaultOnNotFound;
   onError = defaultOnError;
   addRoute(pattern, method, handlers) {
@@ -166,13 +190,20 @@ class H11 {
     const url = new URL(req.url);
     const findResult = this.radix.find(url.pathname, req.method);
     if (!findResult) {
-      return this.onNotFound(req);
+      return this.onNotFound({
+        req,
+        params: {},
+        data,
+        providers,
+        h11: this
+      });
     }
     const props = {
       req,
       params: findResult.params,
       data,
-      providers
+      providers,
+      h11: this
     };
     try {
       for (const handler of findResult.handlerEnt.handlers) {
@@ -181,7 +212,7 @@ class H11 {
           return response;
         }
       }
-      return defaultOnNotFound(req);
+      return defaultOnNotFound(props);
     } catch (error) {
       return this.onError({ ...props, error });
     }

@@ -1,18 +1,20 @@
 import { Radix } from './radix/radix.ts';
 import type { Context, FsApi, Handler } from './types.ts';
-export type ExecProps = {
-    req: Request;
-    providers: Record<string, any>;
-    data: Record<any, any>;
-};
-type NotFoundHandler = (req: Request) => Response | Promise<Response>;
+import { type EE } from 'utftu';
+type NotFoundHandler = (props: Context) => Response | Promise<Response>;
 type ErrorHandler = (props: {
     error: Error;
 } & Context) => Response | Promise<Response>;
-export declare class H11<TExecProps extends ExecProps = ExecProps> {
+export declare class H11<TExecProps extends Context = Context> {
     types: TExecProps;
     radix: Radix;
     fsApi?: FsApi;
+    ee: EE<{
+        code: {
+            code: number;
+            text: string;
+        };
+    } & Record<string, any>>;
     onNotFound: NotFoundHandler;
     onError: ErrorHandler;
     private addRoute;

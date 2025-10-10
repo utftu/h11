@@ -13,5 +13,8 @@
   },
   "devDependencies": {
     "dapes": "^0.0.38"
+  },
+  "dependencies": {
+    "balg": "^0.0.2"
   }
 }
