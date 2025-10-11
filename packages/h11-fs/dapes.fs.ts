@@ -12,30 +12,6 @@ const types = new Task({
   },
 });
 
-// const build = new Task({
-//   name: 'build',
-//   parents: [groupH11.getTaskControl('build')],
-//   children: [types],
-//   exec: async ({ command }) => {
-//     await command('npm run build', { cwd: getAbsolutePath('.', import.meta) });
-//   },
-// });
-
-// const build2 = new Task({
-//   name: 'build2',
-//   parents: [groupH11.getTaskControl('build')],
-//   children: [types],
-//   exec: async ({ command }) => {
-//     await Bun.build({
-//       entrypoints: ['./src/h11-fs.ts'],
-//       outdir: './dist',
-//       splitting: true, // default
-//       target: 'bun',
-//       external: ['h11', 'bun'],
-//     });
-//   },
-// });
-
 const build = new Task({
   name: 'build',
   parents: [groupH11.getTaskControl('build')],
@@ -55,9 +31,9 @@ const build = new Task({
   },
 });
 
-export const groupFs = new Group({
+export const groupH11Fs = new Group({
   name: 'fs',
   tasks: [build],
 });
 
-startIfMain(groupFs, import.meta);
+startIfMain(groupH11Fs, import.meta);

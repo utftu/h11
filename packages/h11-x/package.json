@@ -10,7 +10,7 @@
   "types": "dist/types/h11-x.d.ts",
   "main": "dist/h11-x.js",
   "scripts": {
-    "build": "bun build ./src/h11-x.ts --target bun --external vite --outdir ./dist",
+    "build": "bun build ./src/h11-x.ts --target bun --external vite --external h11 --outdir ./dist",
     "types": "tsc --project tsconfig.types.json"
   }
 }

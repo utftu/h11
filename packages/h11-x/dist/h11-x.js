@@ -11,12 +11,9 @@ var __export = (target, all) => {
 };
 var __esm = (fn, res) => () => (fn && (res = fn(fn = 0)), res);
 
-// ../h11-fs/dist/h11-fs-zbk6z3qc.js
-var init_h11_fs_zbk6z3qc = () => {};
-
-// ../h11-fs/dist/h11-bun-0696pprm.js
-var exports_h11_bun_0696pprm = {};
-__export(exports_h11_bun_0696pprm, {
+// ../h11-bun/dist/h11-bun.js
+var exports_h11_bun = {};
+__export(exports_h11_bun, {
   fsApiBun: () => fsApiBun,
   createBunProvider: () => createBunProvider
 });
@@ -45,8 +42,7 @@ var fileBun, write, copyFiles = async (from, to) => {
     return res;
   };
 };
-var init_h11_bun_0696pprm = __esm(() => {
-  init_h11_fs_zbk6z3qc();
+var init_h11_bun = __esm(() => {
   ({ file: fileBun, write } = globalThis.Bun);
   fsApiBun = {
     getFileStream: (path) => {
@@ -69,9 +65,9 @@ var init_h11_bun_0696pprm = __esm(() => {
   };
 });
 
-// ../h11-fs/dist/h11-node-1s6025vj.js
-var exports_h11_node_1s6025vj = {};
-__export(exports_h11_node_1s6025vj, {
+// ../h11-node/dist/h11-node.js
+var exports_h11_node = {};
+__export(exports_h11_node, {
   fsApiNode: () => fsApiNode,
   createNodeProvider: () => createNodeProvider
 });
@@ -136,8 +132,7 @@ var joinPaths = (elem1, elem2) => {
 }, rmNode2 = async (path) => {
   await rm2(path, { recursive: true, force: true });
 }, fsApiNode;
-var init_h11_node_1s6025vj = __esm(() => {
-  init_h11_fs_zbk6z3qc();
+var init_h11_node = __esm(() => {
   fsApiNode = {
     getFileStream: (path) => {
       const file = createReadStream(path);
@@ -164,12 +159,14 @@ var init_h11_node_1s6025vj = __esm(() => {
 import { defineConfig, build as buildVite } from "vite";
 
 // ../h11-fs/dist/h11-fs.js
-init_h11_fs_zbk6z3qc();
 import { Socket } from "net";
 import {
   STATUS_CODES
 } from "http";
 import { Readable as Readable3, Transform as Transform2 } from "stream";
+import { copyReq } from "h11";
+import { joinUserPath as joinUserPath2 } from "h11";
+import"h11";
 var socket = new Socket;
 function u() {
   let n, t;
@@ -177,7 +174,7 @@ function u() {
     n = e, t = o;
   }), controls: { resolve: n, reject: t } };
 }
-class MockServerResponse extends Transform2 {
+var MockServerResponse = class extends Transform2 {
   statusCode = 200;
   statusMessage = STATUS_CODES[200];
   _headers = {};
@@ -235,192 +232,7 @@ class MockServerResponse extends Transform2 {
     this.promiseEnt.controls.resolve();
     return this;
   }
-}
-
-class Node {
-  segment;
-  handlers = {};
-  children = [];
-  wildParent = false;
-  parent;
-  constructor({ segment, parent }) {
-    this.segment = segment;
-    this.parent = parent;
-  }
-}
-var addNodeToChildren = (parent, node) => {
-  const children = parent.children;
-  if (children.length === 0) {
-    children.push(node);
-    return;
-  }
-  if (node.segment === "**") {
-    children.push(node);
-    return;
-  } else if (node.segment[0] === ":") {
-    for (let i = children.length - 1;i >= 0; i--) {
-      const compareNode = children[i];
-      if (compareNode.segment === "**") {
-        continue;
-      }
-      children.splice(i + 1, 0, node);
-      return;
-    }
-    children.unshift(node);
-  } else {
-    for (let i = children.length - 1;i >= 0; i--) {
-      const compareNode = children[i];
-      if (compareNode.segment === "**" || compareNode.segment[0] === ":") {
-        continue;
-      }
-      children.splice(i + 1, 0, node);
-      return;
-    }
-    children.unshift(node);
-  }
 };
-
-class Radix {
-  root = new Node({ segment: "" });
-  find(path, method = "GET") {
-    const segments = path.split("/");
-    const params = {};
-    let currentNode = this.root;
-    let lastWild = undefined;
-    outer:
-      for (let i = 0;i < segments.length; i++) {
-        const segment = segments[i];
-        if (currentNode.wildParent === true) {
-          const wild = currentNode.children[currentNode.children.length - 1];
-          const wildHandlerContainer = wild.handlers[method];
-          if (wildHandlerContainer) {
-            lastWild = {
-              node: wild,
-              handlerEnt: wildHandlerContainer,
-              params: { ...params, wild: segments.slice(i).join("/") }
-            };
-          }
-        }
-        if (currentNode.segment[0] === ":") {
-          params[currentNode.segment.slice(1)] = segment;
-        }
-        const isLastSegment = i + 1 === segments.length;
-        if (isLastSegment) {
-          break;
-        }
-        if (currentNode.children.length === 0) {
-          return lastWild;
-        }
-        for (const child of currentNode.children) {
-          const nextSegment = segments[i + 1];
-          if (child.segment === nextSegment) {
-            currentNode = child;
-            continue outer;
-          }
-          if (child.segment[0] === ":" && nextSegment !== "") {
-            currentNode = child;
-            continue outer;
-          }
-        }
-        return lastWild;
-      }
-    const handlerContainer = currentNode.handlers[method];
-    if (!handlerContainer) {
-      return lastWild;
-    }
-    return {
-      node: currentNode,
-      params,
-      handlerEnt: handlerContainer
-    };
-  }
-  add(pattern, method = "GET", handler) {
-    const patternSegments = pattern.slice(1).split("/");
-    let currentNode = this.root;
-    outer:
-      for (let i = 0;i < patternSegments.length; i++) {
-        const segment = patternSegments[i];
-        for (const child of currentNode.children) {
-          if (child.segment === segment) {
-            currentNode = child;
-            continue outer;
-          }
-        }
-        const newNode = new Node({ segment, parent: currentNode });
-        addNodeToChildren(currentNode, newNode);
-        if (segment === "**") {
-          currentNode.wildParent = true;
-        }
-        currentNode = newNode;
-      }
-    currentNode.handlers[method] = handler;
-    return currentNode;
-  }
-}
-var defaultOnNotFound = (req) => {
-  console.log(`h11: Not found ${req.url}`);
-  return new Response("Not Found", {
-    status: 404,
-    statusText: "Not Found 404",
-    headers: {
-      "Content-Type": "text/plain"
-    }
-  });
-};
-var defaultOnError = ({ req, error }) => {
-  console.error(`h11: Error ${req.url} - ${error.message}`);
-  return new Response(error.message || "Error 500", {
-    status: 500,
-    statusText: "System error 500",
-    headers: {
-      "Content-Type": "text/plain"
-    }
-  });
-};
-
-class H11 {
-  types;
-  radix = new Radix;
-  fsApi;
-  onNotFound = defaultOnNotFound;
-  onError = defaultOnError;
-  addRoute(pattern, method, handlers) {
-    const preparedHandler = { handlers };
-    this.radix.add(pattern, method, preparedHandler);
-  }
-  get(pattern, ...handlers) {
-    this.addRoute(pattern, "GET", handlers);
-    return this;
-  }
-  post(pattern, ...handlers) {
-    this.addRoute(pattern, "POST", handlers);
-    return this;
-  }
-  async exec({ req, data, providers }) {
-    const url = new URL(req.url);
-    const findResult = this.radix.find(url.pathname, req.method);
-    if (!findResult) {
-      return this.onNotFound(req);
-    }
-    const props = {
-      req,
-      params: findResult.params,
-      data,
-      providers
-    };
-    try {
-      for (const handler of findResult.handlerEnt.handlers) {
-        const response = await handler(props);
-        if (response) {
-          return response;
-        }
-      }
-      return defaultOnNotFound(req);
-    } catch (error) {
-      return this.onError({ ...props, error });
-    }
-  }
-}
 function getRuntime() {
   if (typeof Bun !== "undefined")
     return "bun";
@@ -448,13 +260,19 @@ function getRuntime() {
 var getFsApi = async () => {
   const runtime = getRuntime();
   if (runtime === "bun") {
-    return (await Promise.resolve().then(() => (init_h11_bun_0696pprm(), exports_h11_bun_0696pprm))).fsApiBun;
+    return (await Promise.resolve().then(() => (init_h11_bun(), exports_h11_bun))).fsApiBun;
   } else if (runtime === "node") {
-    return (await Promise.resolve().then(() => (init_h11_node_1s6025vj(), exports_h11_node_1s6025vj))).fsApiNode;
+    return (await Promise.resolve().then(() => (init_h11_node(), exports_h11_node))).fsApiNode;
   }
   throw new Error("Unknown runtime");
 };
 var fsApi = await getFsApi();
+var formats = {
+  gzip: "gz",
+  deflate: "deflate",
+  brotli: "br"
+};
+var allowedCompressFormats = Object.keys(formats);
 
 // src/utils.ts
 var checkFile = async (dir, nameWithoutExt, fsApi2) => {
@@ -534,9 +352,6 @@ var makeSsg = async ({
       throw new Error("No output in build");
     }
     const buildEnt = result.output[0];
-    console.log("-----", "1", assetsDir);
-    console.log("-----", "2", `${assetsDir}/${buildEnt.fileName}`);
-    console.log("-----", "buildEnt.fileName", buildEnt.fileName);
     const clientPreparedFile = relative(assetsDir, `${h11xDir}/${buildEnt.fileName}`);
     await buildVite({
       build: {

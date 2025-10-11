@@ -79,11 +79,15 @@ const compress = async (path: string, format: Format) => {
   throw new Error('Unknow compress format');
 };
 
-const recComporess = async (pathToDir: string) => {
+export const recComporess = async (pathToDir: string) => {
   const ents = await readdir(pathToDir, { withFileTypes: true });
 
   file_for: for (const ent of ents) {
     if (ent.isFile()) {
+      if (ent.name.endsWith('.html')) {
+        continue file_for;
+      }
+
       for (const allowedCompressFormat of allowedCompressFormats) {
         if (ent.name.endsWith(`.${formats[allowedCompressFormat]}`)) {
           continue file_for;
@@ -102,9 +106,4 @@ const recComporess = async (pathToDir: string) => {
   }
 };
 
-await recComporess('./dist');
-
-// const rec = (pathToDir: string, a: () => Promise<void>) => {};
-// const files = await readdir('.', { withFileTypes: true });
-
-// console.log('-----', 'files', files);
+// await recComporess('./dist');

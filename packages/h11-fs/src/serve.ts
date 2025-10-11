@@ -1,5 +1,6 @@
 import { joinUserPath, type Handler } from 'h11';
 import { fsApi } from './fs.ts';
+import { getFileEnt } from './utils/files.ts';
 
 export const serveFilesModule = (dirToServe: string, prefix: string = '') => {
   const handler: Handler = async ({ req, h11 }) => {
@@ -8,10 +9,15 @@ export const serveFilesModule = (dirToServe: string, prefix: string = '') => {
     const resultPathname = url.pathname.slice(prefix.length);
     const filePath = joinUserPath(dirToServe, resultPathname);
 
-    if ((await fsApi.checkExist(filePath)) === false) {
+    const fileEnt = await getFileEnt(
+      filePath,
+      req.headers.get('Accept-Encoding')?.split(', ') || []
+    );
+
+    if (!fileEnt) {
       h11.ee.emit('code', {
         code: 404,
-        text: `h11: Not found ${req.url}`,
+        text: `Not found ${req.url}`,
       });
 
       return new Response('Not Found', {
@@ -23,11 +29,13 @@ export const serveFilesModule = (dirToServe: string, prefix: string = '') => {
       });
     }
 
-    const stream = fsApi.getFileStream(filePath);
-
-    return new Response(stream as any as ReadableStream, {
-      status: 200,
-    });
+    return new Response(
+      fsApi.getFileStream(fileEnt.filepath) as any as ReadableStream,
+      {
+        status: 200,
+        headers: fileEnt.headers,
+      }
+    );
   };
 
   return handler;

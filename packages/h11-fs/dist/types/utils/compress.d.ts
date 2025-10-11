@@ -11,3 +11,4 @@ export declare function deflateFile(inputPath: string, outputPath: string, optio
  * Brotli
  */
 export declare function brotliFile(inputPath: string, outputPath: string, options?: BrotliOptions): Promise<void>;
+export declare const recComporess: (pathToDir: string) => Promise<void>;

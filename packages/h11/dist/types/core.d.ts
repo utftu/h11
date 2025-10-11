@@ -15,6 +15,8 @@ export declare class H11<TExecProps extends Context = Context> {
             text: string;
         };
     } & Record<string, any>>;
+    data: Record<string, any>;
+    startLogger(): () => void;
     onNotFound: NotFoundHandler;
     onError: ErrorHandler;
     private addRoute;

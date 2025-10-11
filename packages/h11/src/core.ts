@@ -1,3 +1,4 @@
+import { createLogger } from 'logw';
 import { Radix } from './radix/radix.ts';
 import type { Context, FsApi, Handler, Method } from './types.ts';
 import { createEventEmitter, type EE } from 'utftu';
@@ -10,7 +11,7 @@ type ErrorHandler = (
 const defaultOnNotFound: NotFoundHandler = ({ req, h11 }) => {
   h11.ee.emit('code', {
     code: 404,
-    text: `h11: Not found ${req.url}`,
+    text: `Not found 123 ${req.url}`,
   });
 
   return new Response('Not Found', {
@@ -49,9 +50,24 @@ export class H11<TExecProps extends Context = Context> {
       };
     } & Record<string, any>
   >();
+  data: Record<string, any> = {};
 
-  startConsole() {
-    this.ee.on('code', () => {});
+  startLogger() {
+    const logger = createLogger({ prefix: 'h11' });
+    const stopListen = this.ee.on('code', ({ code, text }) => {
+      const message = `${code} ${text}`;
+      if (code >= 500) {
+        logger.error(message);
+        return;
+      }
+      if (code < 500 && code >= 400) {
+        logger.warn(message);
+        return;
+      }
+      logger.log(message);
+    });
+
+    return stopListen;
   }
 
   onNotFound: NotFoundHandler = defaultOnNotFound;

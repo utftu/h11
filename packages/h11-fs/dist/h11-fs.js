@@ -1,9 +1,4 @@
-import {
-  __require,
-  __toESM
-} from "./h11-fs-zbk6z3qc.js";
-
-// src/connect/req.ts
+// ../h11-fs/src/connect/req.ts
 import { Socket } from "node:net";
 import { Transform } from "node:stream";
 var convertReqToNodeReq = ({
@@ -21,15 +16,15 @@ var convertReqToNodeReq = ({
   });
   return nodeReq;
 };
-var socket = new Socket;
-
-class MockIncomingMessage extends Transform {
+var socket = new Socket();
+var MockIncomingMessage = class extends Transform {
   method;
   url;
   headers = {};
   headersDistinct = {};
   rawHeaders = [];
   _failError;
+  // mock for IncomingMessage
   aborted = false;
   httpVersion = "1.1";
   httpVersionMajor = 1;
@@ -64,7 +59,7 @@ class MockIncomingMessage extends Transform {
     if (options.headers) {
       Object.keys(options.headers).forEach((key) => {
         const val = options.headers[key];
-        if (val !== undefined) {
+        if (val !== void 0) {
           const headerValue = typeof val !== "string" ? String(val) : val;
           this.headers[key.toLowerCase()] = headerValue;
           this.rawHeaders.push(key);
@@ -88,12 +83,12 @@ class MockIncomingMessage extends Transform {
   _fail(error) {
     this._failError = error;
   }
-}
+};
 
-// src/connect/connect.ts
+// ../h11-fs/src/connect/connect.ts
 import { Readable as Readable2 } from "node:stream";
 
-// src/connect/res.ts
+// ../h11-fs/src/connect/res.ts
 import {
   STATUS_CODES
 } from "node:http";
@@ -107,7 +102,7 @@ function u() {
   }), controls: { resolve: n, reject: t } };
 }
 
-// src/connect/res.ts
+// ../h11-fs/src/connect/res.ts
 var convertNodeResToRes = (res) => {
   const stream = Readable.toWeb(res);
   const newRes = new Response(stream, {
@@ -118,11 +113,10 @@ var convertNodeResToRes = (res) => {
   return newRes;
 };
 var createNodeRes = () => {
-  const nodeRes = new MockServerResponse;
+  const nodeRes = new MockServerResponse();
   return nodeRes;
 };
-
-class MockServerResponse extends Transform2 {
+var MockServerResponse = class extends Transform2 {
   statusCode = 200;
   statusMessage = STATUS_CODES[200];
   _headers = {};
@@ -134,9 +128,11 @@ class MockServerResponse extends Transform2 {
     super();
     this._onEnd = onEnd;
   }
-  assignSocket() {}
+  assignSocket() {
+  }
   strictContentLength = false;
-  detachSocket = () => {};
+  detachSocket = () => {
+  };
   _transform(chunk, encoding, callback) {
     if (!this.started) {
       this.started = true;
@@ -158,6 +154,7 @@ class MockServerResponse extends Transform2 {
   removeHeader(name) {
     delete this._headers[name.toLowerCase()];
   }
+  // @ts-ignore
   writeHead(statusCode, reasonOrHeaders, headers) {
     this.statusCode = statusCode;
     if (typeof reasonOrHeaders === "string") {
@@ -173,6 +170,12 @@ class MockServerResponse extends Transform2 {
     }
     return this;
   }
+  // get bodyString(): string {
+  //   return Buffer.concat(this._responseData).toString();
+  // }
+  // get bodyJSON(): unknown {
+  //   return JSON.parse(this.bodyString);
+  // }
   end(...args) {
     super.end(...args);
     this.finished = true;
@@ -180,225 +183,16 @@ class MockServerResponse extends Transform2 {
     this.promiseEnt.controls.resolve();
     return this;
   }
-}
-
-// ../h11/dist/h11.js
-class Node {
-  segment;
-  handlers = {};
-  children = [];
-  wildParent = false;
-  parent;
-  constructor({ segment, parent }) {
-    this.segment = segment;
-    this.parent = parent;
-  }
-}
-var addNodeToChildren = (parent, node) => {
-  const children = parent.children;
-  if (children.length === 0) {
-    children.push(node);
-    return;
-  }
-  if (node.segment === "**") {
-    children.push(node);
-    return;
-  } else if (node.segment[0] === ":") {
-    for (let i = children.length - 1;i >= 0; i--) {
-      const compareNode = children[i];
-      if (compareNode.segment === "**") {
-        continue;
-      }
-      children.splice(i + 1, 0, node);
-      return;
-    }
-    children.unshift(node);
-  } else {
-    for (let i = children.length - 1;i >= 0; i--) {
-      const compareNode = children[i];
-      if (compareNode.segment === "**" || compareNode.segment[0] === ":") {
-        continue;
-      }
-      children.splice(i + 1, 0, node);
-      return;
-    }
-    children.unshift(node);
-  }
+  // Not implemented methods can be stubbed or extended later
+  // writeContinue?(): void;
+  // setTimeout?(msecs: number, callback?: () => void): this;
+  // get headersSent(): boolean;
+  // sendDate?: boolean;
+  // addTrailers?(headers: NodeJS.OutgoingHttpHeaders): void;
 };
 
-class Radix {
-  root = new Node({ segment: "" });
-  find(path, method = "GET") {
-    const segments = path.split("/");
-    const params = {};
-    let currentNode = this.root;
-    let lastWild = undefined;
-    outer:
-      for (let i = 0;i < segments.length; i++) {
-        const segment = segments[i];
-        if (currentNode.wildParent === true) {
-          const wild = currentNode.children[currentNode.children.length - 1];
-          const wildHandlerContainer = wild.handlers[method];
-          if (wildHandlerContainer) {
-            lastWild = {
-              node: wild,
-              handlerEnt: wildHandlerContainer,
-              params: { ...params, wild: segments.slice(i).join("/") }
-            };
-          }
-        }
-        if (currentNode.segment[0] === ":") {
-          params[currentNode.segment.slice(1)] = segment;
-        }
-        const isLastSegment = i + 1 === segments.length;
-        if (isLastSegment) {
-          break;
-        }
-        if (currentNode.children.length === 0) {
-          return lastWild;
-        }
-        for (const child of currentNode.children) {
-          const nextSegment = segments[i + 1];
-          if (child.segment === nextSegment) {
-            currentNode = child;
-            continue outer;
-          }
-          if (child.segment[0] === ":" && nextSegment !== "") {
-            currentNode = child;
-            continue outer;
-          }
-        }
-        return lastWild;
-      }
-    const handlerContainer = currentNode.handlers[method];
-    if (!handlerContainer) {
-      return lastWild;
-    }
-    return {
-      node: currentNode,
-      params,
-      handlerEnt: handlerContainer
-    };
-  }
-  add(pattern, method = "GET", handler) {
-    const patternSegments = pattern.slice(1).split("/");
-    let currentNode = this.root;
-    outer:
-      for (let i = 0;i < patternSegments.length; i++) {
-        const segment = patternSegments[i];
-        for (const child of currentNode.children) {
-          if (child.segment === segment) {
-            currentNode = child;
-            continue outer;
-          }
-        }
-        const newNode = new Node({ segment, parent: currentNode });
-        addNodeToChildren(currentNode, newNode);
-        if (segment === "**") {
-          currentNode.wildParent = true;
-        }
-        currentNode = newNode;
-      }
-    currentNode.handlers[method] = handler;
-    return currentNode;
-  }
-}
-var defaultOnNotFound = (req) => {
-  console.log(`h11: Not found ${req.url}`);
-  return new Response("Not Found", {
-    status: 404,
-    statusText: "Not Found 404",
-    headers: {
-      "Content-Type": "text/plain"
-    }
-  });
-};
-var defaultOnError = ({ req, error }) => {
-  console.error(`h11: Error ${req.url} - ${error.message}`);
-  return new Response(error.message || "Error 500", {
-    status: 500,
-    statusText: "System error 500",
-    headers: {
-      "Content-Type": "text/plain"
-    }
-  });
-};
-
-class H11 {
-  types;
-  radix = new Radix;
-  fsApi;
-  onNotFound = defaultOnNotFound;
-  onError = defaultOnError;
-  addRoute(pattern, method, handlers) {
-    const preparedHandler = { handlers };
-    this.radix.add(pattern, method, preparedHandler);
-  }
-  get(pattern, ...handlers) {
-    this.addRoute(pattern, "GET", handlers);
-    return this;
-  }
-  post(pattern, ...handlers) {
-    this.addRoute(pattern, "POST", handlers);
-    return this;
-  }
-  async exec({ req, data, providers }) {
-    const url = new URL(req.url);
-    const findResult = this.radix.find(url.pathname, req.method);
-    if (!findResult) {
-      return this.onNotFound(req);
-    }
-    const props = {
-      req,
-      params: findResult.params,
-      data,
-      providers
-    };
-    try {
-      for (const handler of findResult.handlerEnt.handlers) {
-        const response = await handler(props);
-        if (response) {
-          return response;
-        }
-      }
-      return defaultOnNotFound(req);
-    } catch (error) {
-      return this.onError({ ...props, error });
-    }
-  }
-}
-var joinUserPath = (basePath, userPath) => {
-  if (userPath[0] === "/") {
-    return "";
-  }
-  const segments = userPath.split("/");
-  const resolved = [];
-  for (const segment of segments) {
-    if (segment === "") {
-      continue;
-    }
-    if (segment === "..") {
-      return "";
-    } else if (segment !== ".") {
-      resolved.push(segment);
-    }
-  }
-  let result = basePath;
-  if (!basePath.endsWith("/")) {
-    result += "/";
-  }
-  result += resolved.join("/");
-  return result;
-};
-var copyReq = (req, body) => {
-  const newReq = new Request(req.url, {
-    ...req,
-    body: body ?? undefined
-  });
-  return newReq;
-};
-
-// src/connect/connect.ts
+// ../h11-fs/src/connect/connect.ts
+import { copyReq } from "h11";
 var deletePrefix = (url, prefix) => {
   const parsedUrl = new URL(url);
   parsedUrl.pathname = parsedUrl.pathname.slice(prefix.length);
@@ -415,7 +209,9 @@ var handleConnectMiddleware = ({
   return async (ctx) => {
     const nodeReq = convertReqToNodeReq({
       req: ctx.req,
-      url: makePath(prefixToRemove ? deletePrefix(ctx.req.url, prefixToRemove) : ctx.req.url)
+      url: makePath(
+        prefixToRemove ? deletePrefix(ctx.req.url, prefixToRemove) : ctx.req.url
+      )
     });
     let newBody;
     if (ctx.req.body) {
@@ -434,14 +230,18 @@ var handleConnectMiddleware = ({
       promiseEnt.controls.reject(error);
     });
     let goNext = false;
-    await connectMiddleware(nodeReq, nodeRes, (err) => {
-      if (err) {
-        promiseEnt.controls.reject(err);
-        return;
+    await connectMiddleware(
+      nodeReq,
+      nodeRes,
+      (err) => {
+        if (err) {
+          promiseEnt.controls.reject(err);
+          return;
+        }
+        goNext = true;
+        promiseEnt.controls.resolve();
       }
-      goNext = true;
-      promiseEnt.controls.resolve();
-    });
+    );
     await Promise.race([promiseEnt.promise, nodeRes.promiseEnt.promise]);
     if (goNext) {
       return;
@@ -451,27 +251,20 @@ var handleConnectMiddleware = ({
   };
 };
 
-// src/fs.ts
+// ../h11-fs/src/fs.ts
 function getRuntime() {
-  if (typeof Bun !== "undefined")
-    return "bun";
+  if (typeof Bun !== "undefined") return "bun";
   if (typeof process !== "undefined" && process.versions?.node) {
     return "node";
   }
-  if (typeof Deno !== "undefined")
-    return "deno";
-  if (typeof EdgeRuntime !== "undefined")
-    return "vercel-edge";
-  if (typeof WebSocketPair !== "undefined")
-    return "cloudflare-worker";
+  if (typeof Deno !== "undefined") return "deno";
+  if (typeof EdgeRuntime !== "undefined") return "vercel-edge";
+  if (typeof WebSocketPair !== "undefined") return "cloudflare-worker";
   if (typeof process !== "undefined") {
-    if (process.env.AWS_EXECUTION_ENV)
-      return "aws-lambda";
-    if (process.env.NETLIFY)
-      return "netlify";
+    if (process.env.AWS_EXECUTION_ENV) return "aws-lambda";
+    if (process.env.NETLIFY) return "netlify";
   }
-  if (typeof window !== "undefined")
-    return "browser";
+  if (typeof window !== "undefined") return "browser";
   if (typeof self !== "undefined" && typeof self.skipWaiting === "function")
     return "service-worker";
   return "unknown";
@@ -479,25 +272,107 @@ function getRuntime() {
 var getFsApi = async () => {
   const runtime = getRuntime();
   if (runtime === "bun") {
-    return (await import("./h11-bun-0696pprm.js")).fsApiBun;
+    return (await import("h11-bun")).fsApiBun;
   } else if (runtime === "node") {
-    return (await import("./h11-node-1s6025vj.js")).fsApiNode;
+    return (await import("h11-node")).fsApiNode;
   }
   throw new Error("Unknown runtime");
 };
 var fsApi = await getFsApi();
 
-// src/serve.ts
+// ../h11-fs/src/serve.ts
+import { joinUserPath as joinUserPath2 } from "h11";
+
+// ../h11-fs/src/utils/files.ts
+import "h11";
+var exts = {
+  js: "text/javascript",
+  html: "text/html; charset=utf-8"
+};
+var getContentType = (filepath) => {
+  const ext = filepath.split(".").at(-1);
+  if (!ext) {
+    return;
+  }
+  if (ext in exts) {
+    return exts[ext];
+  }
+  return;
+};
+var formatsEnt = [
+  { name: "deflate", ext: "deflate" },
+  { name: "br", ext: "br" },
+  { name: "gzip", ext: "gz" }
+];
+var gitFiles = (filepath, formats2) => {
+  const files = [];
+  for (const formatEnt of formatsEnt) {
+    if (formats2.includes(formatEnt.name)) {
+      files.push({
+        filepath: `${filepath}.${formatEnt.ext}`,
+        compressName: formatEnt.name
+      });
+    }
+  }
+  files.push({ filepath, compressName: "" });
+  return files;
+};
+var findFilesCompressed = async (filepath, formats2) => {
+  const files = gitFiles(filepath, formats2);
+  const filesChecks = files.map(({ filepath: filepath2 }) => fsApi.checkExist(filepath2));
+  for (let i = 0; i <= filesChecks.length; i++) {
+    const fileCheck = filesChecks[i];
+    const checkResult = await fileCheck;
+    if (checkResult) {
+      const file = files[i];
+      return file;
+    }
+  }
+};
+var conentEncodingName = "content-encoding";
+var contentTypeName = "content-type";
+var getFileEnt = async (filepath, formats2) => {
+  const headers = {};
+  const fileEnt = await findFilesCompressed(filepath, formats2);
+  if (fileEnt) {
+    if (fileEnt.compressName) {
+      headers[conentEncodingName] = fileEnt.compressName;
+    }
+    const contentType = getContentType(filepath);
+    if (contentType) {
+      headers[contentTypeName] = contentType;
+    }
+    return {
+      filepath: fileEnt.filepath,
+      headers
+    };
+  }
+  const filenameHtml = await findFilesCompressed(`${filepath}.html`, []);
+  if (filenameHtml) {
+    return {
+      filepath: filenameHtml.filepath,
+      headers: {
+        [contentTypeName]: exts.html
+      }
+    };
+  }
+};
+
+// ../h11-fs/src/serve.ts
 var serveFilesModule = (dirToServe, prefix = "") => {
-  const handler = async ({ req }) => {
+  const handler = async ({ req, h11 }) => {
     const url = new URL(req.url);
     const resultPathname = url.pathname.slice(prefix.length);
-    const filePath = joinUserPath(dirToServe, resultPathname);
-    console.log("-----", "filePath", filePath);
-    console.log("-----", "dirToServe", dirToServe);
-    console.log("-----", "resultPathname", resultPathname);
-    if (await fsApi.checkExist(filePath) === false) {
-      console.log(`h11: Not found ${req.url}`);
+    const filePath = joinUserPath2(dirToServe, resultPathname);
+    const fileEnt = await getFileEnt(
+      filePath,
+      req.headers.get("Accept-Encoding")?.split(", ") || []
+    );
+    if (!fileEnt) {
+      h11.ee.emit("code", {
+        code: 404,
+        text: `Not found ${req.url}`
+      });
       return new Response("Not Found", {
         status: 404,
         statusText: "Not Found 404",
@@ -506,16 +381,93 @@ var serveFilesModule = (dirToServe, prefix = "") => {
         }
       });
     }
-    const stream = fsApi.getFileStream(filePath);
-    return new Response(stream, {
-      status: 200
-    });
+    return new Response(
+      fsApi.getFileStream(fileEnt.filepath),
+      {
+        status: 200,
+        headers: fileEnt.headers
+      }
+    );
   };
   return handler;
 };
+
+// ../h11-fs/src/utils/compress.ts
+import { readdir } from "node:fs/promises";
+import { createReadStream, createWriteStream } from "node:fs";
+import { pipeline } from "node:stream/promises";
+import {
+  createGzip,
+  createDeflate,
+  createBrotliCompress
+} from "node:zlib";
+var formats = {
+  gzip: "gz",
+  deflate: "deflate",
+  brotli: "br"
+};
+var allowedCompressFormats = Object.keys(formats);
+async function gzipFile(inputPath, outputPath, options) {
+  await pipeline(
+    createReadStream(inputPath),
+    createGzip(options),
+    createWriteStream(outputPath)
+  );
+}
+async function deflateFile(inputPath, outputPath, options) {
+  await pipeline(
+    createReadStream(inputPath),
+    createDeflate(options),
+    createWriteStream(outputPath)
+  );
+}
+async function brotliFile(inputPath, outputPath, options) {
+  await pipeline(
+    createReadStream(inputPath),
+    createBrotliCompress(options),
+    createWriteStream(outputPath)
+  );
+}
+var compress = async (path, format) => {
+  if (format === "brotli") {
+    await brotliFile(path, `${path}.br`);
+    return;
+  } else if (format === "deflate") {
+    await deflateFile(path, `${path}.deflate`);
+    return;
+  } else if (format === "gzip") {
+    await gzipFile(path, `${path}.gz`);
+    return;
+  }
+  throw new Error("Unknow compress format");
+};
+var recComporess = async (pathToDir) => {
+  const ents = await readdir(pathToDir, { withFileTypes: true });
+  file_for: for (const ent of ents) {
+    if (ent.isFile()) {
+      if (ent.name.endsWith(".html")) {
+        continue file_for;
+      }
+      for (const allowedCompressFormat of allowedCompressFormats) {
+        if (ent.name.endsWith(`.${formats[allowedCompressFormat]}`)) {
+          continue file_for;
+        }
+      }
+      const pathToFile = `${pathToDir}/${ent.name}`;
+      for (const format of allowedCompressFormats) {
+        await compress(pathToFile, format);
+      }
+      continue;
+    }
+    if (ent.isDirectory()) {
+      await recComporess(`${pathToDir}/${ent.name}`);
+    }
+  }
+};
 export {
-  serveFilesModule,
-  handleConnectMiddleware,
+  fsApi,
   getFsApi,
-  fsApi
+  handleConnectMiddleware,
+  recComporess,
+  serveFilesModule
 };

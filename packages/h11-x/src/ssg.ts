@@ -62,15 +62,10 @@ export const makeSsg = async ({
     }
     const buildEnt = result.output[0];
 
-    console.log('-----', '1', assetsDir);
-    console.log('-----', '2', `${assetsDir}/${buildEnt.fileName}`);
-    console.log('-----', 'buildEnt.fileName', buildEnt.fileName);
     const clientPreparedFile = relative(
       assetsDir,
       `${h11xDir}/${buildEnt.fileName}`
     );
-
-    // const clientPreparedFile = `${outdir}/${buildEnt.fileName}`;
 
     await buildVite({
       build: {
