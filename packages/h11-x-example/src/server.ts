@@ -1,8 +1,12 @@
 import { H11 } from 'h11';
-import { handleConnectMiddleware, serveFilesModule } from 'h11-fs';
+import {
+  handleConnectMiddleware,
+  recComporess,
+  serveFilesModule,
+} from 'h11-fs';
 import { makeSsg, makeSsr } from 'h11-x';
 import { createBunProvider } from 'h11-bun';
-import { createServer as createViteServer } from 'vite';
+import { getAbsolutePath } from 'utftu';
 
 await makeSsg({
   routes: [{ type: 'ssg', dir: './src/routes/about', name: 'about.ssg' }],
@@ -11,13 +15,10 @@ await makeSsg({
 await makeSsr({
   routes: [{ type: 'ssr', dir: './src/routes/about', pathname: 'about.ssr' }],
 });
-
-// const vite = await createViteServer({
-//   server: { middlewareMode: true },
-//   appType: 'custom',
-// });
+await recComporess(getAbsolutePath('../.h11x/assets', import.meta));
 
 const h11 = new H11();
+h11.startLogger();
 
 h11.get('/**', serveFilesModule('.h11x/assets', '/'));
 
