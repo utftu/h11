@@ -4,18 +4,24 @@ import {
   recComporess,
   serveFilesModule,
 } from 'h11-fs';
-import { makeSsg, makeSsr } from 'h11-x';
+import { buildH11X, makeSsg, makeSsr } from 'h11-x';
 import { createBunProvider } from 'h11-bun';
 import { getAbsolutePath } from 'utftu';
 
-await makeSsg({
-  routes: [{ type: 'ssg', dir: './src/routes/about', name: 'about.ssg' }],
+// await makeSsg({
+//   routes: [{ type: 'ssg', dir: './src/routes/about', name: 'about.ssg' }],
+//   prod: true,
+// });
+// await makeSsr({
+//   routes: [{ type: 'ssr', dir: './src/routes/about', pathname: 'about.ssr' }],
+// });
+// await recComporess(getAbsolutePath('../.h11x/assets', import.meta));
+
+await buildH11X({
+  baseDir: getAbsolutePath('../.h11x', import.meta),
   prod: true,
+  routes: [getAbsolutePath('./routes/about', import.meta)],
 });
-await makeSsr({
-  routes: [{ type: 'ssr', dir: './src/routes/about', pathname: 'about.ssr' }],
-});
-await recComporess(getAbsolutePath('../.h11x/assets', import.meta));
 
 const h11 = new H11();
 h11.startLogger();

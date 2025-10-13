@@ -1,14 +1,7 @@
-export type SsrRoute = {
-    type: 'ssr';
-    dir: string;
-    pathname: string;
-};
-export type SsgRoute = {
-    type: 'ssg';
+export type Route = {
     dir: string;
     name: string;
 };
-export type Route = SsrRoute | SsgRoute;
 export type GetHtml = (props: {
     req: Request;
 }) => Promise<string>;

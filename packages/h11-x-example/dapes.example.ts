@@ -4,7 +4,7 @@ import { groupH11X } from '../h11-x/dapes.x.ts';
 import { groupH11Fs } from 'h11-fs/dapes.fs.ts';
 
 const runFull = new Task({
-  name: 'runfull',
+  name: 'build',
   parents: [
     groupH11X.getTaskControl('build'),
     groupH11Fs.getTaskControl('build'),

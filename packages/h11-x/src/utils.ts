@@ -1,5 +1,9 @@
 import type { FsApi } from 'h11';
-import { relative, join } from 'node:path';
+import { cwd } from 'node:process';
+
+export const getDefaultBasedir = () => {
+  return `${cwd()}/.h11x`;
+};
 
 export const checkFile = async (
   dir: string,
@@ -27,7 +31,7 @@ export const checkFile = async (
 };
 
 export const getEntName = (str: string) => {
-  return str.split('/').at(-1);
+  return str.split('/').at(-1) as string;
 };
 
 export const getEntPath = (pathname: string, dir: string) => {

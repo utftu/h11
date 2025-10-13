@@ -155,9 +155,6 @@ var init_h11_node = __esm(() => {
   };
 });
 
-// src/ssg.ts
-import { defineConfig, build as buildVite } from "vite";
-
 // ../h11-fs/dist/h11-fs.js
 import { Socket } from "net";
 import {
@@ -274,6 +271,9 @@ var formats = {
 };
 var allowedCompressFormats = Object.keys(formats);
 
+// src/ssg.ts
+import { defineConfig, build as buildVite } from "vite";
+
 // src/utils.ts
 var checkFile = async (dir, nameWithoutExt, fsApi2) => {
   const exts = [".ts", ".tsx"];
@@ -332,19 +332,29 @@ var makeSsg = async ({
   baseDir
 }) => {
   const baseDirPrepared = baseDir || process.cwd();
-  const h11xDir = joinPath(baseDirPrepared, ".h11x");
-  const assetsDir = joinPath(h11xDir, "assets");
-  const routesPromises = routes.map(async ({ dir, name }) => {
-    const entName = getEntName(dir);
-    const ssgFile = await checkFile(dir, `${entName}.ssg`, fsApi2);
-    const clientFile = await checkFile(dir, `${entName}.client`, fsApi2);
+  const routesPromises = routes.map(async (route) => {
+    const entName = getEntName(route);
+    const ssgFile = await checkFile(route, `${entName}.ssg`, fsApi2);
+    const clientFile = await checkFile(route, `${entName}.client`, fsApi2);
+    await buildVite({
+      build: {
+        outDir: joinPath(baseDirPrepared, "ssg"),
+        lib: {
+          entry: ssgFile,
+          formats: ["es"],
+          fileName: entName
+        },
+        emptyOutDir: false
+      },
+      plugins: [t()]
+    });
     const result = await buildVite(defineConfig({
       build: {
         rollupOptions: {
           input: clientFile
         },
         emptyOutDir: false,
-        outDir: h11xDir
+        outDir: baseDirPrepared
       },
       plugins: [t()]
     }));
@@ -352,34 +362,18 @@ var makeSsg = async ({
       throw new Error("No output in build");
     }
     const buildEnt = result.output[0];
-    const clientPreparedFile = relative(assetsDir, `${h11xDir}/${buildEnt.fileName}`);
-    await buildVite({
-      build: {
-        outDir: joinPath(h11xDir, "ssg"),
-        lib: {
-          entry: ssgFile,
-          formats: ["es"],
-          fileName: name
-        },
-        emptyOutDir: false
-      },
-      plugins: [t()]
-    });
-    const jsContent = joinPath(h11xDir, `ssg/${name}.js`);
+    const clientPreparedFile = relative(joinPath(baseDirPrepared, "assets"), `${baseDirPrepared}/${buildEnt.fileName}`);
+    const jsContent = joinPath(baseDirPrepared, `ssg/${entName}.js`);
     const { getPages } = await import(jsContent);
     const pages = await getPages();
     for (const { pathname, getHtml } of pages) {
       const html = await getHtml({ pathname });
       const htmlWithScript = html.replace("H11X_SCRIPT_CLIENT", prod ? clientPreparedFile : clientFile);
-      await fsApi2.writeFile(joinPath(h11xDir, `assets/${pathname}.html`), htmlWithScript);
+      await fsApi2.writeFile(joinPath(baseDirPrepared, `assets/${pathname}.html`), htmlWithScript);
     }
   });
   await Promise.all(routesPromises);
 };
-await makeSsg({
-  routes: [{ type: "ssg", dir: "./src/routes/about", name: "about.ssg" }],
-  prod: true
-});
 
 // src/ssr.ts
 import { defineConfig as defineConfig2, build as buildVite2 } from "vite";
@@ -389,18 +383,17 @@ var makeSsr = async ({
   baseDir
 }) => {
   const baseDirPrepared = baseDir || process.cwd();
-  const h11Dir = joinPath(baseDirPrepared, ".h11x");
-  const routesPromises = routes.map(async ({ dir, pathname }) => {
-    const entName = getEntName(dir);
-    const ssrFile = await checkFile(dir, `${entName}.ssr`, fsApi3);
-    const clientFile = await checkFile(dir, `${entName}.client`, fsApi3);
+  const routesPromises = routes.map(async (route) => {
+    const entName = getEntName(route);
+    const ssrFile = await checkFile(route, `${entName}.ssr`, fsApi3);
+    const clientFile = await checkFile(route, `${entName}.client`, fsApi3);
     await buildVite2(defineConfig2({
       build: {
-        outDir: joinPath(h11Dir, "ssr"),
+        outDir: joinPath(baseDirPrepared, "ssr"),
         lib: {
           entry: ssrFile,
           formats: ["es"],
-          fileName: pathname
+          fileName: entName
         },
         emptyOutDir: false
       }
@@ -411,16 +404,53 @@ var makeSsr = async ({
         rollupOptions: {
           input: clientFile
         },
-        outDir: h11Dir
+        outDir: baseDirPrepared
       }
     }));
   });
   await Promise.all(routesPromises);
 };
-await makeSsr({
-  routes: [{ type: "ssr", dir: "./src/routes/about", pathname: "about.ssr" }]
-});
+
+// src/h11-x.ts
+var buildH11X = async ({
+  baseDir,
+  prod = true,
+  routes
+}) => {
+  const baseDirPrepared = baseDir || `${process.cwd()}/.h11x`;
+  await fsApi.rm(baseDirPrepared);
+  const ssgRoutes = [];
+  const ssrRoutes = [];
+  for (const route of routes) {
+    const name = getEntName(route);
+    const ssgFile = joinPath(route, `${name}.ssg.ts`);
+    const ssrFile = joinPath(route, `${name}.ssr.ts`);
+    const clientFile = joinPath(route, `${name}.ssr.ts`);
+    const clientFileCheck = await fsApi.checkExist(clientFile);
+    if (!clientFileCheck) {
+      throw new Error(`No client file ${clientFile}`);
+    }
+    const ssgFileCheck = await fsApi.checkExist(ssgFile);
+    if (ssgFileCheck) {
+      ssgRoutes.push(route);
+    }
+    const ssrFileCheck = await fsApi.checkExist(ssrFile);
+    if (ssrFileCheck) {
+      ssrRoutes.push(route);
+    }
+  }
+  if (ssgRoutes.length) {
+    await makeSsg({ routes: ssgRoutes, prod, baseDir });
+  }
+  if (ssgRoutes.length) {
+    await makeSsr({
+      routes: ssrRoutes,
+      baseDir
+    });
+  }
+};
 export {
   makeSsr,
-  makeSsg
+  makeSsg,
+  buildH11X
 };

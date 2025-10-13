@@ -1,12 +1,11 @@
 import { type ViteDevServer } from 'vite';
-import type { SsrRoute } from './types.ts';
 export declare const makeSsr: ({ routes, baseDir, }: {
-    routes: SsrRoute[];
+    routes: string[];
     baseDir?: string;
 }) => Promise<void>;
-export declare const getSsrHtml: ({ isProd, pathToFile, pathname, vite, baseDir, }: {
+export declare const getSsrHtml: ({ prod, pathToFile, pathname, vite, baseDir, }: {
     pathToFile: string;
-    isProd: boolean;
+    prod: boolean;
     pathname: string;
     vite?: ViteDevServer;
     baseDir?: string;

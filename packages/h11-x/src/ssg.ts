@@ -1,17 +1,9 @@
 import { defineConfig, build as buildVite } from 'vite';
 import { getFsApi } from 'h11-fs';
 import { checkFile, getEntName, joinPath } from './utils.ts';
-import type { GetHtmlSsg, SsgRoute } from './types.ts';
+import type { GetHtmlSsg } from './types.ts';
 import { reganVite } from 'regan-vite';
 import { relative } from 'node:path';
-
-// const getFullPath = (base: string, path: string) => {
-//   if (path[0] === '/') {
-//     return path;
-//   }
-
-//   return join(base, path);
-// };
 
 export type Page = {
   pathname: string;
@@ -22,26 +14,35 @@ type GetPages = () => Promise<Page[]>;
 
 const fsApi = await getFsApi();
 
-// type SsgRouteFull = SsgRoute & { ssgFile: string; clientFile: string };
-
 export const makeSsg = async ({
   routes,
   prod,
   baseDir,
 }: {
-  routes: SsgRoute[];
+  routes: string[];
   prod: boolean;
   baseDir?: string;
 }) => {
   const baseDirPrepared = baseDir || process.cwd();
-  const h11xDir = joinPath(baseDirPrepared, '.h11x');
-  const assetsDir = joinPath(h11xDir, 'assets');
 
-  const routesPromises = routes.map(async ({ dir, name }) => {
-    const entName = getEntName(dir);
+  const routesPromises = routes.map(async (route) => {
+    const entName = getEntName(route);
 
-    const ssgFile = await checkFile(dir, `${entName}.ssg`, fsApi);
-    const clientFile = await checkFile(dir, `${entName}.client`, fsApi);
+    const ssgFile = await checkFile(route, `${entName}.ssg`, fsApi);
+    const clientFile = await checkFile(route, `${entName}.client`, fsApi);
+
+    await buildVite({
+      build: {
+        outDir: joinPath(baseDirPrepared, 'ssg'),
+        lib: {
+          entry: ssgFile,
+          formats: ['es'],
+          fileName: entName,
+        },
+        emptyOutDir: false,
+      },
+      plugins: [reganVite()],
+    });
 
     // client
     const result = await buildVite(
@@ -51,7 +52,7 @@ export const makeSsg = async ({
             input: clientFile,
           },
           emptyOutDir: false,
-          outDir: h11xDir,
+          outDir: baseDirPrepared,
         },
         plugins: [reganVite()],
       })
@@ -63,24 +64,11 @@ export const makeSsg = async ({
     const buildEnt = result.output[0];
 
     const clientPreparedFile = relative(
-      assetsDir,
-      `${h11xDir}/${buildEnt.fileName}`
+      joinPath(baseDirPrepared, 'assets'),
+      `${baseDirPrepared}/${buildEnt.fileName}`
     );
 
-    await buildVite({
-      build: {
-        outDir: joinPath(h11xDir, 'ssg'),
-        lib: {
-          entry: ssgFile,
-          formats: ['es'],
-          fileName: name,
-        },
-        emptyOutDir: false,
-      },
-      plugins: [reganVite()],
-    });
-
-    const jsContent = joinPath(h11xDir, `ssg/${name}.js`);
+    const jsContent = joinPath(baseDirPrepared, `ssg/${entName}.js`);
     const { getPages } = (await import(jsContent)) as {
       getPages: GetPages;
     };
@@ -96,7 +84,7 @@ export const makeSsg = async ({
       );
 
       await fsApi.writeFile(
-        joinPath(h11xDir, `assets/${pathname}.html`),
+        joinPath(baseDirPrepared, `assets/${pathname}.html`),
         htmlWithScript
       );
     }
@@ -105,7 +93,7 @@ export const makeSsg = async ({
   await Promise.all(routesPromises);
 };
 
-await makeSsg({
-  routes: [{ type: 'ssg', dir: './src/routes/about', name: 'about.ssg' }],
-  prod: true,
-});
+// await makeSsg({
+//   routes: [{ type: 'ssg', dir: './src/routes/about', name: 'about.ssg' }],
+//   prod: true,
+// });

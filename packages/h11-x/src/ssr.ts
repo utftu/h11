@@ -1,7 +1,6 @@
 import { defineConfig, build as buildVite, type ViteDevServer } from 'vite';
 import { getFsApi } from 'h11-fs';
-import type { SsrRoute } from './types.ts';
-import { checkFile, getEntName, joinPath } from './utils.ts';
+import { checkFile, getDefaultBasedir, getEntName, joinPath } from './utils.ts';
 
 const fsApi = await getFsApi();
 
@@ -9,26 +8,25 @@ export const makeSsr = async ({
   routes,
   baseDir,
 }: {
-  routes: SsrRoute[];
+  routes: string[];
   baseDir?: string;
 }) => {
   const baseDirPrepared = baseDir || process.cwd();
-  const h11Dir = joinPath(baseDirPrepared, '.h11x');
 
-  const routesPromises = routes.map(async ({ dir, pathname }) => {
-    const entName = getEntName(dir);
+  const routesPromises = routes.map(async (route) => {
+    const entName = getEntName(route);
 
-    const ssrFile = await checkFile(dir, `${entName}.ssr`, fsApi);
-    const clientFile = await checkFile(dir, `${entName}.client`, fsApi);
+    const ssrFile = await checkFile(route, `${entName}.ssr`, fsApi);
+    const clientFile = await checkFile(route, `${entName}.client`, fsApi);
 
     await buildVite(
       defineConfig({
         build: {
-          outDir: joinPath(h11Dir, 'ssr'),
+          outDir: joinPath(baseDirPrepared, 'ssr'),
           lib: {
             entry: ssrFile,
             formats: ['es'],
-            fileName: pathname,
+            fileName: entName,
           },
           emptyOutDir: false,
         },
@@ -42,7 +40,7 @@ export const makeSsr = async ({
           rollupOptions: {
             input: clientFile,
           },
-          outDir: h11Dir,
+          outDir: baseDirPrepared,
         },
       })
     );
@@ -52,20 +50,24 @@ export const makeSsr = async ({
 };
 
 export const getSsrHtml = async ({
-  isProd,
-  pathToFile,
-  pathname,
+  prod,
+  // pathToFile,
+  // pathname,
+  route,
   vite,
   baseDir,
 }: {
-  pathToFile: string;
-  isProd: boolean;
-  pathname: string;
+  // pathToFile: string;
+  prod: boolean;
+  route: string;
+  // pathname: string;
   vite?: ViteDevServer;
   baseDir?: string;
 }) => {
-  const baseDirPrepared = baseDir || process.cwd();
-  if (isProd) {
+  const baseDirPrepared = baseDir || getDefaultBasedir();
+  const name = getEntName(route);
+
+  if (prod) {
     const { getHtml } = await import(
       joinPath(baseDirPrepared, `.h11x/ssr/${pathname}.js`)
     );
@@ -76,6 +78,6 @@ export const getSsrHtml = async ({
   }
 };
 
-await makeSsr({
-  routes: [{ type: 'ssr', dir: './src/routes/about', pathname: 'about.ssr' }],
-});
+// await makeSsr({
+//   routes: [{ type: 'ssr', dir: './src/routes/about', pathname: 'about.ssr' }],
+// });
