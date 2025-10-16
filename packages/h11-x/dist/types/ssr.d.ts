@@ -1,12 +1,25 @@
 import { type ViteDevServer } from 'vite';
-export declare const makeSsr: ({ routes, baseDir, }: {
-    routes: string[];
-    baseDir?: string;
-}) => Promise<void>;
-export declare const getSsrHtml: ({ prod, pathToFile, pathname, vite, baseDir, }: {
-    pathToFile: string;
+import type { Route } from './types.ts';
+export declare const SCRIPT_KEY = "<template id=\"H11X_SCRIPT_CLIENT\"></template>";
+type Config = {
     prod: boolean;
-    pathname: string;
-    vite?: ViteDevServer;
+    routes: Record<string, {
+        client: string;
+        clientRaw: string;
+        clientUrl: string;
+        ssrFile: string;
+        ssrFileRaw: string;
+    }>;
+};
+export declare const makeSsr: ({ routes, baseDir, prod, }: {
+    routes: Route[];
     baseDir?: string;
-}) => Promise<any>;
+    prod: boolean;
+}) => Promise<void>;
+export declare const readSsrConfig: (baseDir?: string) => Promise<Config>;
+export declare const getSsrHtml: ({ vite, config, name, }: {
+    vite?: ViteDevServer;
+    config: Config;
+    name: string;
+}) => Promise<() => any>;
+export {};

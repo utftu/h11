@@ -1,40 +1,70 @@
 import { defineConfig, build as buildVite, type ViteDevServer } from 'vite';
 import { getFsApi } from 'h11-fs';
-import { checkFile, getDefaultBasedir, getEntName, joinPath } from './utils.ts';
+import {
+  checkFile,
+  convertStreamToString,
+  getDefaultBasedir,
+  joinPath,
+} from './utils.ts';
+import type { Route } from './types.ts';
+import { makeRouteUniversal } from './h11-x.ts';
+import { reganVite } from 'regan-vite';
 
 const fsApi = await getFsApi();
+
+export const SCRIPT_KEY = '<template id="H11X_SCRIPT_CLIENT"></template>';
+
+type Config = {
+  prod: boolean;
+  routes: Record<
+    string,
+    {
+      client: string;
+      clientRaw: string;
+      clientUrl: string;
+      ssrFile: string;
+      ssrFileRaw: string;
+    }
+  >;
+};
 
 export const makeSsr = async ({
   routes,
   baseDir,
+  prod,
 }: {
-  routes: string[];
+  routes: Route[];
   baseDir?: string;
+  prod: boolean;
 }) => {
-  const baseDirPrepared = baseDir || process.cwd();
+  const baseDirPrepared = baseDir || `${process.cwd()}/.h11x`;
+  const assetsStore: Config = {
+    prod,
+    routes: {},
+  };
 
-  const routesPromises = routes.map(async (route) => {
-    const entName = getEntName(route);
+  const routesPromises = routes.map(async ({ dir, name }) => {
+    const ssrFile = await checkFile(dir, `${name}.ssr`, fsApi);
+    const clientFile = await checkFile(dir, `${name}.client`, fsApi);
 
-    const ssrFile = await checkFile(route, `${entName}.ssr`, fsApi);
-    const clientFile = await checkFile(route, `${entName}.client`, fsApi);
-
-    await buildVite(
+    const ssrFileResult = await buildVite(
       defineConfig({
+        plugins: [reganVite()],
         build: {
           outDir: joinPath(baseDirPrepared, 'ssr'),
           lib: {
             entry: ssrFile,
             formats: ['es'],
-            fileName: entName,
+            fileName: name,
           },
           emptyOutDir: false,
         },
       })
     );
 
-    await buildVite(
+    const clientFileResult = (await buildVite(
       defineConfig({
+        plugins: [reganVite()],
         build: {
           emptyOutDir: false,
           rollupOptions: {
@@ -43,38 +73,77 @@ export const makeSsr = async ({
           outDir: baseDirPrepared,
         },
       })
-    );
+    )) as any;
+
+    const filename = clientFileResult.output[0].fileName as string;
+
+    assetsStore.routes[name] = {
+      client: joinPath(baseDirPrepared, clientFileResult.output[0].fileName),
+      clientRaw: clientFile,
+      clientUrl: filename.split('/').slice(1).join('/'),
+      ssrFile: joinPath(baseDirPrepared, `ssr/${name}.js`),
+      ssrFileRaw: ssrFile,
+    };
   });
 
   await Promise.all(routesPromises);
+
+  const assetsJson = JSON.stringify(assetsStore, null, 2);
+  fsApi.writeFile(joinPath(baseDirPrepared, 'ssr/config.json'), assetsJson);
+};
+
+export const readSsrConfig = async (baseDir?: string): Promise<Config> => {
+  const baseDirPrepared = baseDir ?? getDefaultBasedir();
+
+  const configPath = joinPath(baseDirPrepared, 'ssr/config.json');
+
+  const configStream = fsApi.getFileStream(configPath);
+  const configJson = await convertStreamToString(configStream);
+  const config = JSON.parse(configJson);
+
+  return config;
 };
 
 export const getSsrHtml = async ({
-  prod,
-  // pathToFile,
-  // pathname,
-  route,
+  // prod,
+  // route,
   vite,
-  baseDir,
-}: {
-  // pathToFile: string;
-  prod: boolean;
-  route: string;
-  // pathname: string;
+  config,
+  name,
+}: // baseDir,
+{
+  // prod: boolean;
+  // route: string | Route;
   vite?: ViteDevServer;
-  baseDir?: string;
+  config: Config;
+  name: string;
+  // baseDir?: string;
 }) => {
-  const baseDirPrepared = baseDir || getDefaultBasedir();
-  const name = getEntName(route);
+  const route = config.routes[name];
 
-  if (prod) {
-    const { getHtml } = await import(
-      joinPath(baseDirPrepared, `.h11x/ssr/${pathname}.js`)
-    );
-    return getHtml;
+  if (config.prod) {
+    const { getHtml } = await import(route.ssrFile);
+
+    return () => {
+      const html = getHtml();
+
+      const sctipt = `<script type="module" src="${route.clientUrl}"></script> `;
+
+      const htmlWithScript = html.replace(SCRIPT_KEY, sctipt);
+      return htmlWithScript;
+    };
   } else {
-    const { getHtml } = await vite!.ssrLoadModule(pathToFile);
-    return getHtml;
+    const { getHtml } = await vite!.ssrLoadModule(route.ssrFileRaw);
+    return () => {
+      const html = getHtml();
+
+      const sctipt1 = `<script type="module" src="/@vite/client"></script>`;
+      const sctipt2 = `<script type="module" src="${route.clientRaw}"></script> `;
+
+      const sctits = sctipt1 + sctipt2;
+      const htmlWithScript = html.replace(SCRIPT_KEY, sctits);
+      return htmlWithScript;
+    };
   }
 };
 

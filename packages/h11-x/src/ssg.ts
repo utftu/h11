@@ -1,7 +1,7 @@
 import { defineConfig, build as buildVite } from 'vite';
 import { getFsApi } from 'h11-fs';
 import { checkFile, getEntName, joinPath } from './utils.ts';
-import type { GetHtmlSsg } from './types.ts';
+import type { GetHtmlSsg, Route } from './types.ts';
 import { reganVite } from 'regan-vite';
 import { relative } from 'node:path';
 
@@ -19,17 +19,15 @@ export const makeSsg = async ({
   prod,
   baseDir,
 }: {
-  routes: string[];
+  routes: Route[];
   prod: boolean;
   baseDir?: string;
 }) => {
   const baseDirPrepared = baseDir || process.cwd();
 
-  const routesPromises = routes.map(async (route) => {
-    const entName = getEntName(route);
-
-    const ssgFile = await checkFile(route, `${entName}.ssg`, fsApi);
-    const clientFile = await checkFile(route, `${entName}.client`, fsApi);
+  const routesPromises = routes.map(async ({ dir, name }) => {
+    const ssgFile = await checkFile(dir, `${name}.ssg`, fsApi);
+    const clientFile = await checkFile(dir, `${name}.client`, fsApi);
 
     await buildVite({
       build: {
@@ -37,7 +35,7 @@ export const makeSsg = async ({
         lib: {
           entry: ssgFile,
           formats: ['es'],
-          fileName: entName,
+          fileName: name,
         },
         emptyOutDir: false,
       },
@@ -68,7 +66,7 @@ export const makeSsg = async ({
       `${baseDirPrepared}/${buildEnt.fileName}`
     );
 
-    const jsContent = joinPath(baseDirPrepared, `ssg/${entName}.js`);
+    const jsContent = joinPath(baseDirPrepared, `ssg/${name}.js`);
     const { getPages } = (await import(jsContent)) as {
       getPages: GetPages;
     };

@@ -275,6 +275,23 @@ var allowedCompressFormats = Object.keys(formats);
 import { defineConfig, build as buildVite } from "vite";
 
 // src/utils.ts
+import { cwd } from "process";
+var getDefaultBasedir = () => {
+  return `${cwd()}/.h11x`;
+};
+var convertStreamToString = async (stream) => {
+  const reader = stream.getReader();
+  const decoder = new TextDecoder;
+  let result = "";
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done)
+      break;
+    result += decoder.decode(value, { stream: true });
+  }
+  result += decoder.decode();
+  return result;
+};
 var checkFile = async (dir, nameWithoutExt, fsApi2) => {
   const exts = [".ts", ".tsx"];
   const variantsEnt = exts.map((ext) => {
@@ -332,17 +349,16 @@ var makeSsg = async ({
   baseDir
 }) => {
   const baseDirPrepared = baseDir || process.cwd();
-  const routesPromises = routes.map(async (route) => {
-    const entName = getEntName(route);
-    const ssgFile = await checkFile(route, `${entName}.ssg`, fsApi2);
-    const clientFile = await checkFile(route, `${entName}.client`, fsApi2);
+  const routesPromises = routes.map(async ({ dir, name }) => {
+    const ssgFile = await checkFile(dir, `${name}.ssg`, fsApi2);
+    const clientFile = await checkFile(dir, `${name}.client`, fsApi2);
     await buildVite({
       build: {
         outDir: joinPath(baseDirPrepared, "ssg"),
         lib: {
           entry: ssgFile,
           formats: ["es"],
-          fileName: entName
+          fileName: name
         },
         emptyOutDir: false
       },
@@ -363,7 +379,7 @@ var makeSsg = async ({
     }
     const buildEnt = result.output[0];
     const clientPreparedFile = relative(joinPath(baseDirPrepared, "assets"), `${baseDirPrepared}/${buildEnt.fileName}`);
-    const jsContent = joinPath(baseDirPrepared, `ssg/${entName}.js`);
+    const jsContent = joinPath(baseDirPrepared, `ssg/${name}.js`);
     const { getPages } = await import(jsContent);
     const pages = await getPages();
     for (const { pathname, getHtml } of pages) {
@@ -378,27 +394,34 @@ var makeSsg = async ({
 // src/ssr.ts
 import { defineConfig as defineConfig2, build as buildVite2 } from "vite";
 var fsApi3 = await getFsApi();
+var SCRIPT_KEY = '<template id="H11X_SCRIPT_CLIENT"></template>';
 var makeSsr = async ({
   routes,
-  baseDir
+  baseDir,
+  prod
 }) => {
-  const baseDirPrepared = baseDir || process.cwd();
-  const routesPromises = routes.map(async (route) => {
-    const entName = getEntName(route);
-    const ssrFile = await checkFile(route, `${entName}.ssr`, fsApi3);
-    const clientFile = await checkFile(route, `${entName}.client`, fsApi3);
-    await buildVite2(defineConfig2({
+  const baseDirPrepared = baseDir || `${process.cwd()}/.h11x`;
+  const assetsStore = {
+    prod,
+    routes: {}
+  };
+  const routesPromises = routes.map(async ({ dir, name }) => {
+    const ssrFile = await checkFile(dir, `${name}.ssr`, fsApi3);
+    const clientFile = await checkFile(dir, `${name}.client`, fsApi3);
+    const ssrFileResult = await buildVite2(defineConfig2({
+      plugins: [t()],
       build: {
         outDir: joinPath(baseDirPrepared, "ssr"),
         lib: {
           entry: ssrFile,
           formats: ["es"],
-          fileName: entName
+          fileName: name
         },
         emptyOutDir: false
       }
     }));
-    await buildVite2(defineConfig2({
+    const clientFileResult = await buildVite2(defineConfig2({
+      plugins: [t()],
       build: {
         emptyOutDir: false,
         rollupOptions: {
@@ -407,11 +430,68 @@ var makeSsr = async ({
         outDir: baseDirPrepared
       }
     }));
+    const filename = clientFileResult.output[0].fileName;
+    assetsStore.routes[name] = {
+      client: joinPath(baseDirPrepared, clientFileResult.output[0].fileName),
+      clientRaw: clientFile,
+      clientUrl: filename.split("/").slice(1).join("/"),
+      ssrFile: joinPath(baseDirPrepared, `ssr/${name}.js`),
+      ssrFileRaw: ssrFile
+    };
   });
   await Promise.all(routesPromises);
+  const assetsJson = JSON.stringify(assetsStore, null, 2);
+  fsApi3.writeFile(joinPath(baseDirPrepared, "ssr/config.json"), assetsJson);
+};
+var readSsrConfig = async (baseDir) => {
+  const baseDirPrepared = baseDir ?? getDefaultBasedir();
+  const configPath = joinPath(baseDirPrepared, "ssr/config.json");
+  const configStream = fsApi3.getFileStream(configPath);
+  const configJson = await convertStreamToString(configStream);
+  const config = JSON.parse(configJson);
+  return config;
+};
+var getSsrHtml = async ({
+  vite,
+  config,
+  name
+}) => {
+  const route = config.routes[name];
+  if (config.prod) {
+    console.log("-----", "prod");
+    console.log("-----", "before");
+    const { getHtml } = await import(route.ssrFile);
+    console.log("-----", "afer");
+    return () => {
+      const html = getHtml();
+      const sctipt = `<script type="module" src="${route.clientUrl}"></script> `;
+      const htmlWithScript = html.replace(SCRIPT_KEY, sctipt);
+      return htmlWithScript;
+    };
+  } else {
+    console.log("-----", "not prod");
+    const { getHtml } = await vite.ssrLoadModule(route.ssrFileRaw);
+    return () => {
+      const html = getHtml();
+      const sctipt1 = `<script type="module" src="/@vite/client"></script>`;
+      const sctipt2 = `<script type="module" src="${route.clientRaw}"></script> `;
+      const sctits = sctipt1 + sctipt2;
+      const htmlWithScript = html.replace(SCRIPT_KEY, sctits);
+      return htmlWithScript;
+    };
+  }
 };
 
 // src/h11-x.ts
+var makeRouteUniversal = (route) => {
+  if (typeof route === "string") {
+    return {
+      dir: route,
+      name: getEntName(route)
+    };
+  }
+  return route;
+};
 var buildH11X = async ({
   baseDir,
   prod = true,
@@ -422,21 +502,21 @@ var buildH11X = async ({
   const ssgRoutes = [];
   const ssrRoutes = [];
   for (const route of routes) {
-    const name = getEntName(route);
-    const ssgFile = joinPath(route, `${name}.ssg.ts`);
-    const ssrFile = joinPath(route, `${name}.ssr.ts`);
-    const clientFile = joinPath(route, `${name}.ssr.ts`);
+    const { dir, name } = makeRouteUniversal(route);
+    const ssgFile = await checkFile(dir, `${name}.ssg`, fsApi);
+    const ssrFile = await checkFile(dir, `${name}.ssr`, fsApi);
+    const clientFile = await checkFile(dir, `${name}.client`, fsApi);
     const clientFileCheck = await fsApi.checkExist(clientFile);
     if (!clientFileCheck) {
       throw new Error(`No client file ${clientFile}`);
     }
     const ssgFileCheck = await fsApi.checkExist(ssgFile);
     if (ssgFileCheck) {
-      ssgRoutes.push(route);
+      ssgRoutes.push({ dir, name });
     }
     const ssrFileCheck = await fsApi.checkExist(ssrFile);
     if (ssrFileCheck) {
-      ssrRoutes.push(route);
+      ssrRoutes.push({ dir, name });
     }
   }
   if (ssgRoutes.length) {
@@ -445,12 +525,16 @@ var buildH11X = async ({
   if (ssgRoutes.length) {
     await makeSsr({
       routes: ssrRoutes,
-      baseDir
+      baseDir,
+      prod
     });
   }
 };
 export {
+  readSsrConfig,
   makeSsr,
   makeSsg,
+  makeRouteUniversal,
+  getSsrHtml,
   buildH11X
 };

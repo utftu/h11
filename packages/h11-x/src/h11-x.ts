@@ -1,13 +1,24 @@
 import { fsApi } from 'h11-fs';
 import { makeSsg } from './ssg.ts';
-import { makeSsr } from './ssr.ts';
+import { makeSsr, getSsrHtml, readSsrConfig } from './ssr.ts';
 import type { Route } from './types.ts';
-import { getEntName, joinPath } from './utils.ts';
+import { checkFile, getEntName } from './utils.ts';
 
 type BuildProps = {
   baseDir?: string;
-  routes: string[];
+  routes: (string | Route)[];
   prod?: boolean;
+};
+
+export const makeRouteUniversal = (route: string | Route) => {
+  if (typeof route === 'string') {
+    return {
+      dir: route,
+      name: getEntName(route),
+    };
+  }
+
+  return route;
 };
 
 export const buildH11X = async ({
@@ -19,14 +30,21 @@ export const buildH11X = async ({
 
   await fsApi.rm(baseDirPrepared);
 
-  const ssgRoutes: string[] = [];
-  const ssrRoutes: string[] = [];
+  const ssgRoutes: Route[] = [];
+  const ssrRoutes: Route[] = [];
 
   for (const route of routes) {
-    const name = getEntName(route);
-    const ssgFile = joinPath(route, `${name}.ssg.ts`);
-    const ssrFile = joinPath(route, `${name}.ssr.ts`);
-    const clientFile = joinPath(route, `${name}.ssr.ts`);
+    const { dir, name } = makeRouteUniversal(route);
+
+    // const name = getEntName(route); checkFile
+    const ssgFile = await checkFile(dir, `${name}.ssg`, fsApi);
+    // const ssgFile = joinPath(dir, `${name}.ssg.ts`);
+    const ssrFile = await checkFile(dir, `${name}.ssr`, fsApi);
+
+    // const ssrFile = joinPath(dir, `${name}.ssr.ts`);
+    // const clientFile = joinPath(dir, `${name}.ssr.ts`);
+
+    const clientFile = await checkFile(dir, `${name}.client`, fsApi);
 
     const clientFileCheck = await fsApi.checkExist(clientFile);
     if (!clientFileCheck) {
@@ -35,12 +53,12 @@ export const buildH11X = async ({
 
     const ssgFileCheck = await fsApi.checkExist(ssgFile);
     if (ssgFileCheck) {
-      ssgRoutes.push(route);
+      ssgRoutes.push({ dir, name });
     }
 
     const ssrFileCheck = await fsApi.checkExist(ssrFile);
     if (ssrFileCheck) {
-      ssrRoutes.push(route);
+      ssrRoutes.push({ dir, name });
     }
   }
 
@@ -52,8 +70,9 @@ export const buildH11X = async ({
     await makeSsr({
       routes: ssrRoutes,
       baseDir,
+      prod,
     });
   }
 };
 
-export { makeSsg, makeSsr };
+export { makeSsg, makeSsr, getSsrHtml, readSsrConfig };
