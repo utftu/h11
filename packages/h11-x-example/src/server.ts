@@ -1,10 +1,12 @@
 import { H11 } from 'h11';
+import { handleConnectMiddleware, serveFilesModule } from 'h11-fs';
 import {
-  handleConnectMiddleware,
-  recComporess,
-  serveFilesModule,
-} from 'h11-fs';
-import { buildH11X, getSsrHtml, makeSsg, makeSsr, readSsrConfig } from 'h11-x';
+  buildH11X,
+  getSsrHtml,
+  readSsrConfig,
+  defaultPrefix,
+  defaultFullPrefix,
+} from 'h11-x';
 import { createBunProvider } from 'h11-bun';
 import { getAbsolutePath } from 'utftu';
 import { createServer as createViteServer } from 'vite';
@@ -21,18 +23,17 @@ import { reganVite } from 'regan-vite';
 
 const vite = await createViteServer({
   plugins: [reganVite()],
-  base: '/_vite',
+  base: '/_vite/h11x',
   server: {
     middlewareMode: true,
-    // hmr: {
-    //   // server,
-    // },
   },
 });
 
+const baseDir = getAbsolutePath('../.h11x', import.meta);
+
 await buildH11X({
-  baseDir: getAbsolutePath('../.h11x', import.meta),
-  prod: false,
+  baseDir,
+  prod: true,
   routes: [getAbsolutePath('./routes/about', import.meta)],
 });
 const ssrConfig = await readSsrConfig();
@@ -52,13 +53,17 @@ h11.get('/about', async () => {
   });
 });
 
+// h11.get('/h11x/**', serveFilesModule(`${baseDir}/assets`, '/h11x'));
+
 h11.get(
-  '/_vite/**',
+  `${defaultFullPrefix}/**`,
   handleConnectMiddleware({
-    prefixToRemove: '/_vite/',
+    prefixToRemove: defaultFullPrefix,
     connectMiddleware: vite.middlewares,
   })
 );
+
+h11.get('/h11x/**', serveFilesModule(`${baseDir}/assets`, '/h11x'));
 
 const bunProvider = createBunProvider({ h11 });
 
