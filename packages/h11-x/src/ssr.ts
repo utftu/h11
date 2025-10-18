@@ -13,9 +13,12 @@ import { reganVite } from 'regan-vite';
 const fsApi = await getFsApi();
 
 export const SCRIPT_KEY = '<template id="H11X_SCRIPT_CLIENT"></template>';
+const prefix = '_vite';
 
 type Config = {
   prod: boolean;
+  prefix: string;
+  devPrefix: string;
   routes: Record<
     string,
     {
@@ -32,14 +35,20 @@ export const makeSsr = async ({
   routes,
   baseDir,
   prod,
+  prefix,
+  devPrefix,
 }: {
   routes: Route[];
   baseDir?: string;
   prod: boolean;
+  prefix: string;
+  devPrefix: string;
 }) => {
   const baseDirPrepared = baseDir || `${process.cwd()}/.h11x`;
   const assetsStore: Config = {
     prod,
+    prefix,
+    devPrefix,
     routes: {},
   };
 
@@ -126,8 +135,9 @@ export const getSsrHtml = async ({
 
     return () => {
       const html = getHtml();
+      const path = joinPath(prefix, route.clientUrl);
 
-      const sctipt = `<script type="module" src="${route.clientUrl}"></script> `;
+      const sctipt = `<script type="module" src="${path}"></script> `;
 
       const htmlWithScript = html.replace(SCRIPT_KEY, sctipt);
       return htmlWithScript;
@@ -137,11 +147,21 @@ export const getSsrHtml = async ({
     return () => {
       const html = getHtml();
 
-      const sctipt1 = `<script type="module" src="/@vite/client"></script>`;
-      const sctipt2 = `<script type="module" src="${route.clientRaw}"></script> `;
+      const prefixPath = joinPath(config.devPrefix, config.prefix);
+
+      console.log('-----', 'prefixPath', prefixPath);
+
+      const viteClient = joinPath(prefixPath, '/@vite/client');
+      console.log('-----', 'viteClient', viteClient);
+      const jsClient = joinPath(prefixPath, route.clientRaw);
+
+      const sctipt1 = `<script type="module" src="${viteClient}"></script>`;
+      const sctipt2 = `<script type="module" src="${jsClient}"></script> `;
 
       const sctits = sctipt1 + sctipt2;
       const htmlWithScript = html.replace(SCRIPT_KEY, sctits);
+
+      console.log('-----', 'htmlWithScript', htmlWithScript);
       return htmlWithScript;
     };
   }

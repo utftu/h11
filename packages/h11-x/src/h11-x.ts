@@ -8,6 +8,8 @@ type BuildProps = {
   baseDir?: string;
   routes: (string | Route)[];
   prod?: boolean;
+  devPrefix?: string;
+  prefix?: string;
 };
 
 export const makeRouteUniversal = (route: string | Route) => {
@@ -25,7 +27,10 @@ export const buildH11X = async ({
   baseDir,
   prod = true,
   routes,
-}: BuildProps) => {
+  prefix = '',
+  devPrefix = '/_vite',
+}: // prefix:
+BuildProps) => {
   const baseDirPrepared = baseDir || `${process.cwd()}/.h11x`;
 
   await fsApi.rm(baseDirPrepared);
@@ -36,13 +41,8 @@ export const buildH11X = async ({
   for (const route of routes) {
     const { dir, name } = makeRouteUniversal(route);
 
-    // const name = getEntName(route); checkFile
     const ssgFile = await checkFile(dir, `${name}.ssg`, fsApi);
-    // const ssgFile = joinPath(dir, `${name}.ssg.ts`);
     const ssrFile = await checkFile(dir, `${name}.ssr`, fsApi);
-
-    // const ssrFile = joinPath(dir, `${name}.ssr.ts`);
-    // const clientFile = joinPath(dir, `${name}.ssr.ts`);
 
     const clientFile = await checkFile(dir, `${name}.client`, fsApi);
 
@@ -71,6 +71,8 @@ export const buildH11X = async ({
       routes: ssrRoutes,
       baseDir,
       prod,
+      prefix,
+      devPrefix,
     });
   }
 };

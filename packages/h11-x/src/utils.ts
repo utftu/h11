@@ -56,12 +56,15 @@ export const getEntPath = (pathname: string, dir: string) => {
 };
 
 export const joinPath = (left: string, right: string) => {
-  if (right.startsWith('/')) {
-    return right;
-  }
   if (left === '') {
     return right;
   }
+
+  if (right === '') {
+    return left;
+  }
+
   const preparedLeft = left.endsWith('/') ? left.slice(0, -1) : left;
-  return preparedLeft + '/' + right;
+  const preparedRight = right.startsWith('/') ? right.slice(1) : right;
+  return preparedLeft + '/' + preparedRight;
 };

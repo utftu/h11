@@ -5,7 +5,9 @@ type BuildProps = {
     baseDir?: string;
     routes: (string | Route)[];
     prod?: boolean;
+    devPrefix?: string;
+    prefix?: string;
 };
 export declare const makeRouteUniversal: (route: string | Route) => Route;
-export declare const buildH11X: ({ baseDir, prod, routes, }: BuildProps) => Promise<void>;
+export declare const buildH11X: ({ baseDir, prod, routes, prefix, devPrefix, }: BuildProps) => Promise<void>;
 export { makeSsg, makeSsr, getSsrHtml, readSsrConfig };

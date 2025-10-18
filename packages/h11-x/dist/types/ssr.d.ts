@@ -3,6 +3,8 @@ import type { Route } from './types.ts';
 export declare const SCRIPT_KEY = "<template id=\"H11X_SCRIPT_CLIENT\"></template>";
 type Config = {
     prod: boolean;
+    prefix: string;
+    devPrefix: string;
     routes: Record<string, {
         client: string;
         clientRaw: string;
@@ -11,10 +13,12 @@ type Config = {
         ssrFileRaw: string;
     }>;
 };
-export declare const makeSsr: ({ routes, baseDir, prod, }: {
+export declare const makeSsr: ({ routes, baseDir, prod, prefix, devPrefix, }: {
     routes: Route[];
     baseDir?: string;
     prod: boolean;
+    prefix: string;
+    devPrefix: string;
 }) => Promise<void>;
 export declare const readSsrConfig: (baseDir?: string) => Promise<Config>;
 export declare const getSsrHtml: ({ vite, config, name, }: {

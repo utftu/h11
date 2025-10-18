@@ -313,14 +313,15 @@ var getEntName = (str) => {
   return str.split("/").at(-1);
 };
 var joinPath = (left, right) => {
-  if (right.startsWith("/")) {
-    return right;
-  }
   if (left === "") {
     return right;
   }
+  if (right === "") {
+    return left;
+  }
   const preparedLeft = left.endsWith("/") ? left.slice(0, -1) : left;
-  return preparedLeft + "/" + right;
+  const preparedRight = right.startsWith("/") ? right.slice(1) : right;
+  return preparedLeft + "/" + preparedRight;
 };
 
 // ../../node_modules/regan-vite/dist/regan-vite.js
@@ -395,14 +396,19 @@ var makeSsg = async ({
 import { defineConfig as defineConfig2, build as buildVite2 } from "vite";
 var fsApi3 = await getFsApi();
 var SCRIPT_KEY = '<template id="H11X_SCRIPT_CLIENT"></template>';
+var prefix = "_vite";
 var makeSsr = async ({
   routes,
   baseDir,
-  prod
+  prod,
+  prefix: prefix2,
+  devPrefix
 }) => {
   const baseDirPrepared = baseDir || `${process.cwd()}/.h11x`;
   const assetsStore = {
     prod,
+    prefix: prefix2,
+    devPrefix,
     routes: {}
   };
   const routesPromises = routes.map(async ({ dir, name }) => {
@@ -458,25 +464,28 @@ var getSsrHtml = async ({
 }) => {
   const route = config.routes[name];
   if (config.prod) {
-    console.log("-----", "prod");
-    console.log("-----", "before");
     const { getHtml } = await import(route.ssrFile);
-    console.log("-----", "afer");
     return () => {
       const html = getHtml();
-      const sctipt = `<script type="module" src="${route.clientUrl}"></script> `;
+      const path = joinPath(prefix, route.clientUrl);
+      const sctipt = `<script type="module" src="${path}"></script> `;
       const htmlWithScript = html.replace(SCRIPT_KEY, sctipt);
       return htmlWithScript;
     };
   } else {
-    console.log("-----", "not prod");
     const { getHtml } = await vite.ssrLoadModule(route.ssrFileRaw);
     return () => {
       const html = getHtml();
-      const sctipt1 = `<script type="module" src="/@vite/client"></script>`;
-      const sctipt2 = `<script type="module" src="${route.clientRaw}"></script> `;
+      const prefixPath = joinPath(config.devPrefix, config.prefix);
+      console.log("-----", "prefixPath", prefixPath);
+      const viteClient = joinPath(prefixPath, "/@vite/client");
+      console.log("-----", "viteClient", viteClient);
+      const jsClient = joinPath(prefixPath, route.clientRaw);
+      const sctipt1 = `<script type="module" src="${viteClient}"></script>`;
+      const sctipt2 = `<script type="module" src="${jsClient}"></script> `;
       const sctits = sctipt1 + sctipt2;
       const htmlWithScript = html.replace(SCRIPT_KEY, sctits);
+      console.log("-----", "htmlWithScript", htmlWithScript);
       return htmlWithScript;
     };
   }
@@ -495,7 +504,9 @@ var makeRouteUniversal = (route) => {
 var buildH11X = async ({
   baseDir,
   prod = true,
-  routes
+  routes,
+  prefix: prefix2 = "",
+  devPrefix = "/_vite"
 }) => {
   const baseDirPrepared = baseDir || `${process.cwd()}/.h11x`;
   await fsApi.rm(baseDirPrepared);
@@ -526,7 +537,9 @@ var buildH11X = async ({
     await makeSsr({
       routes: ssrRoutes,
       baseDir,
-      prod
+      prod,
+      prefix: prefix2,
+      devPrefix
     });
   }
 };
