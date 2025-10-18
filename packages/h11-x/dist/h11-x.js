@@ -396,18 +396,17 @@ var makeSsg = async ({
 import { defineConfig as defineConfig2, build as buildVite2 } from "vite";
 var fsApi3 = await getFsApi();
 var SCRIPT_KEY = '<template id="H11X_SCRIPT_CLIENT"></template>';
-var prefix = "_vite";
 var makeSsr = async ({
   routes,
   baseDir,
   prod,
-  prefix: prefix2,
+  prefix,
   devPrefix
 }) => {
   const baseDirPrepared = baseDir || `${process.cwd()}/.h11x`;
   const assetsStore = {
     prod,
-    prefix: prefix2,
+    prefix,
     devPrefix,
     routes: {}
   };
@@ -467,7 +466,8 @@ var getSsrHtml = async ({
     const { getHtml } = await import(route.ssrFile);
     return () => {
       const html = getHtml();
-      const path = joinPath(prefix, route.clientUrl);
+      const path = joinPath(config.prefix, route.clientUrl);
+      console.log("-----", "path", path);
       const sctipt = `<script type="module" src="${path}"></script> `;
       const htmlWithScript = html.replace(SCRIPT_KEY, sctipt);
       return htmlWithScript;
@@ -477,21 +477,21 @@ var getSsrHtml = async ({
     return () => {
       const html = getHtml();
       const prefixPath = joinPath(config.devPrefix, config.prefix);
-      console.log("-----", "prefixPath", prefixPath);
       const viteClient = joinPath(prefixPath, "/@vite/client");
-      console.log("-----", "viteClient", viteClient);
       const jsClient = joinPath(prefixPath, route.clientRaw);
       const sctipt1 = `<script type="module" src="${viteClient}"></script>`;
       const sctipt2 = `<script type="module" src="${jsClient}"></script> `;
       const sctits = sctipt1 + sctipt2;
       const htmlWithScript = html.replace(SCRIPT_KEY, sctits);
-      console.log("-----", "htmlWithScript", htmlWithScript);
       return htmlWithScript;
     };
   }
 };
 
 // src/h11-x.ts
+var defaultDevPrefix = "/_vite";
+var defaultPrefix = "/h11x";
+var defaultFullPrefix = defaultDevPrefix + defaultPrefix;
 var makeRouteUniversal = (route) => {
   if (typeof route === "string") {
     return {
@@ -505,7 +505,7 @@ var buildH11X = async ({
   baseDir,
   prod = true,
   routes,
-  prefix: prefix2 = "",
+  prefix = "/h11x",
   devPrefix = "/_vite"
 }) => {
   const baseDirPrepared = baseDir || `${process.cwd()}/.h11x`;
@@ -538,7 +538,7 @@ var buildH11X = async ({
       routes: ssrRoutes,
       baseDir,
       prod,
-      prefix: prefix2,
+      prefix,
       devPrefix
     });
   }
@@ -549,5 +549,8 @@ export {
   makeSsg,
   makeRouteUniversal,
   getSsrHtml,
+  defaultPrefix,
+  defaultFullPrefix,
+  defaultDevPrefix,
   buildH11X
 };

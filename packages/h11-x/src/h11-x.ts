@@ -12,6 +12,10 @@ type BuildProps = {
   prefix?: string;
 };
 
+export const defaultDevPrefix = '/_vite';
+export const defaultPrefix = '/h11x';
+export const defaultFullPrefix = defaultDevPrefix + defaultPrefix;
+
 export const makeRouteUniversal = (route: string | Route) => {
   if (typeof route === 'string') {
     return {
@@ -27,7 +31,7 @@ export const buildH11X = async ({
   baseDir,
   prod = true,
   routes,
-  prefix = '',
+  prefix = '/h11x',
   devPrefix = '/_vite',
 }: // prefix:
 BuildProps) => {

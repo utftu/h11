@@ -8,6 +8,9 @@ type BuildProps = {
     devPrefix?: string;
     prefix?: string;
 };
+export declare const defaultDevPrefix = "/_vite";
+export declare const defaultPrefix = "/h11x";
+export declare const defaultFullPrefix: string;
 export declare const makeRouteUniversal: (route: string | Route) => Route;
 export declare const buildH11X: ({ baseDir, prod, routes, prefix, devPrefix, }: BuildProps) => Promise<void>;
 export { makeSsg, makeSsr, getSsrHtml, readSsrConfig };

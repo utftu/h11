@@ -13,7 +13,7 @@ import { reganVite } from 'regan-vite';
 const fsApi = await getFsApi();
 
 export const SCRIPT_KEY = '<template id="H11X_SCRIPT_CLIENT"></template>';
-const prefix = '_vite';
+// const prefix = '_vite';
 
 type Config = {
   prod: boolean;
@@ -135,7 +135,10 @@ export const getSsrHtml = async ({
 
     return () => {
       const html = getHtml();
-      const path = joinPath(prefix, route.clientUrl);
+
+      const path = joinPath(config.prefix, route.clientUrl);
+
+      console.log('-----', 'path', path);
 
       const sctipt = `<script type="module" src="${path}"></script> `;
 
@@ -149,10 +152,7 @@ export const getSsrHtml = async ({
 
       const prefixPath = joinPath(config.devPrefix, config.prefix);
 
-      console.log('-----', 'prefixPath', prefixPath);
-
       const viteClient = joinPath(prefixPath, '/@vite/client');
-      console.log('-----', 'viteClient', viteClient);
       const jsClient = joinPath(prefixPath, route.clientRaw);
 
       const sctipt1 = `<script type="module" src="${viteClient}"></script>`;
@@ -161,7 +161,6 @@ export const getSsrHtml = async ({
       const sctits = sctipt1 + sctipt2;
       const htmlWithScript = html.replace(SCRIPT_KEY, sctits);
 
-      console.log('-----', 'htmlWithScript', htmlWithScript);
       return htmlWithScript;
     };
   }
