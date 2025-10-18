@@ -21,6 +21,7 @@ import { reganVite } from 'regan-vite';
 
 const vite = await createViteServer({
   plugins: [reganVite()],
+  base: '/_vite',
   server: {
     middlewareMode: true,
     // hmr: {
@@ -52,9 +53,9 @@ h11.get('/about', async () => {
 });
 
 h11.get(
-  '/**',
+  '/_vite/**',
   handleConnectMiddleware({
-    prefixToRemove: '',
+    prefixToRemove: '/_vite/',
     connectMiddleware: vite.middlewares,
   })
 );

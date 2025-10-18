@@ -11,7 +11,7 @@ export const About = ({ text }: { text: string }) => {
       <html>
         <head></head>
         <body>
-          <div>about {text} 12322222222333</div>
+          <div>about {text} 12322222222333))</div>
 
           <SCRIPT_H11X />
           {/* <template id="1@"></template> */}
