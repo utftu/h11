@@ -2,6 +2,7 @@ import { Group, startIfMain, Task } from 'dapes';
 import { groupH11 } from 'h11/dapes.h11.ts';
 import { getAbsolutePath } from 'utftu';
 import { build as esbuildBuild } from 'esbuild';
+import { groupH11Fs } from 'h11-fs/dapes.fs.ts';
 
 const types = new Task({
   name: 'types',
@@ -14,7 +15,10 @@ const types = new Task({
 
 const build = new Task({
   name: 'build',
-  parents: [groupH11.getTaskControl('build')],
+  parents: [
+    groupH11.getTaskControl('build'),
+    groupH11Fs.getTaskControl('build'),
+  ],
   children: [types],
   exec: async ({ command }) => {
     await command('npm run build', { cwd: getAbsolutePath('.', import.meta) });
