@@ -12,6 +12,11 @@
     "types": "tsc --project tsconfig.types.json"
   },
   "dependencies": {
-    "h11": "workspace:*"
+    "h11": ">=1"
+  },
+  "devDependencies": {
+    "h11": "workspace:*",
+    "h11-bun": "workspace:*",
+    "h11-node": "workspace:*"
   }
 }

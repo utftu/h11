@@ -1,24 +1,13 @@
-export const SCRIPT_KEY = '<template id="H11X_SCRIPT_CLIENT"></template>';
+// export const SCRIPT_KEY = '<template id="H11X_SCRIPT_CLIENT"></template>';
+// import { ScriptKey } from 'h11-x/client';
 
-const SCRIPT_H11X = () => {
-  return <template id="H11X_SCRIPT_CLIENT"></template>;
-};
+import { Template } from 'h11x/client';
+import type { FC } from 'regan';
 
-export const About = ({ text }: { text: string }) => {
-  return (
-    <>
-      {'<!DOCTYPE html>'}
-      <html>
-        <head></head>
-        <body>
-          <div>about {text} 123222222223332)))!!9</div>
+// const SCRIPT_H11X = () => {
+//   return <template id="H11X_SCRIPT_CLIENT"></template>;
+// };
 
-          <SCRIPT_H11X />
-          {/* <template id="1@"></template> */}
-          {/* <script type="module" src="/@vite/client" /> */}
-          {/* <script type="module" src="H11X_SCRIPT_CLIENT" /> */}
-        </body>
-      </html>
-    </>
-  );
+export const About: FC = ({ text }: { text: string }) => {
+  return <Template data={{}}>1212</Template>;
 };

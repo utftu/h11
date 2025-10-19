@@ -18,26 +18,6 @@ const joinPaths = (elem1: string, elem2: string): string => {
   }
 };
 
-// export const getNodeServerAddress = (server: Server) => {
-//   const address = server.address();
-//   if (typeof address !== 'object' || address === null) {
-//     return;
-//   }
-
-//   const protocol = 'http';
-//   const port = `:${address.port}`;
-
-//   let url: string;
-
-//   if (address.family === 'IPv6') {
-//     url = `[${address.address}]`;
-//   } else {
-//     url = address.address;
-//   }
-
-//   return `${protocol}://${url}${port}`;
-// };
-
 const createReqFromNode = (req: IncomingMessage, origin: string): Request => {
   const method = req.method;
   const headers = new Headers(req.headers as Record<string, string>);

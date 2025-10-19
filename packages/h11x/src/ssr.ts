@@ -4,16 +4,17 @@ import {
   checkFile,
   convertStreamToString,
   getDefaultBasedir,
-  joinPath,
 } from './utils.ts';
 import type { Route } from './types.ts';
-import { makeRouteUniversal } from './h11-x.ts';
 import { reganVite } from 'regan-vite';
+import { joinPath } from 'h11';
+import { scriptKey } from './conts.ts';
+
+const createSctiptText = (src: string) => {
+  return `<script type="module" defer src="${src}"></script>`;
+};
 
 const fsApi = await getFsApi();
-
-export const SCRIPT_KEY = '<template id="H11X_SCRIPT_CLIENT"></template>';
-// const prefix = '_vite';
 
 type Config = {
   prod: boolean;
@@ -66,6 +67,9 @@ export const makeSsr = async ({
             formats: ['es'],
             fileName: name,
           },
+          rollupOptions: {
+            external: ['h11-x'],
+          },
           emptyOutDir: false,
         },
       })
@@ -78,6 +82,7 @@ export const makeSsr = async ({
           emptyOutDir: false,
           rollupOptions: {
             input: clientFile,
+            // external: ['h11-x'],
           },
           outDir: baseDirPrepared,
         },
@@ -138,11 +143,9 @@ export const getSsrHtml = async ({
 
       const path = joinPath(config.prefix, route.clientUrl);
 
-      console.log('-----', 'path', path);
+      const sctipt = createSctiptText(path);
 
-      const sctipt = `<script type="module" src="${path}"></script> `;
-
-      const htmlWithScript = html.replace(SCRIPT_KEY, sctipt);
+      const htmlWithScript = html.replace(scriptKey, sctipt);
       return htmlWithScript;
     };
   } else {
@@ -155,11 +158,11 @@ export const getSsrHtml = async ({
       const viteClient = joinPath(prefixPath, '/@vite/client');
       const jsClient = joinPath(prefixPath, route.clientRaw);
 
-      const sctipt1 = `<script type="module" src="${viteClient}"></script>`;
-      const sctipt2 = `<script type="module" src="${jsClient}"></script> `;
+      const sctipt1 = createSctiptText(viteClient);
+      const sctipt2 = createSctiptText(jsClient);
 
       const sctits = sctipt1 + sctipt2;
-      const htmlWithScript = html.replace(SCRIPT_KEY, sctits);
+      const htmlWithScript = html.replace(scriptKey, sctits);
 
       return htmlWithScript;
     };

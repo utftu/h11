@@ -1,7 +1,7 @@
 import { createLogger } from 'logw';
 import { Radix } from './radix/radix.ts';
 import type { Context, FsApi, Handler, Method } from './types.ts';
-import { createEventEmitter, type EE } from 'utftu';
+import { createEventEmitter } from 'utftu';
 
 type NotFoundHandler = (props: Context) => Response | Promise<Response>;
 type ErrorHandler = (
@@ -88,7 +88,15 @@ export class H11<TExecProps extends Context = Context> {
     return this;
   }
 
-  async exec({ req, data, providers }: TExecProps): Promise<Response> {
+  async exec({
+    req,
+    data,
+    providers,
+  }: {
+    req: Request;
+    data: Record<string, string>;
+    providers: Record<string, any>;
+  }): Promise<Response> {
     const url = new URL(req.url);
     const findResult = this.radix.find(url.pathname, req.method as any);
 

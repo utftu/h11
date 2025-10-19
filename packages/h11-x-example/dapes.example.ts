@@ -1,7 +1,7 @@
 import { Group, startIfMain, Task } from 'dapes';
 import { getAbsolutePath } from 'utftu';
-import { groupH11X } from '../h11-x/dapes.x.ts';
-import { groupH11Fs } from 'h11-fs/dapes.fs.ts';
+import { groupH11X } from '../h11x/dapes.x.ts';
+import { groupH11Fs } from '../h11-fs/dapes.fs.ts';
 
 const runFull = new Task({
   name: 'build',
@@ -27,7 +27,7 @@ const run = new Task({
 
 export const groupH11Example = new Group({
   name: 'example',
-  tasks: [run, runFull],
+  tasks: [runFull, run],
 });
 
 startIfMain(groupH11Example, import.meta);

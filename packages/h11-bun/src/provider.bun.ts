@@ -2,7 +2,7 @@ import type { Server } from 'bun';
 import type { H11 } from 'h11';
 
 export const createBunProvider = ({ h11 }: { h11: H11 }) => {
-  return async (req: Request, server: Server) => {
+  return async (req: Request, server: Server<any>) => {
     const res = await h11.exec({
       req,
       providers: {

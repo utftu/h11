@@ -12,6 +12,7 @@ type BuildProps = {
   prefix?: string;
 };
 
+// export const scriptKey = '<template id="H11X_SCRIPT_CLIENT"></template>';
 export const defaultDevPrefix = '/_vite';
 export const defaultPrefix = '/h11x';
 export const defaultFullPrefix = defaultDevPrefix + defaultPrefix;

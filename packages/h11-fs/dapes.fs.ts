@@ -1,8 +1,8 @@
 import { Group, startIfMain, Task } from 'dapes';
-import { groupH11 } from 'h11/dapes.h11.ts';
+import { groupH11 } from '../h11/dapes.h11.ts';
 import { getAbsolutePath } from 'utftu';
 import { build as esbuildBuild } from 'esbuild';
-import { groupH11Node } from 'h11-node/dapes.node.ts';
+import { groupH11Node } from '../h11-node/dapes.node.ts';
 import { groupH11Bun } from '../h11-bun/dapes.bun.ts';
 
 const types = new Task({

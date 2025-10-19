@@ -4,7 +4,7 @@
   "type": "module",
   "private": true,
   "dependencies": {
-    "h11-x": "*",
+    "h11x": "*",
     "regan": "^0.0.3"
   }
 }

@@ -1,9 +1,10 @@
 import { defineConfig, build as buildVite } from 'vite';
 import { getFsApi } from 'h11-fs';
-import { checkFile, getEntName, joinPath } from './utils.ts';
+import { checkFile } from './utils.ts';
 import type { GetHtmlSsg, Route } from './types.ts';
 import { reganVite } from 'regan-vite';
 import { relative } from 'node:path';
+import { joinPath } from 'h11';
 
 export type Page = {
   pathname: string;
@@ -37,6 +38,9 @@ export const makeSsg = async ({
           formats: ['es'],
           fileName: name,
         },
+        rollupOptions: {
+          external: ['h11-x'],
+        },
         emptyOutDir: false,
       },
       plugins: [reganVite()],
@@ -48,6 +52,7 @@ export const makeSsg = async ({
         build: {
           rollupOptions: {
             input: clientFile,
+            // external: ['h11-x'],
           },
           emptyOutDir: false,
           outDir: baseDirPrepared,

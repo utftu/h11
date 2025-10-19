@@ -1,13 +1,19 @@
 import { joinUserPath, type Handler } from 'h11';
-import { fsApi } from './fs.ts';
-import { getFileEnt } from './utils/files.ts';
+import { fsApi } from '../fs.ts';
+import { getFileEnt } from '../utils/files.ts';
 
-export const serveFilesModule = (dirToServe: string, prefix: string = '') => {
+export const serveFiles = ({
+  dir,
+  prefix = '',
+}: {
+  dir: string;
+  prefix?: string;
+}) => {
   const handler: Handler = async ({ req, h11 }) => {
     const url = new URL(req.url);
 
     const resultPathname = url.pathname.slice(prefix.length);
-    const filePath = joinUserPath(dirToServe, resultPathname);
+    const filePath = joinUserPath(dir, resultPathname);
 
     const fileEnt = await getFileEnt(
       filePath,
