@@ -1,7 +1,7 @@
 import { Group, startIfMain, Task } from 'dapes';
 import { groupH11 } from '../h11/dapes.h11.ts';
 import { getAbsolutePath } from 'utftu';
-import { groupH11Fs } from '../h11-fs/dapes.fs.ts';
+import { groupH11Fs } from 'h11-fs/dapes.fs.ts';
 import { build as buildVite } from 'vite';
 import { build as buildEsBuild } from 'esbuild';
 
@@ -22,12 +22,13 @@ const build = new Task({
   ],
   children: [types],
   exec: async () => {
-    // Bun.build({
-    //   entrypoints: [getAbsolutePath('./src/h11-x.ts', import.meta)],
-    //   target: 'bun',
-    //   external: ['vite', 'h11'],
-    //   outdir: 'dist',
-    // });
+    await Bun.build({
+      entrypoints: [getAbsolutePath('./src/h11-x.ts', import.meta)],
+      target: 'node',
+      format: 'esm',
+      outdir: 'dist',
+      external: ['vite'],
+    });
     await buildEsBuild({
       entryPoints: [getAbsolutePath('./src/h11-x.client.ts', import.meta)],
       target: 'es2018',
@@ -37,30 +38,13 @@ const build = new Task({
       outdir: 'dist',
       jsxImportSource: 'regan',
       jsxFactory: 'h',
+      jsxFragment: 'Fragment',
     });
-
-    // await Bun.build({
-    //   entrypoints: [getAbsolutePath('./src/h11-x.client.ts', import.meta)],
-    //   target: 'browser',
-    //   external: ['regan'],
-    //   outdir: 'dist',
-    //   jsx: {
-    //     importSource: 'regan',
-    //     factory: 'h',
-    //     fragment: 'Fragment',
-    //     runtime: 'classic',
-    //     sideEffects: false,
-    //     development: false,
-    //   },
-    //   // jsx: 'react',
-    //   // jsxFactory: 'h',
-    // });
-    // await command('npm run build', { cwd: getAbsolutePath('.', import.meta) });
   },
 });
 
 export const groupH11X = new Group({
-  name: 'bun',
+  name: 'x',
   tasks: [build],
 });
 

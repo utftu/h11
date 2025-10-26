@@ -56,7 +56,7 @@ export const Template: FC<{ data: Record<string, any> }> = (
     return true;
   });
   return (
-    <>
+    <Fragment>
       {'<!DOCTYPE html>'}
       <html>
         <head {...headProps}>
@@ -69,6 +69,6 @@ export const Template: FC<{ data: Record<string, any> }> = (
           {bodies}
         </body>
       </html>
-    </>
+    </Fragment>
   );
 };

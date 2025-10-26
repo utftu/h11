@@ -1,0 +1,22 @@
+{
+  "name": "h11-x",
+  "version": "0.0.1",
+  "type": "module",
+  "scripts": {
+    "build": "bun build ./src/h11-x.ts --target bun --external vite --external h11 --outdir ./dist",
+    "types": "tsc --project tsconfig.types.json"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/types/h11-x.d.ts",
+      "default": "./dist/h11-x.js"
+    },
+    "./client": {
+      "types": "./dist/types/h11-x.client.d.ts",
+      "default": "./dist/h11-x.client.js"
+    }
+  },
+  "dependencies": {
+    "h11-fs": "*"
+  }
+}

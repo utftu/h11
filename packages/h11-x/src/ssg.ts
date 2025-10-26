@@ -39,7 +39,7 @@ export const makeSsg = async ({
           fileName: name,
         },
         rollupOptions: {
-          external: ['h11-x'],
+          external: ['h11-x', 'strangelove'],
         },
         emptyOutDir: false,
       },
@@ -52,6 +52,7 @@ export const makeSsg = async ({
         build: {
           rollupOptions: {
             input: clientFile,
+            external: ['strangelove'],
             // external: ['h11-x'],
           },
           emptyOutDir: false,

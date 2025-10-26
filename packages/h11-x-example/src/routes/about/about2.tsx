@@ -1,5 +1,5 @@
 // export const SCRIPT_KEY = '<template id="H11X_SCRIPT_CLIENT"></template>';
-import { ScriptKey } from '../../../../h11x/dist/h11-x.client';
+import { ScriptKey } from '../../../../h11-x/dist/h11-x.client';
 
 // const SCRIPT_H11X = () => {
 //   return <template id="H11X_SCRIPT_CLIENT"></template>;

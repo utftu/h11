@@ -68,7 +68,7 @@ export const makeSsr = async ({
             fileName: name,
           },
           rollupOptions: {
-            external: ['h11-x'],
+            external: ['h11-x', 'regan', 'strangelove'],
           },
           emptyOutDir: false,
         },
@@ -82,7 +82,7 @@ export const makeSsr = async ({
           emptyOutDir: false,
           rollupOptions: {
             input: clientFile,
-            // external: ['h11-x'],
+            external: ['strangelove'],
           },
           outDir: baseDirPrepared,
         },

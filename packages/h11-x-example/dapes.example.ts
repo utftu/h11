@@ -1,6 +1,6 @@
 import { Group, startIfMain, Task } from 'dapes';
 import { getAbsolutePath } from 'utftu';
-import { groupH11X } from '../h11x/dapes.x.ts';
+import { groupH11X } from '../h11-x/dapes.x.ts';
 import { groupH11Fs } from '../h11-fs/dapes.fs.ts';
 
 const runFull = new Task({

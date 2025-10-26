@@ -10,11 +10,5 @@
   "scripts": {
     "build": "bun build ./src/h11.ts --target bun --outdir ./dist",
     "types": "tsc --project tsconfig.types.json"
-  },
-  "devDependencies": {
-    "dapes": "^0.0.38"
-  },
-  "dependencies": {
-    "balg": "^0.0.2"
   }
 }
