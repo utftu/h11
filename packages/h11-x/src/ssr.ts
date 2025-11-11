@@ -9,6 +9,8 @@ import type { Route } from './types.ts';
 import { reganVite } from 'regan-vite';
 import { joinPath } from 'h11';
 import { scriptKey } from './conts.ts';
+import { defu } from 'defu';
+import { viteConfigBaseClient, viteConfigBaseServer } from './config.ts';
 
 const createSctiptText = (src: string) => {
   return `<script type="module" defer src="${src}"></script>`;
@@ -57,37 +59,32 @@ export const makeSsr = async ({
     const ssrFile = await checkFile(dir, `${name}.ssr`, fsApi);
     const clientFile = await checkFile(dir, `${name}.client`, fsApi);
 
-    const ssrFileResult = await buildVite(
-      defineConfig({
-        plugins: [reganVite()],
-        build: {
-          outDir: joinPath(baseDirPrepared, 'ssr'),
-          lib: {
-            entry: ssrFile,
-            formats: ['es'],
-            fileName: name,
-          },
-          rollupOptions: {
-            external: ['h11-x', 'regan', 'strangelove'],
-          },
-          emptyOutDir: false,
+    const configServer = defineConfig({
+      build: {
+        outDir: joinPath(baseDirPrepared, 'ssr'),
+        lib: {
+          entry: ssrFile,
+          formats: ['es'],
+          fileName: name,
         },
-      })
-    );
+      },
+    });
+    const configServerFinal = defu(configServer, viteConfigBaseServer);
 
-    const clientFileResult = (await buildVite(
-      defineConfig({
-        plugins: [reganVite()],
-        build: {
-          emptyOutDir: false,
-          rollupOptions: {
-            input: clientFile,
-            external: ['strangelove'],
-          },
-          outDir: baseDirPrepared,
+    await buildVite(configServerFinal);
+
+    const configClient = defineConfig({
+      build: {
+        rollupOptions: {
+          input: clientFile,
         },
-      })
-    )) as any;
+        outDir: baseDirPrepared,
+      },
+    });
+
+    const configClientFinal = defu(configClient, viteConfigBaseClient);
+
+    const clientFileResult = (await buildVite(configClientFinal)) as any;
 
     const filename = clientFileResult.output[0].fileName as string;
 
@@ -119,19 +116,13 @@ export const readSsrConfig = async (baseDir?: string): Promise<Config> => {
 };
 
 export const getSsrHtml = async ({
-  // prod,
-  // route,
   vite,
   config,
   name,
-}: // baseDir,
-{
-  // prod: boolean;
-  // route: string | Route;
+}: {
   vite?: ViteDevServer;
   config: Config;
   name: string;
-  // baseDir?: string;
 }) => {
   const route = config.routes[name];
 
@@ -161,8 +152,8 @@ export const getSsrHtml = async ({
       const sctipt1 = createSctiptText(viteClient);
       const sctipt2 = createSctiptText(jsClient);
 
-      const sctits = sctipt1 + sctipt2;
-      const htmlWithScript = html.replace(scriptKey, sctits);
+      const scripts = sctipt1 + sctipt2;
+      const htmlWithScript = html.replace(scriptKey, scripts);
 
       return htmlWithScript;
     };

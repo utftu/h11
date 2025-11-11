@@ -26,7 +26,7 @@ const build = new Task({
       entrypoints: [getAbsolutePath('./src/h11-x.ts', import.meta)],
       target: 'node',
       format: 'esm',
-      outdir: 'dist',
+      outdir: getAbsolutePath('./dist', import.meta),
       external: ['vite'],
     });
     await buildEsBuild({
@@ -35,10 +35,12 @@ const build = new Task({
       external: ['regan'],
       bundle: true,
       format: 'esm',
-      outdir: 'dist',
+      outdir: getAbsolutePath('./dist', import.meta),
+      jsx: 'automatic',
       jsxImportSource: 'regan',
-      jsxFactory: 'h',
-      jsxFragment: 'Fragment',
+      // jsxImportSource: 'regan',
+      // jsxFactory: 'h',
+      // jsxFragment: 'Fragment',
     });
   },
 });

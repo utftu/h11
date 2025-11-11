@@ -10,6 +10,13 @@ export const getPages = () => {
         return a;
       },
     },
+    {
+      pathname: 'a/about1',
+      getHtml: () => {
+        const a = stringify(h(About, { text: 1 }, []));
+        return a;
+      },
+    },
     // {
     //   pathname: '/about2',
     //   html: createHtml({

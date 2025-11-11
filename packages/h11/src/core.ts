@@ -1,6 +1,13 @@
 import { createLogger } from 'logw';
 import { Radix } from './radix/radix.ts';
-import type { Context, FsApi, Handler, Method } from './types.ts';
+import type {
+  Context,
+  FsApi,
+  Handler,
+  HandlersProps,
+  HanlderEnt,
+  Method,
+} from './types.ts';
 import { createEventEmitter } from 'utftu';
 
 type NotFoundHandler = (props: Context) => Response | Promise<Response>;
@@ -38,6 +45,18 @@ const defaultOnError: ErrorHandler = ({ req, error, h11 }) => {
   });
 };
 
+const getHandlerEntFromProps = (param: HandlersProps): HanlderEnt => {
+  if (Array.isArray(param[0])) {
+    return { handlers: param[0] };
+  }
+
+  if ((param[0] as any)?.handlers) {
+    return param as any as HanlderEnt;
+  }
+
+  return { handlers: param as Handler[] };
+};
+
 export class H11<TExecProps extends Context = Context> {
   types!: TExecProps;
   radix = new Radix();
@@ -73,17 +92,22 @@ export class H11<TExecProps extends Context = Context> {
   onNotFound: NotFoundHandler = defaultOnNotFound;
   onError: ErrorHandler = defaultOnError;
 
-  private addRoute(pattern: string, method: Method, handlers: Handler[]) {
-    const preparedHandler = { handlers };
-    this.radix.add(pattern, method, preparedHandler);
+  private addRoute(pattern: string, method: Method, handlers: HandlersProps) {
+    const handlerEnt = getHandlerEntFromProps(handlers);
+    this.radix.add(pattern, method, handlerEnt);
   }
 
-  get(pattern: string, ...handlers: Handler[]) {
+  get(pattern: string, ...handlers: HandlersProps) {
     this.addRoute(pattern, 'GET', handlers);
     return this;
   }
 
-  post(pattern: string, ...handlers: Handler[]) {
+  // get(pattern: string, ...handlers: Handler[]) {
+  //   this.addRoute(pattern, 'GET', handlers);
+  //   return this;
+  // }
+
+  post(pattern: string, ...handlers: HandlersProps) {
     this.addRoute(pattern, 'POST', handlers);
     return this;
   }

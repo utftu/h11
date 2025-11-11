@@ -25,6 +25,9 @@ export type HanlderEnt = {
   handlers: Handler[];
 };
 
+export type HandlersProps = Handler[] | [Handler[]] | [HanlderEnt];
+export type HandlerReturn = Handler | Handler[] | HanlderEnt;
+
 export type FsApi = {
   getFileStream: (path: string) => ReadableStream;
   writeFileStream: (path: string, stream: ReadableStream) => Promise<void>;

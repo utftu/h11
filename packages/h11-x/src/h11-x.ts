@@ -68,7 +68,7 @@ BuildProps) => {
   }
 
   if (ssgRoutes.length) {
-    await makeSsg({ routes: ssgRoutes, prod, baseDir });
+    await makeSsg({ routes: ssgRoutes, prod, baseDir, devPrefix, prefix });
   }
 
   if (ssgRoutes.length) {

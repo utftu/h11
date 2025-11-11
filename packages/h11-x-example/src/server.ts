@@ -6,6 +6,8 @@ import { createServer as createViteServer } from 'vite';
 import { reganVite } from 'regan-vite';
 import { buildH11X, defaultFullPrefix, getSsrHtml, readSsrConfig } from 'h11-x';
 
+const preparedHtmlServe = (route: string) => {};
+
 const vite = await createViteServer({
   plugins: [reganVite()],
   base: '/_vite/h11x',
@@ -18,7 +20,7 @@ const baseDir = getAbsolutePath('../.h11x', import.meta);
 
 await buildH11X({
   baseDir,
-  prod: false,
+  prod: true,
   routes: [getAbsolutePath('./routes/about', import.meta)],
 });
 const ssrConfig = await readSsrConfig();
@@ -27,13 +29,18 @@ const h11 = new H11();
 h11.startLogger();
 
 h11.get('/about', async () => {
-  const getHtml = await getSsrHtml({
-    vite,
-    config: ssrConfig,
-    name: 'about',
-  });
-  const html = getHtml();
-  console.log('-----', 'html', html);
+  let html: string;
+  try {
+    const getHtml = await getSsrHtml({
+      vite,
+      config: ssrConfig,
+      name: 'about',
+    });
+    html = getHtml();
+  } catch (err) {
+    console.log('-----', 'err', err);
+    throw err;
+  }
   return new Response(html, {
     headers: { 'content-type': 'text/html; charset=utf-8' },
   });
@@ -50,6 +57,7 @@ h11.get(
 );
 
 h11.get('/h11x/**', serveFiles({ dir: `${baseDir}/assets`, prefix: '/h11x/' }));
+h11.get('/**', serveFiles({ dir: `${baseDir}/assets`, prefix: '' }));
 
 const bunProvider = createBunProvider({ h11 });
 

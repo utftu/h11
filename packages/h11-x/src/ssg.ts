@@ -1,10 +1,13 @@
 import { defineConfig, build as buildVite } from 'vite';
 import { getFsApi } from 'h11-fs';
-import { checkFile } from './utils.ts';
+import { checkFile, createSctiptText } from './utils.ts';
 import type { GetHtmlSsg, Route } from './types.ts';
 import { reganVite } from 'regan-vite';
 import { relative } from 'node:path';
 import { joinPath } from 'h11';
+import defu from 'defu';
+import { viteConfigBaseClient, viteConfigBaseServer } from './config.ts';
+import { scriptKey } from './conts.ts';
 
 export type Page = {
   pathname: string;
@@ -19,10 +22,14 @@ export const makeSsg = async ({
   routes,
   prod,
   baseDir,
+  prefix,
+  devPrefix,
 }: {
   routes: Route[];
   prod: boolean;
   baseDir?: string;
+  prefix: string;
+  devPrefix: string;
 }) => {
   const baseDirPrepared = baseDir || process.cwd();
 
@@ -30,7 +37,7 @@ export const makeSsg = async ({
     const ssgFile = await checkFile(dir, `${name}.ssg`, fsApi);
     const clientFile = await checkFile(dir, `${name}.client`, fsApi);
 
-    await buildVite({
+    const serverConfig = defineConfig({
       build: {
         outDir: joinPath(baseDirPrepared, 'ssg'),
         lib: {
@@ -38,29 +45,25 @@ export const makeSsg = async ({
           formats: ['es'],
           fileName: name,
         },
-        rollupOptions: {
-          external: ['h11-x', 'strangelove'],
-        },
-        emptyOutDir: false,
       },
-      plugins: [reganVite()],
+    });
+    const serverConfigFinal = defu(serverConfig, viteConfigBaseServer);
+
+    await buildVite(serverConfigFinal);
+
+    const configClient = defineConfig({
+      build: {
+        rollupOptions: {
+          input: clientFile,
+        },
+        outDir: baseDirPrepared,
+      },
     });
 
+    const configClientFinal = defu(configClient, viteConfigBaseClient);
+
     // client
-    const result = await buildVite(
-      defineConfig({
-        build: {
-          rollupOptions: {
-            input: clientFile,
-            external: ['strangelove'],
-            // external: ['h11-x'],
-          },
-          emptyOutDir: false,
-          outDir: baseDirPrepared,
-        },
-        plugins: [reganVite()],
-      })
-    );
+    const result = await buildVite(configClientFinal);
 
     if (!('output' in result)) {
       throw new Error('No output in build');
@@ -78,14 +81,30 @@ export const makeSsg = async ({
     };
 
     const pages = await getPages();
+    console.log('-----', 'pages', pages);
 
     for (const { pathname, getHtml } of pages) {
       const html = await getHtml({ pathname });
 
-      const htmlWithScript = html.replace(
-        'H11X_SCRIPT_CLIENT',
-        prod ? clientPreparedFile : clientFile
-      );
+      let script: string;
+      if (prod) {
+        const path = joinPath(prefix, clientPreparedFile);
+
+        script = createSctiptText(path);
+      } else {
+        const prefixPath = joinPath(devPrefix, prefix);
+        const viteClient = joinPath(prefixPath, '/@vite/client');
+        const jsClient = joinPath(prefixPath, clientFile);
+
+        const sctipt1 = createSctiptText(viteClient);
+        const sctipt2 = createSctiptText(jsClient);
+
+        script = sctipt1 + sctipt2;
+      }
+
+      // const script1 = createSctiptText(prod ? clientPreparedFile : clientFile);
+
+      const htmlWithScript = html.replace(scriptKey, script);
 
       await fsApi.writeFile(
         joinPath(baseDirPrepared, `assets/${pathname}.html`),

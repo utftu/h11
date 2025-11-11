@@ -105,3 +105,5 @@ export const getFileEnt = async (
     };
   }
 };
+
+const serverHtml = () => {};

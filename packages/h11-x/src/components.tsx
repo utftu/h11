@@ -1,12 +1,12 @@
 import { scriptKey } from './conts.ts';
 import { Fragment, h, type Child, type FC } from 'regan';
 
-const getClientData = () => {
-  const el = window.document.getElementById('h11x_data');
-  const content = el!.textContent!;
+// const getClientData = () => {
+//   const el = window.document.getElementById('h11x_data');
+//   const content = el!.textContent!;
 
-  return JSON.parse(content);
-};
+//   return JSON.parse(content);
+// };
 
 export const Script: FC = () => {
   return h(Fragment, {}, [scriptKey]);
@@ -14,7 +14,7 @@ export const Script: FC = () => {
 
 export const Data: FC<{ data: any }> = ({ data }) => {
   const dataStr = JSON.stringify(data);
-  return h('template', { id: 'h11x_data' }, [dataStr]);
+  return <template id="h11x_data">{dataStr}</template>;
 };
 
 const h11x_head = 'h11x_head';
@@ -55,10 +55,16 @@ export const Template: FC<{ data: Record<string, any> }> = (
     }
     return true;
   });
+
   return (
     <Fragment>
       {'<!DOCTYPE html>'}
+      <div>
+        <div>hello!!</div>
+        div1111
+      </div>
       <html>
+        <div>hello!!</div>
         <head {...headProps}>
           <Script />
           <Data data={data} />

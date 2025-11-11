@@ -55,16 +55,6 @@ export const getEntPath = (pathname: string, dir: string) => {
   return [...pathname.split('/').slice(0, -1), name].join('/');
 };
 
-// export const joinPath = (left: string, right: string) => {
-//   if (left === '') {
-//     return right;
-//   }
-
-//   if (right === '') {
-//     return left;
-//   }
-
-//   const preparedLeft = left.endsWith('/') ? left.slice(0, -1) : left;
-//   const preparedRight = right.startsWith('/') ? right.slice(1) : right;
-//   return preparedLeft + '/' + preparedRight;
-// };
+export const createSctiptText = (src: string) => {
+  return `<script type="module" defer src="${src}"></script>`;
+};
