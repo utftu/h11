@@ -2,7 +2,6 @@ import { Group, publishPackage, startIfMain, Task } from 'dapes';
 import { groupH11 } from '../h11/dapes.h11.ts';
 import { getAbsolutePath } from 'utftu';
 import { groupH11Fs } from 'h11-fs/dapes.fs.ts';
-import { build as buildVite } from 'vite';
 import { build as buildEsBuild } from 'esbuild';
 
 const types = new Task({
@@ -45,9 +44,9 @@ const build = new Task({
 const publish = new Task({
   name: 'publish',
   parents: [build],
-  exec: async ({ command, ctx }) => {
+  exec: async ({ ctx }) => {
     publishPackage({
-      pathToPackage: import.meta.resolve('./package.json'),
+      pathToPackage: getAbsolutePath('./package.json', import.meta),
       ctx,
     });
   },
