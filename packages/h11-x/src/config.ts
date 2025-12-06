@@ -5,7 +5,6 @@ export const viteConfigBaseServer = defineConfig({
   plugins: [reganVite()],
   build: {
     rollupOptions: {
-      // external: ['h11-x', 'regan', 'strangelove'],
       external: ['h11-x', 'strangelove', 'regan'],
     },
     emptyOutDir: false,

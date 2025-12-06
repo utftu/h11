@@ -13,7 +13,7 @@ export const getContentTypeHeaders = (name: keyof typeof exts) => {
   };
 };
 
-export const getcontentTypeConfig = (name: keyof typeof exts) => {
+export const getContentTypeConfig = (name: keyof typeof exts) => {
   return {
     headers: getContentTypeHeaders(name),
   };

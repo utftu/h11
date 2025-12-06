@@ -5,7 +5,7 @@ import {
   convertStreamToString,
   getDefaultBasedir,
 } from './utils.ts';
-import type { Route } from './types.ts';
+import type { EditViteConfig, Route } from './types.ts';
 import { reganVite } from 'regan-vite';
 import { joinPath } from 'h11';
 import { scriptKey } from './conts.ts';
@@ -18,7 +18,7 @@ const createSctiptText = (src: string) => {
 
 const fsApi = await getFsApi();
 
-type Config = {
+export type ConfigSsr = {
   prod: boolean;
   prefix: string;
   devPrefix: string;
@@ -40,15 +40,17 @@ export const makeSsr = async ({
   prod,
   prefix,
   devPrefix,
+  editViteConfig,
 }: {
   routes: Route[];
   baseDir?: string;
   prod: boolean;
   prefix: string;
   devPrefix: string;
+  editViteConfig: EditViteConfig;
 }) => {
   const baseDirPrepared = baseDir || `${process.cwd()}/.h11x`;
-  const assetsStore: Config = {
+  const assetsStore: ConfigSsr = {
     prod,
     prefix,
     devPrefix,
@@ -69,11 +71,12 @@ export const makeSsr = async ({
         },
       },
     });
-    const configServerFinal = defu(configServer, viteConfigBaseServer);
+    let configServerFinal = defu(configServer, viteConfigBaseServer);
+    configServerFinal = editViteConfig('ssr_server', configServerFinal);
 
     await buildVite(configServerFinal);
 
-    const configClient = defineConfig({
+    let configClient = defineConfig({
       build: {
         rollupOptions: {
           input: clientFile,
@@ -82,9 +85,10 @@ export const makeSsr = async ({
       },
     });
 
-    const configClientFinal = defu(configClient, viteConfigBaseClient);
+    configClient = defu(configClient, viteConfigBaseClient);
+    configClient = editViteConfig('ssr_client', configClient);
 
-    const clientFileResult = (await buildVite(configClientFinal)) as any;
+    const clientFileResult = (await buildVite(configClient)) as any;
 
     const filename = clientFileResult.output[0].fileName as string;
 
@@ -103,7 +107,7 @@ export const makeSsr = async ({
   fsApi.writeFile(joinPath(baseDirPrepared, 'ssr/config.json'), assetsJson);
 };
 
-export const readSsrConfig = async (baseDir?: string): Promise<Config> => {
+export const readSsrConfig = async (baseDir?: string): Promise<ConfigSsr> => {
   const baseDirPrepared = baseDir ?? getDefaultBasedir();
 
   const configPath = joinPath(baseDirPrepared, 'ssr/config.json');
@@ -122,7 +126,7 @@ export const getSsrHtml = async <TProps extends Record<any, any> = any>({
   props = {} as any,
 }: {
   vite?: ViteDevServer;
-  config: Config;
+  config: ConfigSsr;
   name: string;
   props?: TProps;
 }) => {

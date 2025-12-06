@@ -1,20 +1,23 @@
-import { getContentTypeConfig, H11 } from 'h11';
-import { handleConnectMiddleware, serveFiles } from 'h11-fs';
-import { createBunProvider } from 'h11-bun';
-import { getAbsolutePath } from 'utftu';
+### Create vite server
+
+```ts
 import { createServer as createViteServer } from 'vite';
 import { reganVite } from 'regan-vite';
-import { buildH11X, devPrefix, prefix, getSsrHtml, readSsrConfig } from 'h11-x';
 
 const vite = await createViteServer({
   plugins: [reganVite()],
-  base: devPrefix,
+  base: defaultFullPrefix,
   server: {
     middlewareMode: true,
   },
 });
+```
 
-const baseDir = getAbsolutePath('../.h11x', import.meta);
+### Build h11-x and read config for ssr
+
+```ts
+import { buildH11X, readSsrConfig } from 'h11-x';
+import { getAbsolutePath } from 'utftu';
 
 await buildH11X({
   baseDir,
@@ -22,21 +25,20 @@ await buildH11X({
   routes: [getAbsolutePath('./routes/about', import.meta)],
 });
 const ssrConfig = await readSsrConfig();
+```
+
+### Init h11 server
+
+```ts
+import { H11 } from 'h11';
 
 const h11 = new H11();
 h11.startLogger();
+```
 
-h11.get('/about', async () => {
-  const getHtml = await getSsrHtml({
-    vite,
-    config: ssrConfig,
-    name: 'about',
-    props: {},
-  });
-  const html = getHtml();
-  return new Response(html, getContentTypeConfig('html'));
-});
+### Connect vite dev server
 
+```ts
 if (!ssrConfig.prod) {
   h11.get(
     `${devPrefix}/**`,
@@ -46,13 +48,21 @@ if (!ssrConfig.prod) {
     })
   );
 }
+```
 
+### Serve static files
+
+```ts
 h11.get(
   `${prefix}/**`,
   serveFiles({ dir: `${baseDir}/assets`, prefix: `${prefix}/` })
 );
 h11.get('/**', serveFiles({ dir: `${baseDir}/assets`, prefix: '' }));
+```
 
+### Init profider and start server
+
+```ts
 const bunProvider = createBunProvider({ h11 });
 
 Bun.serve({
@@ -62,3 +72,4 @@ Bun.serve({
     return res;
   },
 });
+```

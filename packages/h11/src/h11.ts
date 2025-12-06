@@ -6,7 +6,7 @@ import { type SwitchParam, switchFunc } from './utils/switch.ts';
 import {
   getContentType,
   getContentTypeHeaders,
-  getcontentTypeConfig,
+  getContentTypeConfig,
 } from './utils/content-type.ts';
 
 export {
@@ -20,5 +20,5 @@ export {
   type SwitchParam,
   getContentType,
   getContentTypeHeaders,
-  getcontentTypeConfig,
+  getContentTypeConfig,
 };
