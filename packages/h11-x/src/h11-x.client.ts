@@ -1,3 +1,19 @@
-import { Template, Data, Script, Head, Body } from './components.tsx';
+import {
+  Template,
+  DataSet,
+  Script,
+  Head,
+  Body,
+  getStorageHtml,
+  createStorage,
+} from './components.tsx';
 
-export { Template, Data, Script, Head, Body };
+export {
+  Template,
+  DataSet as Data,
+  Script,
+  Head,
+  Body,
+  getStorageHtml,
+  createStorage,
+};

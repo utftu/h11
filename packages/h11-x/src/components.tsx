@@ -1,20 +1,30 @@
 import { scriptKey } from './conts.ts';
 import { Fragment, h, type Child, type FC } from 'regan';
 
-// const getClientData = () => {
-//   const el = window.document.getElementById('h11x_data');
-//   const content = el!.textContent!;
+const storage_id = 'h11x_storage_id';
 
-//   return JSON.parse(content);
-// };
+type H11XStorge = {
+  envs: Record<string, string>;
+  props: Record<string, string>;
+};
+
+export const createStorage = (storage: H11XStorge) => storage;
+
+export const getStorageHtml = (localWindow?: Window) => {
+  const finalWindow = localWindow || window;
+  const element = finalWindow.document.getElementById(storage_id);
+  const rawData = element?.innerHTML!;
+  const data = JSON.parse(rawData) as H11XStorge;
+  return data;
+};
 
 export const Script: FC = () => {
   return h(Fragment, {}, [scriptKey]);
 };
 
-export const Data: FC<{ data: any }> = ({ data }) => {
-  const dataStr = JSON.stringify(data);
-  return <template id="h11x_data">{dataStr}</template>;
+export const DataSet: FC<{ data: Record<any, any> }> = (_, { globalCtx }) => {
+  const dataStr = JSON.stringify(globalCtx.data);
+  return <template id={storage_id}>{dataStr}</template>;
 };
 
 const h11x_head = 'h11x_head';
@@ -33,8 +43,8 @@ export const Body: FC = (props, { children }) => {
   return children;
 };
 
-export const Template: FC<{ data: Record<string, any> }> = (
-  { data },
+export const Template: FC<{ data?: Record<string, any> | void }> = (
+  { data = {} },
   { children }
 ) => {
   let heads: Child[] = [];
@@ -59,15 +69,10 @@ export const Template: FC<{ data: Record<string, any> }> = (
   return (
     <Fragment>
       {'<!DOCTYPE html>'}
-      <div>
-        <div>hello!!</div>
-        div1111
-      </div>
       <html>
-        <div>hello!!</div>
         <head {...headProps}>
           <Script />
-          <Data data={data} />
+          <DataSet data={data} />
           {heads}
         </head>
         <body {...bodyProps}>

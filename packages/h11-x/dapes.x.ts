@@ -1,4 +1,4 @@
-import { Group, startIfMain, Task } from 'dapes';
+import { Group, publishPackage, startIfMain, Task } from 'dapes';
 import { groupH11 } from '../h11/dapes.h11.ts';
 import { getAbsolutePath } from 'utftu';
 import { groupH11Fs } from 'h11-fs/dapes.fs.ts';
@@ -38,16 +38,24 @@ const build = new Task({
       outdir: getAbsolutePath('./dist', import.meta),
       jsx: 'automatic',
       jsxImportSource: 'regan',
-      // jsxImportSource: 'regan',
-      // jsxFactory: 'h',
-      // jsxFragment: 'Fragment',
+    });
+  },
+});
+
+const publish = new Task({
+  name: 'publish',
+  parents: [build],
+  exec: async ({ command, ctx }) => {
+    publishPackage({
+      pathToPackage: import.meta.resolve('./package.json'),
+      ctx,
     });
   },
 });
 
 export const groupH11X = new Group({
   name: 'x',
-  tasks: [build],
+  tasks: [build, publish],
 });
 
 startIfMain(groupH11X, import.meta);

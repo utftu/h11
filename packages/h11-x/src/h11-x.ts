@@ -40,13 +40,13 @@ BuildProps) => {
 
   await fsApi.rm(baseDirPrepared);
 
-  const ssgRoutes: Route[] = [];
+  // const ssgRoutes: Route[] = [];
   const ssrRoutes: Route[] = [];
 
   for (const route of routes) {
     const { dir, name } = makeRouteUniversal(route);
 
-    const ssgFile = await checkFile(dir, `${name}.ssg`, fsApi);
+    // const ssgFile = await checkFile(dir, `${name}.ssg`, fsApi);
     const ssrFile = await checkFile(dir, `${name}.ssr`, fsApi);
 
     const clientFile = await checkFile(dir, `${name}.client`, fsApi);
@@ -56,10 +56,10 @@ BuildProps) => {
       throw new Error(`No client file ${clientFile}`);
     }
 
-    const ssgFileCheck = await fsApi.checkExist(ssgFile);
-    if (ssgFileCheck) {
-      ssgRoutes.push({ dir, name });
-    }
+    // const ssgFileCheck = await fsApi.checkExist(ssgFile);
+    // if (ssgFileCheck) {
+    //   ssgRoutes.push({ dir, name });
+    // }
 
     const ssrFileCheck = await fsApi.checkExist(ssrFile);
     if (ssrFileCheck) {
@@ -67,11 +67,11 @@ BuildProps) => {
     }
   }
 
-  if (ssgRoutes.length) {
-    await makeSsg({ routes: ssgRoutes, prod, baseDir, devPrefix, prefix });
-  }
+  // if (ssgRoutes.length) {
+  //   await makeSsg({ routes: ssgRoutes, prod, baseDir, devPrefix, prefix });
+  // }
 
-  if (ssgRoutes.length) {
+  if (ssrRoutes.length) {
     await makeSsr({
       routes: ssrRoutes,
       baseDir,

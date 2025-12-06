@@ -115,14 +115,16 @@ export const readSsrConfig = async (baseDir?: string): Promise<Config> => {
   return config;
 };
 
-export const getSsrHtml = async ({
+export const getSsrHtml = async <TProps = any>({
   vite,
   config,
   name,
+  props,
 }: {
   vite?: ViteDevServer;
   config: Config;
   name: string;
+  props: TProps;
 }) => {
   const route = config.routes[name];
 
@@ -130,7 +132,7 @@ export const getSsrHtml = async ({
     const { getHtml } = await import(route.ssrFile);
 
     return () => {
-      const html = getHtml();
+      const html = getHtml(props);
 
       const path = joinPath(config.prefix, route.clientUrl);
 
@@ -142,7 +144,7 @@ export const getSsrHtml = async ({
   } else {
     const { getHtml } = await vite!.ssrLoadModule(route.ssrFileRaw);
     return () => {
-      const html = getHtml();
+      const html = getHtml(props);
 
       const prefixPath = joinPath(config.devPrefix, config.prefix);
 

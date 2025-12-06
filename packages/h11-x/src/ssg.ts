@@ -81,7 +81,6 @@ export const makeSsg = async ({
     };
 
     const pages = await getPages();
-    console.log('-----', 'pages', pages);
 
     for (const { pathname, getHtml } of pages) {
       const html = await getHtml({ pathname });
@@ -101,9 +100,6 @@ export const makeSsg = async ({
 
         script = sctipt1 + sctipt2;
       }
-
-      // const script1 = createSctiptText(prod ? clientPreparedFile : clientFile);
-
       const htmlWithScript = html.replace(scriptKey, script);
 
       await fsApi.writeFile(
@@ -115,8 +111,3 @@ export const makeSsg = async ({
 
   await Promise.all(routesPromises);
 };
-
-// await makeSsg({
-//   routes: [{ type: 'ssg', dir: './src/routes/about', name: 'about.ssg' }],
-//   prod: true,
-// });
