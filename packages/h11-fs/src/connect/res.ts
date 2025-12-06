@@ -65,6 +65,22 @@ export class MockServerResponse
     return this;
   }
 
+  // for express comp
+  appendHeader(name: string, value: string) {
+    const key = name.toLowerCase();
+    const existing = this._headers[key];
+
+    if (existing === undefined) {
+      this._headers[key] = value;
+    } else {
+      // Объединяем значения
+      const merged = `${existing}, ${value}`;
+      this._headers[key] = merged;
+    }
+
+    return this;
+  }
+
   getHeader(name: string): string | undefined {
     return this._headers[name.toLowerCase()];
   }

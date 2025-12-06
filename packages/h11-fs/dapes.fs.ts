@@ -1,4 +1,4 @@
-import { Group, startIfMain, Task } from 'dapes';
+import { Group, publishPackage, startIfMain, Task } from 'dapes';
 import { groupH11 } from '../h11/dapes.h11.ts';
 import { getAbsolutePath } from 'utftu';
 import { build as esbuildBuild } from 'esbuild';
@@ -37,9 +37,20 @@ const build = new Task({
   },
 });
 
+const publish = new Task({
+  name: 'publish',
+  parents: [build],
+  exec: async ({ ctx }) => {
+    publishPackage({
+      pathToPackage: getAbsolutePath('./package.json', import.meta),
+      ctx,
+    });
+  },
+});
+
 export const groupH11Fs = new Group({
   name: 'fs',
-  tasks: [build],
+  tasks: [build, publish],
 });
 
 startIfMain(groupH11Fs, import.meta);
