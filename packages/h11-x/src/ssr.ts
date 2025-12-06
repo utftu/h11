@@ -115,16 +115,16 @@ export const readSsrConfig = async (baseDir?: string): Promise<Config> => {
   return config;
 };
 
-export const getSsrHtml = async <TProps = any>({
+export const getSsrHtml = async <TProps extends Record<any, any> = any>({
   vite,
   config,
   name,
-  props,
+  props = {} as any,
 }: {
   vite?: ViteDevServer;
   config: Config;
   name: string;
-  props: TProps;
+  props?: TProps;
 }) => {
   const route = config.routes[name];
 
