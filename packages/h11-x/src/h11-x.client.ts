@@ -6,7 +6,7 @@ import {
   Body,
   getStorageHtml,
   createStorage,
-} from './components.tsx';
+} from './client/components.tsx';
 
 export {
   Template,

@@ -6,7 +6,6 @@ import {
   getDefaultBasedir,
 } from './utils.ts';
 import type { EditViteConfig, Route } from './types.ts';
-import { reganVite } from 'regan-vite';
 import { joinPath } from 'h11';
 import { scriptKey } from './conts.ts';
 import { defu } from 'defu';

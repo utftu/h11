@@ -1,4 +1,4 @@
-import { scriptKey } from './conts.ts';
+import { scriptKey } from '../conts.ts';
 import { Fragment, h, type Child, type FC } from 'regan';
 
 const storage_id = 'h11x_storage_id';
@@ -45,7 +45,7 @@ export const Body: FC = (props, { children }) => {
 
 export const Template: FC<{ data?: Record<string, any> | void }> = (
   { data = {} },
-  { children }
+  { children },
 ) => {
   let heads: Child[] = [];
   let headProps = {};
