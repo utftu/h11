@@ -21,21 +21,7 @@ export const joinUserPath = (basePath: string, userPath: string): string => {
       continue;
     }
     resolved.push(segment);
-
-    // if (segment === '..') {
-    //   return '';
-    // } else if (segment !== '.') {
-    //   resolved.push(segment);
-    // }
   }
 
   return joinPath(basePath, resolved.join('/'));
-
-  let result = basePath;
-  if (!basePath.endsWith('/')) {
-    result += '/';
-  }
-  result += resolved.join('/');
-
-  return result;
 };

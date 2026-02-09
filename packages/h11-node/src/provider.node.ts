@@ -20,15 +20,23 @@ const joinPaths = (elem1: string, elem2: string): string => {
 
 const createReqFromNode = (req: IncomingMessage, origin: string): Request => {
   const method = req.method;
-  const headers = new Headers(req.headers as Record<string, string>);
+  const headersInit: Record<string, string> = {};
+  for (const [key, value] of Object.entries(req.headers)) {
+    if (value !== undefined) {
+      headersInit[key] = Array.isArray(value) ? value.join(', ') : value;
+    }
+  }
+  const headers = new Headers(headersInit);
 
   const body =
     method === 'GET' || method === 'HEAD'
       ? null
       : (Readable.toWeb(req) as any as ReadableStream);
 
-  // Создаем и возвращаем новый Request объект
-  return new Request(joinPaths(origin, req.url!), {
+  const base = origin.startsWith('http') ? origin : `http://${origin}`;
+  const url = new URL(req.url!, base);
+
+  return new Request(url.toString(), {
     method,
     headers,
     body,
@@ -63,9 +71,9 @@ export const createNodeProvider =
     res: ServerResponse<IncomingMessage>;
     origin: string;
   }) => {
-    const preapredOrigin = req.headers['host'] || origin;
+    const preparedOrigin = req.headers['host'] || origin;
 
-    const preparedRes = createReqFromNode(req, preapredOrigin);
+    const preparedRes = createReqFromNode(req, preparedOrigin);
 
     const execRes = await h11.exec({
       req: preparedRes,

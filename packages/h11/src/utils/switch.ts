@@ -10,7 +10,7 @@ export const switchFunc = async (
   req: Request
 ): Promise<HandlerReturn> => {
   for (const condition of conditions) {
-    if (condition.check(req)) {
+    if (await condition.check(req)) {
       const result = await condition.handler(req);
       return result;
     }

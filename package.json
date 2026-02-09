@@ -19,7 +19,7 @@
     },
     "./node": {
       "types": "./dist/types/providers/node.d.ts",
-      "default": "./dist/bun.js"
+      "default": "./dist/node.js"
     }
   },
   "workspaces": [

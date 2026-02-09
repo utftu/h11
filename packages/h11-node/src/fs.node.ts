@@ -6,9 +6,9 @@ import { Readable } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
 
 export const copyFiles = async (from: string, to: string) => {
-  const destDir = dirname(from);
-  await mkdir(destDir, { recursive: true }); // создаёт все недостающие директории
-  await copyFile(from, to); // копирует файл
+  const destDir = dirname(to);
+  await mkdir(destDir, { recursive: true });
+  await copyFile(from, to);
 };
 
 export const mkdirNode = async (path: string) => {

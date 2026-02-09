@@ -33,12 +33,12 @@ const defaultOnNotFound: NotFoundHandler = ({ req, h11 }) => {
 const defaultOnError: ErrorHandler = ({ req, error, h11 }) => {
   h11.ee.emit('code', {
     code: 500,
-    text: `h11: Error ${req.url} - ${error.message}`,
+    text: `h11: Error ${req.url} - ${error.message}\n${error.stack ?? ''}`,
   });
 
-  return new Response(error.message || 'Error 500', {
+  return new Response('Internal Server Error', {
     status: 500,
-    statusText: 'System error 500',
+    statusText: 'Internal Server Error',
     headers: {
       'Content-Type': 'text/plain',
     },
@@ -149,7 +149,7 @@ export class H11<TExecProps extends Context = Context> {
           return response;
         }
       }
-      return defaultOnNotFound(props);
+      return this.onNotFound(props);
     } catch (error) {
       return this.onError({ ...props, error: error as Error });
     }

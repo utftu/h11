@@ -1,6 +1,21 @@
 import { file as fileBun, write } from 'bun';
 import type { FsApi } from 'h11';
-import { copyFiles, mkdirNode, rmNode } from '../../h11-node/src/fs.node.ts';
+import { mkdir, copyFile, rm } from 'node:fs/promises';
+import { dirname } from 'node:path';
+
+const mkdirBun = async (path: string) => {
+  await mkdir(path, { recursive: true });
+};
+
+const rmBun = async (path: string) => {
+  await rm(path, { recursive: true, force: true });
+};
+
+const copyFilesBun = async (from: string, to: string) => {
+  const destDir = dirname(to);
+  await mkdir(destDir, { recursive: true });
+  await copyFile(from, to);
+};
 
 export const fsApiBun: FsApi = {
   getFileStream: (path: string) => {
@@ -19,7 +34,7 @@ export const fsApiBun: FsApi = {
 
     return await file.exists();
   },
-  mkdir: mkdirNode,
-  copyFile: copyFiles,
-  rm: rmNode,
+  mkdir: mkdirBun,
+  copyFile: copyFilesBun,
+  rm: rmBun,
 };

@@ -103,7 +103,7 @@ export const makeSsr = async ({
   await Promise.all(routesPromises);
 
   const assetsJson = JSON.stringify(assetsStore, null, 2);
-  fsApi.writeFile(joinPath(baseDirPrepared, 'ssr/config.json'), assetsJson);
+  await fsApi.writeFile(joinPath(baseDirPrepared, 'ssr/config.json'), assetsJson);
 };
 
 export const readSsrConfig = async (baseDir?: string): Promise<ConfigSsr> => {

@@ -1,6 +1,6 @@
 import type { H11 } from './core.ts';
 
-export type Method = 'GET' | 'POST' | 'DELET' | 'PUT' | 'PATCH';
+export type Method = 'GET' | 'POST' | 'DELETE' | 'PUT' | 'PATCH' | 'HEAD' | 'OPTIONS';
 
 export type Context = {
   req: Request;
