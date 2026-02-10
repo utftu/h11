@@ -1,5 +1,5 @@
 import { joinUserPath, type Handler } from 'h11';
-import { fsApi } from '../fs.ts';
+import { fsApi } from '../api.ts';
 import { getFileEnt } from '../utils/files.ts';
 
 export const serveFiles = ({

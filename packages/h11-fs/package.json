@@ -7,13 +7,25 @@
   "type": "module",
   "types": "dist/types/h11-fs.d.ts",
   "main": "dist/h11-fs.js",
+  "exports": {
+    ".": {
+      "types": "./dist/types/h11-fs.d.ts",
+      "default": "./dist/h11-fs.js"
+    },
+    "./bun": {
+      "types": "./dist/types/providers/bun/h11-bun.d.ts",
+      "default": "./dist/providers/bun/h11-bun.js"
+    },
+    "./node": {
+      "types": "./dist/types/providers/node/h11-node.d.ts",
+      "default": "./dist/providers/node/h11-node.js"
+    }
+  },
   "scripts": {
-    "build": "bun build ./src/h11-fs.ts --target node --splitting --outdir ./dist",
+    "build": "bun build ./src/h11-fs.ts ./src/providers/bun/h11.bun.ts ./src/providers/node/h11.node.ts --target node --splitting --external bun --external h11 --chunk-naming chunks/[name].[ext] --outdir ./dist",
     "types": "tsc --project tsconfig.types.json"
   },
   "dependencies": {
-    "h11": "*",
-    "h11-node": "*",
-    "h11-bun": "*"
+    "h11": "*"
   }
 }

@@ -22,7 +22,7 @@ type ConnectMiddleware = (
   next: (err: any | void) => void
 ) => void | Promise<void>;
 
-export const handleConnectMiddleware = ({
+export const createConnectAdapter = ({
   connectMiddleware,
   prefixToRemove,
 }: {

@@ -1,5 +1,4 @@
-import { joinUserPath, type Handler } from 'h11';
-import { fsApi } from '../fs.ts';
+import { fsApi } from '../api.ts';
 
 type FileWithExt = {
   filepath: string;
@@ -105,5 +104,3 @@ export const getFileEnt = async (
     };
   }
 };
-
-const serverHtml = () => {};
