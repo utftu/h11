@@ -60,7 +60,7 @@ const findFilesCompressed = async (
 
   const filesChecks = files.map(({ filepath }) => fsApi.checkExist(filepath));
 
-  for (let i = 0; i <= filesChecks.length; i++) {
+  for (let i = 0; i < filesChecks.length; i++) {
     const fileCheck = filesChecks[i];
     const checkResult = await fileCheck;
 
@@ -71,7 +71,7 @@ const findFilesCompressed = async (
   }
 };
 
-const conentEncodingName = 'content-encoding' as const;
+const contentEncodingName = 'content-encoding' as const;
 const contentTypeName = 'content-type' as const;
 
 export const getFileEnt = async (
@@ -82,7 +82,7 @@ export const getFileEnt = async (
   const fileEnt = await findFilesCompressed(filepath, formats);
   if (fileEnt) {
     if (fileEnt.compressName) {
-      headers[conentEncodingName] = fileEnt.compressName;
+      headers[contentEncodingName] = fileEnt.compressName;
     }
     const contentType = getContentType(filepath);
     if (contentType) {

@@ -1,6 +1,6 @@
 import type { FsApi } from 'h11';
 import { createReadStream, createWriteStream } from 'node:fs';
-import { mkdir, copyFile, exists, rm, writeFile } from 'node:fs/promises';
+import { mkdir, copyFile, rm, writeFile, access } from 'node:fs/promises';
 import { dirname } from 'node:path';
 import { Readable } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
@@ -34,7 +34,12 @@ export const fsApiNode: FsApi = {
     await writeFile(path, text);
   },
   checkExist: async (path: string) => {
-    return exists(path);
+    try {
+      await access(path);
+      return true;
+    } catch {
+      return false;
+    }
   },
   mkdir: mkdirNode,
   copyFile,

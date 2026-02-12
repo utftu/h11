@@ -79,7 +79,7 @@ const compress = async (path: string, format: Format) => {
   throw new Error('Unknow compress format');
 };
 
-export const compressRecirsive = async (pathToDir: string) => {
+export const compressRecursive = async (pathToDir: string) => {
   const ents = await readdir(pathToDir, { withFileTypes: true });
 
   file_for: for (const ent of ents) {
@@ -101,7 +101,7 @@ export const compressRecirsive = async (pathToDir: string) => {
       continue;
     }
     if (ent.isDirectory()) {
-      await compressRecirsive(`${pathToDir}/${ent.name}`);
+      await compressRecursive(`${pathToDir}/${ent.name}`);
     }
   }
 };
