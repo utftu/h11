@@ -61,6 +61,7 @@ export class H11<TExecProps extends Context = Context> {
   types!: TExecProps;
   radix = new Radix();
   fsApi?: FsApi;
+  private globalHandlers: Handler[] = [];
   ee = createEventEmitter<
     {
       code: {
@@ -101,14 +102,13 @@ export class H11<TExecProps extends Context = Context> {
     this.addRoute(pattern, 'GET', handlers);
     return this;
   }
-
-  // get(pattern: string, ...handlers: Handler[]) {
-  //   this.addRoute(pattern, 'GET', handlers);
-  //   return this;
-  // }
-
   post(pattern: string, ...handlers: HandlersProps) {
     this.addRoute(pattern, 'POST', handlers);
+    return this;
+  }
+
+  use(...handlers: Handler[]) {
+    this.globalHandlers.push(...handlers);
     return this;
   }
 
@@ -143,7 +143,10 @@ export class H11<TExecProps extends Context = Context> {
     };
 
     try {
-      for (const handler of findResult.handlerEnt.handlers) {
+      for (const handler of [
+        ...this.globalHandlers,
+        ...findResult.handlerEnt.handlers,
+      ]) {
         const response = await handler(props);
         if (response) {
           return response;
