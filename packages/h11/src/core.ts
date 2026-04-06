@@ -12,7 +12,7 @@ import { createEventEmitter } from 'utftu';
 
 type NotFoundHandler = (props: Context) => Response | Promise<Response>;
 type ErrorHandler = (
-  props: { error: Error } & Context
+  props: { error: Error } & Context,
 ) => Response | Promise<Response>;
 
 const defaultOnNotFound: NotFoundHandler = ({ req, h11 }) => {
@@ -151,6 +151,9 @@ export class H11<TExecProps extends Context = Context> {
       }
       return this.onNotFound(props);
     } catch (error) {
+      if (error instanceof Response) {
+        return error;
+      }
       return this.onError({ ...props, error: error as Error });
     }
   }
