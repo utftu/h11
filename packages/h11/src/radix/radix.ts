@@ -1,4 +1,4 @@
-import type { HanlderEnt, Method } from '../types.ts';
+import type { Handler, HanlderEnt, Method } from '../types.ts';
 import { Node, addNodeToChildren } from './node.ts';
 
 type Params = Record<string, string>;
@@ -7,6 +7,7 @@ type FindResult = {
   handlerEnt: HanlderEnt;
   params: Params;
   node: Node;
+  middlewares: Handler[];
 };
 
 // /hello/world/:name/:family
@@ -17,14 +18,9 @@ export class Radix {
     const segments = path.split('/');
 
     const params: Params = {};
+    const middlewares: Handler[] = [...this.root.middlewares];
     let currentNode = this.root;
-    let lastWild:
-      | {
-          handlerEnt: HanlderEnt;
-          params: Params;
-          node: Node;
-        }
-      | undefined = undefined;
+    let lastWild: FindResult | undefined = undefined;
 
     outer: for (let i = 0; i < segments.length; i++) {
       const segment = segments[i];
@@ -39,6 +35,7 @@ export class Radix {
             node: wild,
             handlerEnt: wildHandlerContainer,
             params: { ...params, wild: segments.slice(i).join('/') },
+            middlewares: [...middlewares, ...wild.middlewares],
           };
         }
       }
@@ -63,11 +60,13 @@ export class Radix {
 
         if (child.segment === nextSegment) {
           currentNode = child;
+          middlewares.push(...child.middlewares);
           continue outer;
         }
 
         if (child.segment[0] === ':' && nextSegment !== '') {
           currentNode = child;
+          middlewares.push(...child.middlewares);
           continue outer;
         }
       }
@@ -87,14 +86,14 @@ export class Radix {
       node: currentNode,
       params,
       handlerEnt: handlerContainer,
+      middlewares,
     };
   }
 
-  // hello/world/:name
-  add(pattern: string, method: Method = 'GET', handler: HanlderEnt) {
+  private findOrCreateNode(pattern: string): Node {
     const patternSegments = pattern.slice(1).split('/');
-
     let currentNode = this.root;
+
     outer: for (let i = 0; i < patternSegments.length; i++) {
       const segment = patternSegments[i];
 
@@ -106,18 +105,27 @@ export class Radix {
       }
 
       const newNode = new Node({ segment, parent: currentNode });
-
       addNodeToChildren(currentNode, newNode);
 
       if (segment === '**') {
         currentNode.wildParent = true;
-        // setWildToChildren(currentNode, method, );
       }
 
       currentNode = newNode;
     }
 
-    currentNode.handlers[method] = handler;
     return currentNode;
+  }
+
+  // hello/world/:name
+  add(pattern: string, method: Method = 'GET', handler: HanlderEnt) {
+    const node = this.findOrCreateNode(pattern);
+    node.handlers[method] = handler;
+    return node;
+  }
+
+  addMiddleware(pattern: string, handlers: Handler[]) {
+    const node = pattern === '/' ? this.root : this.findOrCreateNode(pattern);
+    node.middlewares.push(...handlers);
   }
 }

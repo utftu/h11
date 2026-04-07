@@ -2,6 +2,7 @@ import { createLogger } from 'logw';
 import { Radix } from './radix/radix.ts';
 import type {
   Context,
+  DataModule,
   FsApi,
   Handler,
   HandlersProps,
@@ -9,41 +10,12 @@ import type {
   Method,
 } from './types.ts';
 import { createEventEmitter } from 'utftu';
-
-type NotFoundHandler = (props: Context) => Response | Promise<Response>;
-type ErrorHandler = (
-  props: { error: Error } & Context,
-) => Response | Promise<Response>;
-
-const defaultOnNotFound: NotFoundHandler = ({ req, h11 }) => {
-  h11.ee.emit('code', {
-    code: 404,
-    text: `Not found 123 ${req.url}`,
-  });
-
-  return new Response('Not Found', {
-    status: 404,
-    statusText: 'Not Found 404',
-    headers: {
-      'Content-Type': 'text/plain',
-    },
-  });
-};
-
-const defaultOnError: ErrorHandler = ({ req, error, h11 }) => {
-  h11.ee.emit('code', {
-    code: 500,
-    text: `h11: Error ${req.url} - ${error.message}\n${error.stack ?? ''}`,
-  });
-
-  return new Response('Internal Server Error', {
-    status: 500,
-    statusText: 'Internal Server Error',
-    headers: {
-      'Content-Type': 'text/plain',
-    },
-  });
-};
+import {
+  defaultOnError,
+  defaultOnNotFound,
+  type ErrorHandler,
+  type NotFoundHandler,
+} from './errors.ts';
 
 const getHandlerEntFromProps = (param: HandlersProps): HanlderEnt => {
   if (Array.isArray(param[0])) {
@@ -57,11 +29,9 @@ const getHandlerEntFromProps = (param: HandlersProps): HanlderEnt => {
   return { handlers: param as Handler[] };
 };
 
-export class H11<TExecProps extends Context = Context> {
-  types!: TExecProps;
+export class H11<TData extends Record<any, any> = Record<any, any>> {
   radix = new Radix();
   fsApi?: FsApi;
-  private globalHandlers: Handler[] = [];
   ee = createEventEmitter<
     {
       code: {
@@ -72,24 +42,6 @@ export class H11<TExecProps extends Context = Context> {
   >();
   data: Record<string, any> = {};
 
-  startLogger() {
-    const logger = createLogger({ prefix: 'h11' });
-    const stopListen = this.ee.on('code', ({ code, text }) => {
-      const message = `${code} ${text}`;
-      if (code >= 500) {
-        logger.error(message);
-        return;
-      }
-      if (code < 500 && code >= 400) {
-        logger.warn(message);
-        return;
-      }
-      logger.log(message);
-    });
-
-    return stopListen;
-  }
-
   onNotFound: NotFoundHandler = defaultOnNotFound;
   onError: ErrorHandler = defaultOnError;
 
@@ -98,17 +50,31 @@ export class H11<TExecProps extends Context = Context> {
     this.radix.add(pattern, method, handlerEnt);
   }
 
-  get(pattern: string, ...handlers: HandlersProps) {
+  get(pattern: string, ...handlers: Handler<TData>[]): this {
     this.addRoute(pattern, 'GET', handlers);
     return this;
   }
-  post(pattern: string, ...handlers: HandlersProps) {
+  post(pattern: string, ...handlers: Handler<TData>[]): this {
     this.addRoute(pattern, 'POST', handlers);
     return this;
   }
 
-  use(...handlers: Handler[]) {
-    this.globalHandlers.push(...handlers);
+  use<TAdded extends Record<any, any>>(
+    pattern: string,
+    handler: DataModule<TAdded>,
+  ): H11<TData & TAdded>;
+  use<TAdded extends Record<any, any>>(
+    handler: DataModule<TAdded>,
+  ): H11<TData & TAdded>;
+  use(pattern: string, ...handlers: Handler<TData>[]): this;
+  use(...handlers: Handler<TData>[]): this;
+  use(...args: any[]): any {
+    if (typeof args[0] === 'string') {
+      const [pattern, ...handlers] = args;
+      this.radix.addMiddleware(pattern, handlers);
+    } else {
+      this.radix.addMiddleware('/', args);
+    }
     return this;
   }
 
@@ -142,11 +108,12 @@ export class H11<TExecProps extends Context = Context> {
       h11: this,
     };
 
+    const allHandlers = [
+      ...findResult.middlewares,
+      ...findResult.handlerEnt.handlers,
+    ];
     try {
-      for (const handler of [
-        ...this.globalHandlers,
-        ...findResult.handlerEnt.handlers,
-      ]) {
+      for (const handler of allHandlers) {
         const response = await handler(props);
         if (response) {
           return response;

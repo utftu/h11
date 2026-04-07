@@ -1,10 +1,11 @@
-import type { HanlderEnt, Method } from '../types.ts';
+import type { Handler, HanlderEnt, Method } from '../types.ts';
 
 export class Node {
   segment: string;
 
   // data
   handlers: Partial<Record<Method, HanlderEnt>> = {};
+  middlewares: Handler[] = [];
 
   children: Node[] = [];
   wildParent: boolean = false;

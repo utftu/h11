@@ -1,4 +1,9 @@
 import { H11 } from './core.ts';
+import {
+  createReqIdModule,
+  REQUEST_ID_HEADER,
+  type ReqIdData,
+} from './modules/req-id.ts';
 import type { Handler, FsApi } from './types.ts';
 import { joinUserPath, joinPath } from './utils/join.ts';
 import { copyReq } from './utils/req.ts';
@@ -11,6 +16,9 @@ import {
 
 export {
   H11,
+  createReqIdModule,
+  REQUEST_ID_HEADER,
+  type ReqIdData,
   type Handler,
   type FsApi,
   joinUserPath,
