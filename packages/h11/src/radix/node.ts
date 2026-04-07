@@ -1,15 +1,16 @@
 import type { Handler, HanlderEnt, Method } from '../types.ts';
 
+export type MiddlewareEnt = {
+  method?: Method;
+  handler: Handler;
+};
+
 export class Node {
   segment: string;
-
-  // data
   handlers: Partial<Record<Method, HanlderEnt>> = {};
-  middlewares: Handler[] = [];
-
+  wilds: Partial<Record<Method, HanlderEnt>> = {};
+  middlewares: MiddlewareEnt[] = [];
   children: Node[] = [];
-  wildParent: boolean = false;
-
   parent?: Node;
 
   constructor({ segment, parent }: { segment: string; parent?: Node }) {
@@ -21,39 +22,15 @@ export class Node {
 export const addNodeToChildren = (parent: Node, node: Node) => {
   const children = parent.children;
 
-  if (children.length === 0) {
+  if (node.segment[0] === ':') {
     children.push(node);
     return;
   }
 
-  if (node.segment === '**') {
+  const firstParamIdx = children.findIndex((c) => c.segment[0] === ':');
+  if (firstParamIdx === -1) {
     children.push(node);
-    return;
-  } else if (node.segment[0] === ':') {
-    for (let i = children.length - 1; i >= 0; i--) {
-      const compareNode = children[i];
-
-      if (compareNode.segment === '**') {
-        continue;
-      }
-
-      children.splice(i + 1, 0, node);
-      return;
-    }
-
-    children.unshift(node);
   } else {
-    for (let i = children.length - 1; i >= 0; i--) {
-      const compareNode = children[i];
-
-      if (compareNode.segment === '**' || compareNode.segment[0] === ':') {
-        continue;
-      }
-
-      children.splice(i + 1, 0, node);
-      return;
-    }
-
-    children.unshift(node);
+    children.splice(firstParamIdx, 0, node);
   }
 };

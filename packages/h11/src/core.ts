@@ -88,32 +88,17 @@ export class H11<TData extends Record<any, any> = Record<any, any>> {
     providers: Record<string, any>;
   }): Promise<Response> {
     const url = new URL(req.url);
-    const findResult = this.radix.find(url.pathname, req.method as any);
-
-    if (!findResult) {
-      return this.onNotFound({
-        req,
-        params: {},
-        data,
-        providers,
-        h11: this,
-      });
-    }
+    const { params, handlers } = this.radix.find(url.pathname, req.method as any);
 
     const props = {
       req,
-      params: findResult.params,
+      params,
       data,
       providers,
       h11: this,
     };
-
-    const allHandlers = [
-      ...findResult.middlewares,
-      ...findResult.handlerEnt.handlers,
-    ];
     try {
-      for (const handler of allHandlers) {
+      for (const handler of handlers) {
         const response = await handler(props);
         if (response) {
           return response;
