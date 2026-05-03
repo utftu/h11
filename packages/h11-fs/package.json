@@ -13,16 +13,16 @@
       "default": "./dist/h11-fs.js"
     },
     "./bun": {
-      "types": "./dist/types/providers/bun/h11.bun.d.ts",
-      "default": "./dist/providers/bun/h11.bun.js"
+      "types": "./dist/types/providers/bun/fsapi.d.ts",
+      "default": "./dist/providers/bun/fsapi.js"
     },
     "./node": {
-      "types": "./dist/types/providers/node/h11.node.d.ts",
-      "default": "./dist/providers/node/h11.node.js"
+      "types": "./dist/types/providers/node/fsapi.d.ts",
+      "default": "./dist/providers/node/fsapi.js"
     }
   },
   "scripts": {
-    "build": "bun build ./src/h11.fs.ts ./src/providers/bun/h11.bun.ts ./src/providers/node/h11.node.ts --target node --splitting --external bun --external h11 --chunk-naming chunks/[name]-[hash].[ext] --outdir ./dist",
+    "build": "bun build ./src/h11-fs.ts ./src/providers/bun/fsapi.ts ./src/providers/node/fsapi.ts --target node --splitting --external bun --external h11 --chunk-naming chunks/[name]-[hash].[ext] --outdir ./dist",
     "types": "tsc --project tsconfig.types.json"
   },
   "dependencies": {

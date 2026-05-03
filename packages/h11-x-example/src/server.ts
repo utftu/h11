@@ -1,6 +1,7 @@
 import { getContentTypeConfig, H11 } from 'h11';
-import { handleConnectMiddleware, serveFiles } from 'h11-fs';
-import { createBunProvider } from 'h11-bun';
+import {serveFiles } from 'h11-fs';
+import {createConnectAdapter} from 'h11-fs/node'
+import {createBunProvider} from 'h11-fs/bun'
 import { getAbsolutePath } from 'utftu';
 import { createServer as createViteServer } from 'vite';
 import { reganVite } from 'regan-vite';
@@ -40,7 +41,7 @@ h11.get('/about', async () => {
 if (!ssrConfig.prod) {
   h11.get(
     `${devPrefix}/**`,
-    handleConnectMiddleware({
+    createConnectAdapter({
       prefixToRemove: devPrefix,
       connectMiddleware: vite.middlewares,
     })
