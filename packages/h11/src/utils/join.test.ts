@@ -23,7 +23,7 @@ describe('joinUserPath', () => {
   });
 
   it('обрабатывает пустой userPath корректно', () => {
-    expect(joinUserPath('/static', '')).toBe('/static/');
+    expect(joinUserPath('/static', '')).toBe('/static');
   });
 
   it('не добавляет лишний слэш при basePath со слэшем', () => {

@@ -13,15 +13,16 @@ export const joinPath = (left: string, right: string) => {
 };
 
 export const joinUserPath = (basePath: string, userPath: string): string => {
-  const segments = userPath.split('/');
-  const resolved = [];
-
-  for (const segment of segments) {
-    if (segment === '' || segment === '..' || segment === '.') {
-      continue;
-    }
-    resolved.push(segment);
+  if (userPath.startsWith('/')) {
+    return '';
   }
 
+  const segments = userPath.split('/');
+
+  if (segments.some((s) => s === '..')) {
+    return '';
+  }
+
+  const resolved = segments.filter((s) => s !== '' && s !== '.');
   return joinPath(basePath, resolved.join('/'));
 };

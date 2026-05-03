@@ -1,12 +1,8 @@
-import { createLogger } from 'logw';
 import { Radix } from './radix/radix.ts';
 import type {
-  Context,
   DataModule,
   FsApi,
   Handler,
-  HandlersProps,
-  HanlderEnt,
   Method,
 } from './types.ts';
 import { createEventEmitter } from 'utftu';
@@ -16,18 +12,6 @@ import {
   type ErrorHandler,
   type NotFoundHandler,
 } from './errors.ts';
-
-const getHandlerEntFromProps = (param: HandlersProps): HanlderEnt => {
-  if (Array.isArray(param[0])) {
-    return { handlers: param[0] };
-  }
-
-  if ((param[0] as any)?.handlers) {
-    return param as any as HanlderEnt;
-  }
-
-  return { handlers: param as Handler[] };
-};
 
 export class H11<TData extends Record<any, any> = Record<any, any>> {
   radix = new Radix();
@@ -45,17 +29,42 @@ export class H11<TData extends Record<any, any> = Record<any, any>> {
   onNotFound: NotFoundHandler = defaultOnNotFound;
   onError: ErrorHandler = defaultOnError;
 
-  private addRoute(pattern: string, method: Method, handlers: HandlersProps) {
-    const handlerEnt = getHandlerEntFromProps(handlers);
-    this.radix.add(pattern, method, handlerEnt);
+  private addRoute(pattern: string, method: Method, handlers: Handler<TData>[]) {
+    this.radix.add(pattern, method, handlers as Handler[]);
   }
 
   get(pattern: string, ...handlers: Handler<TData>[]): this {
     this.addRoute(pattern, 'GET', handlers);
     return this;
   }
+
   post(pattern: string, ...handlers: Handler<TData>[]): this {
     this.addRoute(pattern, 'POST', handlers);
+    return this;
+  }
+
+  put(pattern: string, ...handlers: Handler<TData>[]): this {
+    this.addRoute(pattern, 'PUT', handlers);
+    return this;
+  }
+
+  delete(pattern: string, ...handlers: Handler<TData>[]): this {
+    this.addRoute(pattern, 'DELETE', handlers);
+    return this;
+  }
+
+  patch(pattern: string, ...handlers: Handler<TData>[]): this {
+    this.addRoute(pattern, 'PATCH', handlers);
+    return this;
+  }
+
+  head(pattern: string, ...handlers: Handler<TData>[]): this {
+    this.addRoute(pattern, 'HEAD', handlers);
+    return this;
+  }
+
+  options(pattern: string, ...handlers: Handler<TData>[]): this {
+    this.addRoute(pattern, 'OPTIONS', handlers);
     return this;
   }
 
@@ -88,7 +97,7 @@ export class H11<TData extends Record<any, any> = Record<any, any>> {
     providers: Record<string, any>;
   }): Promise<Response> {
     const url = new URL(req.url);
-    const { params, handlers } = this.radix.find(url.pathname, req.method as any);
+    const { params, handlers } = this.radix.find(url.pathname, req.method as Method);
 
     const props = {
       req,

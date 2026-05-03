@@ -4,7 +4,7 @@ export type Method = 'GET' | 'POST' | 'DELETE' | 'PUT' | 'PATCH' | 'HEAD' | 'OPT
 
 export type Context<TData extends Record<any, any> = Record<any, any>> = {
   req: Request;
-  h11: H11;
+  h11: H11<TData>;
   providers: Record<string, any>;
   params: Record<string, string>;
   data: TData;
@@ -27,12 +27,7 @@ export type DataModule<TAdded extends Record<any, any>> = Handler<any> & {
   __adds?: TAdded;
 };
 
-export type HanlderEnt = {
-  handlers: Handler[];
-};
-
-export type HandlersProps = Handler[] | [Handler[]] | [HanlderEnt];
-export type HandlerReturn = Handler | Handler[] | HanlderEnt;
+export type HandlerReturn = Handler | Handler[];
 
 export type FsApi = {
   getFileStream: (path: string) => ReadableStream;

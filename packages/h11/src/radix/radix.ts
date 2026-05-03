@@ -1,5 +1,5 @@
-import type { Handler, HanlderEnt, Method } from '../types.ts';
-import { Node, addNodeToChildren } from './node.ts';
+import type { Handler, Method } from '../types.ts';
+import { Node } from './node.ts';
 
 type Params = Record<string, string>;
 
@@ -19,46 +19,42 @@ export class Radix {
     let lastWild: FindResult | undefined = undefined;
     let currentNode = this.root;
 
-    outer: for (let i = 0; i < segments.length; i++) {
-      for (const middleware of currentNode.middlewares) {
-        if (!middleware.method || middleware.method === method) {
-          middlewares.push(middleware.handler);
-        }
-      }
+    for (let i = 0; i < segments.length; i++) {
+      middlewares.push(...currentNode.middlewares);
 
-      const wildEnt = currentNode.wilds[method];
-      if (wildEnt) {
+      const wildHandlers = currentNode.wilds[method];
+      if (wildHandlers) {
         lastWild = {
           params: { ...params, wild: segments.slice(i + 1).join('/') },
-          handlers: [...middlewares, ...wildEnt.handlers],
+          handlers: [...middlewares, ...wildHandlers],
         };
       }
 
       if (currentNode.segment[0] === ':') {
-        const paramName = currentNode.segment.slice(1);
-        params[paramName] = segments[i];
+        params[currentNode.segment.slice(1)] = segments[i];
       }
 
       if (i + 1 === segments.length) break;
 
       const nextSegment = segments[i + 1];
 
-      for (const child of currentNode.children) {
-        if (
-          child.segment === nextSegment ||
-          (child.segment[0] === ':' && nextSegment !== '')
-        ) {
-          currentNode = child;
-          continue outer;
-        }
+      const staticChild = currentNode.staticChildren.get(nextSegment);
+      if (staticChild) {
+        currentNode = staticChild;
+        continue;
+      }
+
+      if (currentNode.paramChild && nextSegment !== '') {
+        currentNode = currentNode.paramChild;
+        continue;
       }
 
       return lastWild ?? { params, handlers: [] };
     }
 
-    const handlerEnt = currentNode.handlers[method];
-    if (handlerEnt) {
-      return { params, handlers: [...middlewares, ...handlerEnt.handlers] };
+    const routeHandlers = currentNode.handlers[method];
+    if (routeHandlers) {
+      return { params, handlers: [...middlewares, ...routeHandlers] };
     }
 
     return lastWild ?? { params, handlers: [...middlewares] };
@@ -68,39 +64,40 @@ export class Radix {
     const patternSegments = pattern.slice(1).split('/');
     let currentNode = this.root;
 
-    outer: for (const segment of patternSegments) {
-      for (const child of currentNode.children) {
-        if (child.segment === segment) {
-          currentNode = child;
-          continue outer;
+    for (const segment of patternSegments) {
+      if (segment[0] === ':') {
+        if (!currentNode.paramChild) {
+          currentNode.paramChild = new Node({ segment, parent: currentNode });
         }
+        currentNode = currentNode.paramChild;
+      } else {
+        let child = currentNode.staticChildren.get(segment);
+        if (!child) {
+          child = new Node({ segment, parent: currentNode });
+          currentNode.staticChildren.set(segment, child);
+        }
+        currentNode = child;
       }
-
-      const newNode = new Node({ segment, parent: currentNode });
-      addNodeToChildren(currentNode, newNode);
-      currentNode = newNode;
     }
 
     return currentNode;
   }
 
-  add(pattern: string, method: Method = 'GET', handlerEnt: HanlderEnt) {
+  add(pattern: string, method: Method = 'GET', handlers: Handler[]) {
     if (pattern.endsWith('/**')) {
       const prefix = pattern.slice(0, -3);
       const node = prefix ? this.findOrCreateNode(prefix) : this.root;
-      node.wilds[method] = handlerEnt;
+      node.wilds[method] = handlers;
       return node;
     }
 
     const node = this.findOrCreateNode(pattern);
-    node.handlers[method] = handlerEnt;
+    node.handlers[method] = handlers;
     return node;
   }
 
-  addMiddleware(pattern: string, handlers: Handler[], method?: Method) {
+  addMiddleware(pattern: string, handlers: Handler[]) {
     const node = pattern === '/' ? this.root : this.findOrCreateNode(pattern);
-    for (const handler of handlers) {
-      node.middlewares.push({ method, handler });
-    }
+    node.middlewares.push(...handlers);
   }
 }

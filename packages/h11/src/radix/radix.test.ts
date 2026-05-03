@@ -2,7 +2,7 @@ import { describe, it, expect } from 'bun:test';
 import { Radix } from './radix.ts';
 
 const handler = async () => new Response();
-const handlerEnt = { handlers: [handler] };
+const handlerEnt = [handler];
 
 describe('radix', () => {
   it('add', () => {
@@ -10,20 +10,21 @@ describe('radix', () => {
 
     radix.add('/hello/:name/world', 'GET', handlerEnt);
 
-    expect(radix.root.children.length).toBe(1);
-    const helloNode = radix.root.children[0];
+    expect(radix.root.staticChildren.size).toBe(1);
+    const helloNode = radix.root.staticChildren.get('hello')!;
     expect(helloNode.segment).toBe('hello');
-    expect(helloNode.children.length).toBe(1);
-    const nameNode = helloNode.children[0];
+    expect(helloNode.paramChild).toBeDefined();
+    const nameNode = helloNode.paramChild!;
     expect(nameNode.segment).toBe(':name');
-    expect(nameNode.children.length).toBe(1);
-    const worldNode = nameNode.children[0];
+    expect(nameNode.staticChildren.size).toBe(1);
+    const worldNode = nameNode.staticChildren.get('world')!;
     expect(worldNode.segment).toBe('world');
-    expect(worldNode.children.length).toBe(0);
+    expect(worldNode.staticChildren.size).toBe(0);
+    expect(worldNode.paramChild).toBeUndefined();
 
     radix.add('/hello/:name/world2', 'GET', handlerEnt);
-    expect(nameNode.children.length).toBe(2);
-    expect(nameNode.children[1].segment).toBe('world2');
+    expect(nameNode.staticChildren.size).toBe(2);
+    expect(nameNode.staticChildren.get('world2')?.segment).toBe('world2');
   });
 
   it('find', () => {
@@ -70,7 +71,7 @@ describe('radix', () => {
 
     const specificHandler = async () => new Response();
     radix.add('/hello/world/:name', 'GET', handlerEnt);
-    radix.add('/hello/world/aleksey', 'GET', { handlers: [specificHandler] });
+    radix.add('/hello/world/aleksey', 'GET', [specificHandler]);
 
     const result = radix.find('/hello/world/aleksey');
     expect(result.handlers).toContain(specificHandler);
@@ -82,7 +83,7 @@ describe('radix', () => {
 
     radix.add('/hello/world/**', 'GET', handlerEnt);
     const namedHandler = async () => new Response();
-    radix.add('/hello/world/:name', 'GET', { handlers: [namedHandler] });
+    radix.add('/hello/world/:name', 'GET', [namedHandler]);
 
     const result = radix.find('/hello/world/aleksey');
     expect(result.handlers).toContain(namedHandler);

@@ -4,7 +4,13 @@ import {
   REQUEST_ID_HEADER,
   type ReqIdData,
 } from './modules/req-id.ts';
-import type { Handler, FsApi } from './types.ts';
+import type {
+  Handler,
+  FsApi,
+  Context,
+  Method,
+  MethodOrAll,
+} from './types.ts';
 import { joinUserPath, joinPath } from './utils/join.ts';
 import { copyReq } from './utils/req.ts';
 import { type SwitchParam, switchFunc } from './utils/switch.ts';
@@ -21,6 +27,8 @@ export {
   type ReqIdData,
   type Handler,
   type FsApi,
+  type Context,
+  type Method,
   joinUserPath,
   joinPath,
   copyReq,
