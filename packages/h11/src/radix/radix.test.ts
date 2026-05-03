@@ -109,4 +109,34 @@ describe('radix', () => {
     expect(result.handlers).toContain(handler);
     expect(result.params.wild).toBe('a/b/c');
   });
+
+  it('несколько вайлдов на разных уровнях цепочатся', () => {
+    const radix = new Radix();
+    const globalHandler = async () => new Response();
+    const apiHandler = async () => new Response();
+
+    radix.add('/**', 'GET', [globalHandler]);
+    radix.add('/api/**', 'GET', [apiHandler]);
+
+    const result = radix.find('/api/users', 'GET');
+    expect(result.handlers).toContain(globalHandler);
+    expect(result.handlers).toContain(apiHandler);
+    // глубокий вайлд идёт после поверхностного
+    expect(result.handlers.indexOf(globalHandler)).toBeLessThan(
+      result.handlers.indexOf(apiHandler)
+    );
+    // wild param от самого глубокого совпадения
+    expect(result.params.wild).toBe('users');
+  });
+
+  it('вайлд только на корневом уровне попадает в результат', () => {
+    const radix = new Radix();
+    const globalHandler = async () => new Response();
+
+    radix.add('/**', 'GET', [globalHandler]);
+
+    const result = radix.find('/any/path/here', 'GET');
+    expect(result.handlers).toContain(globalHandler);
+    expect(result.params.wild).toBe('any/path/here');
+  });
 });

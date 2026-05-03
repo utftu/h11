@@ -16,7 +16,8 @@ export class Radix {
 
     const params: Params = {};
     const middlewares: Handler[] = [];
-    let lastWild: FindResult | undefined = undefined;
+    const wildcardHandlers: Handler[] = [];
+    let wildcardParams: Params | undefined = undefined;
     let currentNode = this.root;
 
     for (let i = 0; i < segments.length; i++) {
@@ -24,10 +25,8 @@ export class Radix {
 
       const wildHandlers = currentNode.wilds[method];
       if (wildHandlers) {
-        lastWild = {
-          params: { ...params, wild: segments.slice(i + 1).join('/') },
-          handlers: [...middlewares, ...wildHandlers],
-        };
+        wildcardHandlers.push(...wildHandlers);
+        wildcardParams = { ...params, wild: segments.slice(i + 1).join('/') };
       }
 
       if (currentNode.segment[0] === ':') {
@@ -49,7 +48,10 @@ export class Radix {
         continue;
       }
 
-      return lastWild ?? { params, handlers: [] };
+      if (wildcardHandlers.length > 0) {
+        return { params: wildcardParams!, handlers: [...middlewares, ...wildcardHandlers] };
+      }
+      return { params, handlers: [] };
     }
 
     const routeHandlers = currentNode.handlers[method];
@@ -57,7 +59,10 @@ export class Radix {
       return { params, handlers: [...middlewares, ...routeHandlers] };
     }
 
-    return lastWild ?? { params, handlers: [...middlewares] };
+    if (wildcardHandlers.length > 0) {
+      return { params: wildcardParams!, handlers: [...middlewares, ...wildcardHandlers] };
+    }
+    return { params, handlers: [...middlewares] };
   }
 
   private findOrCreateNode(pattern: string): Node {
