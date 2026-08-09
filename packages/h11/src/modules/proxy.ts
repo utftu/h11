@@ -14,6 +14,8 @@ export const proxyReq =
       headers: headers,
       body: req.body,
       redirect: 'manual',
+      // @ts-ignore — required for Node.js 18+ when streaming a body
+      duplex: 'half',
     });
 
     return new Response(proxyRes.body, {

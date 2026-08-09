@@ -8,7 +8,7 @@ export type ErrorHandler = (
 export const defaultOnNotFound: NotFoundHandler = ({ req, h11 }) => {
   h11.ee.emit('code', {
     code: 404,
-    text: `Not found 123 ${req.url}`,
+    text: `Not found ${req.url}`,
   });
 
   return new Response('Not Found', {

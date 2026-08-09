@@ -2,7 +2,7 @@ import type { Handler } from '../types.ts';
 import { copyReq } from '../utils/req.ts';
 
 export const SIZE_1b = 1;
-export const SIZE_1kb = 1;
+export const SIZE_1kb = 1024;
 export const SIZE_1mb = 1024 * 1024;
 
 export const createRateLimiterModule = (limit: number): Handler => {
@@ -33,11 +33,7 @@ export const createRateLimiterModule = (limit: number): Handler => {
       },
     });
 
-    (async () => {
-      try {
-        await ctx.req.body?.pipeTo(writable);
-      } catch (_) {}
-    })();
+    ctx.req.body?.pipeTo(writable).catch(() => {});
 
     const newReq = copyReq(ctx.req, readable);
     ctx.req = newReq;
