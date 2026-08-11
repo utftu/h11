@@ -1,6 +1,6 @@
 {
   "name": "h11-x",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "type": "module",
   "scripts": {
     "build": "bun build ./src/h11-x.ts --target bun --external vite --external h11 --external regan --outdir ./dist && bun build ./src/h11-x.client.ts --target browser --external regan --outdir ./dist",
