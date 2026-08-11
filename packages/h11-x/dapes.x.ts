@@ -20,9 +20,6 @@ const build = new Task({
   ],
   children: [types],
   exec: async ({ command }) => {
-    // Делегируем в package.json — там же и --external для обоих бандлов
-    // (h11-x.ts + h11-x.client.ts), чтобы сборка не расходилась с тем,
-    // что реально проверено и работает.
     await command('npm run build', {
       cwd: getAbsolutePath('.', import.meta),
     });
