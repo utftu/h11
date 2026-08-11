@@ -3,7 +3,7 @@
   "version": "0.0.2",
   "type": "module",
   "scripts": {
-    "build": "bun build ./src/h11-x.ts --target bun --external vite --external h11 --outdir ./dist",
+    "build": "bun build ./src/h11-x.ts --target bun --external vite --external h11 --external regan --outdir ./dist && bun build ./src/h11-x.client.ts --target browser --external regan --outdir ./dist",
     "types": "tsc --project tsconfig.types.json"
   },
   "exports": {
@@ -18,6 +18,8 @@
   },
   "dependencies": {
     "defu": "^6.1.4",
-    "h11-fs": "*"
+    "h11": "*",
+    "h11-fs": "*",
+    "regan": "^0.0.12"
   }
 }

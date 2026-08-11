@@ -55,6 +55,6 @@ export const getEntPath = (pathname: string, dir: string) => {
   return [...pathname.split('/').slice(0, -1), name].join('/');
 };
 
-export const createSctiptText = (src: string) => {
+export const createScriptText = (src: string) => {
   return `<script type="module" defer src="${src}"></script>`;
 };

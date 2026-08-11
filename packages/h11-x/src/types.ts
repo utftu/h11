@@ -5,7 +5,6 @@ export type Route = {
   name: string;
 };
 
-export type GetHtml = (props: { req: Request }) => Promise<string>;
 export type GetHtmlSsg = (props: { pathname: string }) => Promise<string>;
 
 export type EditViteConfig = (

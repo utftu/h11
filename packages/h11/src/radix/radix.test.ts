@@ -121,12 +121,26 @@ describe('radix', () => {
     const result = radix.find('/api/users', 'GET');
     expect(result.handlers).toContain(globalHandler);
     expect(result.handlers).toContain(apiHandler);
-    // глубокий вайлд идёт после поверхностного
-    expect(result.handlers.indexOf(globalHandler)).toBeLessThan(
-      result.handlers.indexOf(apiHandler)
+    // глубокий (более специфичный) вайлд идёт раньше поверхностного
+    expect(result.handlers.indexOf(apiHandler)).toBeLessThan(
+      result.handlers.indexOf(globalHandler)
     );
     // wild param от самого глубокого совпадения
     expect(result.params.wild).toBe('users');
+  });
+
+  it('несколько хендлеров на одном вайлд-узле сохраняют свой порядок', () => {
+    const radix = new Radix();
+    const globalA = async () => new Response();
+    const globalB = async () => new Response();
+    const apiA = async () => new Response();
+    const apiB = async () => new Response();
+
+    radix.add('/**', 'GET', [globalA, globalB]);
+    radix.add('/api/**', 'GET', [apiA, apiB]);
+
+    const result = radix.find('/api/users', 'GET');
+    expect(result.handlers).toEqual([apiA, apiB, globalA, globalB]);
   });
 
   it('вайлд только на корневом уровне попадает в результат', () => {

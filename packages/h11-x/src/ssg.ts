@@ -1,6 +1,6 @@
 import { defineConfig, build as buildVite } from 'vite';
 import { getFsApi } from 'h11-fs';
-import { checkFile, createSctiptText } from './utils.ts';
+import { checkFile, createScriptText } from './utils.ts';
 import type { GetHtmlSsg, Route } from './types.ts';
 import { reganVite } from 'regan-vite';
 import { relative } from 'node:path';
@@ -76,7 +76,7 @@ export const makeSsg = async ({
     );
 
     const jsContent = joinPath(baseDirPrepared, `ssg/${name}.js`);
-    const { getPages } = (await import(jsContent)) as {
+    const { getPages } = (await import(/* @vite-ignore */ jsContent)) as {
       getPages: GetPages;
     };
 
@@ -89,16 +89,16 @@ export const makeSsg = async ({
       if (prod) {
         const path = joinPath(prefix, clientPreparedFile);
 
-        script = createSctiptText(path);
+        script = createScriptText(path);
       } else {
         const prefixPath = joinPath(devPrefix, prefix);
         const viteClient = joinPath(prefixPath, '/@vite/client');
         const jsClient = joinPath(prefixPath, clientFile);
 
-        const sctipt1 = createSctiptText(viteClient);
-        const sctipt2 = createSctiptText(jsClient);
+        const script1 = createScriptText(viteClient);
+        const script2 = createScriptText(jsClient);
 
-        script = sctipt1 + sctipt2;
+        script = script1 + script2;
       }
       const htmlWithScript = html.replace(scriptKey, script);
 

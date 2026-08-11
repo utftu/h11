@@ -1,6 +1,6 @@
 import { fsApi } from 'h11-fs';
 import { makeSsg } from './ssg.ts';
-import { makeSsr, getSsrHtml, readSsrConfig } from './ssr.ts';
+import { makeSsr, getSsrHtml, readSsrConfig, createGetHtml } from './ssr.tsx';
 import type { EditViteConfig, Route } from './types.ts';
 import { checkFile, getEntName } from './utils.ts';
 import type { UserConfig } from 'vite';
@@ -73,4 +73,5 @@ export const buildH11X = async ({
   }
 };
 
-export { makeSsg, makeSsr, getSsrHtml, readSsrConfig };
+export { makeSsg, makeSsr, getSsrHtml, readSsrConfig, createGetHtml };
+export { createH11XApp, type H11XApp } from './app.ts';

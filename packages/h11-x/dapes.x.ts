@@ -1,8 +1,7 @@
 import { Group, publishPackage, startIfMain, Task } from 'dapes';
 import { groupH11 } from '../h11/dapes.h11.ts';
 import { getAbsolutePath } from 'utftu';
-import { groupH11Fs } from 'h11-fs/dapes.fs.ts';
-import { build as buildEsBuild } from 'esbuild';
+import { groupH11Fs } from '../h11-fs/dapes.fs.ts';
 
 const types = new Task({
   name: 'types',
@@ -20,23 +19,12 @@ const build = new Task({
     groupH11Fs.getTaskControl('build'),
   ],
   children: [types],
-  exec: async () => {
-    await Bun.build({
-      entrypoints: [getAbsolutePath('./src/h11-x.ts', import.meta)],
-      target: 'node',
-      format: 'esm',
-      outdir: getAbsolutePath('./dist', import.meta),
-      external: ['vite'],
-    });
-    await buildEsBuild({
-      entryPoints: [getAbsolutePath('./src/h11-x.client.ts', import.meta)],
-      target: 'es2018',
-      external: ['regan'],
-      bundle: true,
-      format: 'esm',
-      outdir: getAbsolutePath('./dist', import.meta),
-      jsx: 'automatic',
-      jsxImportSource: 'regan',
+  exec: async ({ command }) => {
+    // Делегируем в package.json — там же и --external для обоих бандлов
+    // (h11-x.ts + h11-x.client.ts), чтобы сборка не расходилась с тем,
+    // что реально проверено и работает.
+    await command('npm run build', {
+      cwd: getAbsolutePath('.', import.meta),
     });
   },
 });

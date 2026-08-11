@@ -22,7 +22,7 @@
     }
   },
   "scripts": {
-    "build": "bun build ./src/h11-fs.ts ./src/providers/bun/fsapi.ts ./src/providers/node/fsapi.ts --target node --splitting --external bun --external h11 --chunk-naming chunks/[name]-[hash].[ext] --outdir ./dist",
+    "build": "bun build ./src/h11-fs.ts ./src/providers/bun/fsapi.ts ./src/providers/node/fsapi.ts --target node --external bun --external h11 --outdir ./dist",
     "types": "tsc --project tsconfig.types.json"
   },
   "dependencies": {

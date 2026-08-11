@@ -40,14 +40,18 @@
       "version": "0.0.2",
       "dependencies": {
         "defu": "^6.1.4",
+        "h11": "*",
         "h11-fs": "*",
+        "regan": "^0.0.12",
       },
     },
     "packages/h11-x-example": {
       "name": "h11-x-example",
       "version": "0.0.1",
       "dependencies": {
+        "h11-fs": "*",
         "h11-x": "*",
+        "utftu": "*",
       },
     },
   },

@@ -16,7 +16,11 @@ export class Radix {
 
     const params: Params = {};
     const middlewares: Handler[] = [];
-    const wildcardHandlers: Handler[] = [];
+    // Один элемент на каждый встреченный wildcard-узел, от корня к листу.
+    // В точках возврата порядок групп переворачивается (не порядок внутри
+    // группы!), так что exec() пробует самый глубокий (специфичный) /**
+    // первым, а более общие — только как фолбэк, если тот не ответил.
+    const wildcardGroups: Handler[][] = [];
     let wildcardParams: Params | undefined = undefined;
     let currentNode = this.root;
 
@@ -25,7 +29,7 @@ export class Radix {
 
       const wildHandlers = currentNode.wilds[method];
       if (wildHandlers) {
-        wildcardHandlers.push(...wildHandlers);
+        wildcardGroups.push(wildHandlers);
         wildcardParams = { ...params, wild: segments.slice(i + 1).join('/') };
       }
 
@@ -48,8 +52,11 @@ export class Radix {
         continue;
       }
 
-      if (wildcardHandlers.length > 0) {
-        return { params: wildcardParams!, handlers: [...middlewares, ...wildcardHandlers] };
+      if (wildcardGroups.length > 0) {
+        return {
+          params: wildcardParams!,
+          handlers: [...middlewares, ...wildcardGroups.reverse().flat()],
+        };
       }
       return { params, handlers: [] };
     }
@@ -59,8 +66,11 @@ export class Radix {
       return { params, handlers: [...middlewares, ...routeHandlers] };
     }
 
-    if (wildcardHandlers.length > 0) {
-      return { params: wildcardParams!, handlers: [...middlewares, ...wildcardHandlers] };
+    if (wildcardGroups.length > 0) {
+      return {
+        params: wildcardParams!,
+        handlers: [...middlewares, ...wildcardGroups.reverse().flat()],
+      };
     }
     return { params, handlers: [...middlewares] };
   }

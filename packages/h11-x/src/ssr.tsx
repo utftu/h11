@@ -3,6 +3,7 @@ import { getFsApi } from 'h11-fs';
 import {
   checkFile,
   convertStreamToString,
+  createScriptText,
   getDefaultBasedir,
 } from './utils.ts';
 import type { EditViteConfig, Route } from './types.ts';
@@ -10,10 +11,8 @@ import { joinPath } from 'h11';
 import { scriptKey } from './conts.ts';
 import { defu } from 'defu';
 import { viteConfigBaseClient, viteConfigBaseServer } from './config.ts';
-
-const createSctiptText = (src: string) => {
-  return `<script type="module" defer src="${src}"></script>`;
-};
+import { stringify, type FC } from 'regan';
+import { getPublicEnvs } from './public-envs.ts';
 
 const fsApi = await getFsApi();
 
@@ -119,29 +118,28 @@ export const readSsrConfig = async (baseDir?: string): Promise<ConfigSsr> => {
 };
 
 export const getSsrHtml = async <TProps extends Record<any, any> = any>({
-  vite,
-  config,
+  app,
   name,
   props = {} as any,
 }: {
-  vite?: ViteDevServer;
-  config: ConfigSsr;
+  app: { vite?: ViteDevServer; ssrConfig: ConfigSsr };
   name: string;
   props?: TProps;
 }) => {
+  const { vite, ssrConfig: config } = app;
   const route = config.routes[name];
 
   if (config.prod) {
-    const { getHtml } = await import(route.ssrFile);
+    const { getHtml } = await import(/* @vite-ignore */ route.ssrFile);
 
     return () => {
       const html = getHtml(props);
 
       const path = joinPath(config.prefix, route.clientUrl);
 
-      const sctipt = createSctiptText(path);
+      const script = createScriptText(path);
 
-      const htmlWithScript = html.replace(scriptKey, sctipt);
+      const htmlWithScript = html.replace(scriptKey, script);
       return htmlWithScript;
     };
   } else {
@@ -154,10 +152,10 @@ export const getSsrHtml = async <TProps extends Record<any, any> = any>({
       const viteClient = joinPath(prefixPath, '/@vite/client');
       const jsClient = joinPath(prefixPath, route.clientRaw);
 
-      const sctipt1 = createSctiptText(viteClient);
-      const sctipt2 = createSctiptText(jsClient);
+      const script1 = createScriptText(viteClient);
+      const script2 = createScriptText(jsClient);
 
-      const scripts = sctipt1 + sctipt2;
+      const scripts = script1 + script2;
       const htmlWithScript = html.replace(scriptKey, scripts);
 
       return htmlWithScript;
@@ -165,6 +163,12 @@ export const getSsrHtml = async <TProps extends Record<any, any> = any>({
   }
 };
 
-// await makeSsr({
-//   routes: [{ type: 'ssr', dir: './src/routes/about', pathname: 'about.ssr' }],
-// });
+export const createGetHtml = <TProps extends Record<string, any> = Record<string, any>>(
+  Component: FC<any>,
+) => {
+  return (props: TProps = {} as TProps) => {
+    return stringify(<Component />, {
+      data: { envs: getPublicEnvs(), props },
+    });
+  };
+};

@@ -1,5 +1,5 @@
 import { scriptKey } from '../conts.ts';
-import { Fragment, h, type Child, type FC } from 'regan';
+import { Fragment, h, hydrate, type Child, type FC } from 'regan';
 
 const storage_id = 'h11x_storage_id';
 
@@ -16,6 +16,10 @@ export const getStorageHtml = (localWindow?: Window) => {
   const rawData = element?.innerHTML!;
   const data = JSON.parse(rawData) as H11XStorge;
   return data;
+};
+
+export const hydrateApp = (Component: FC<any>) => {
+  hydrate(document, <Component />, { data: getStorageHtml() });
 };
 
 export const Script: FC = () => {
