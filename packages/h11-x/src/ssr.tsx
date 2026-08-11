@@ -12,7 +12,7 @@ import { scriptKey } from './conts.ts';
 import { defu } from 'defu';
 import { viteConfigBaseClient, viteConfigBaseServer } from './config.ts';
 import { stringify, type FC } from 'regan';
-import { getPublicEnvs } from './public-envs.ts';
+import { getPublicEnvs } from './env.ts';
 
 const fsApi = await getFsApi();
 

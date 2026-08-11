@@ -10,7 +10,7 @@ import { reganVite } from 'regan-vite';
 import { buildH11X, prefix as defaultPrefix } from './h11-x.ts';
 import { readSsrConfig, type ConfigSsr } from './ssr.tsx';
 import type { EditViteConfig, Route } from './types.ts';
-import { loadEnvFile } from './load-env-file.ts';
+import { loadEnvFile } from './env.ts';
 
 // Where vite's own dev middleware is mounted, before `prefix` is nested in
 // front of it. Matches buildH11X's internal default — see getSsrHtml, which
