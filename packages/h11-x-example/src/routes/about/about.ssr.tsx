@@ -1,13 +1,4 @@
-import { stringify, h } from 'regan';
+import { createGetHtml } from 'h11-x';
 import { About } from './about.tsx';
 
-// const createPage = () => {
-//   return;
-// };
-
-export const getHtml = () => {
-  const str = stringify(<About />, {
-    data: { envs: {}, props: { hello: 'world' } },
-  });
-  return str;
-};
+export const getHtml = createGetHtml(About);

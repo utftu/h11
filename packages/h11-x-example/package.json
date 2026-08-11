@@ -5,6 +5,8 @@
   "type": "module",
   "private": true,
   "dependencies": {
-    "h11-x": "*"
+    "h11-fs": "*",
+    "h11-x": "*",
+    "utftu": "*"
   }
 }

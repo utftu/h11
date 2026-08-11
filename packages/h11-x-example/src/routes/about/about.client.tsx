@@ -1,9 +1,4 @@
-import { hydrate } from 'regan/jsx-runtime';
-import './about.tsx';
+import { hydrateApp } from 'h11-x/client';
 import { About } from './about.tsx';
-import { getStorageHtml } from 'h11-x/client';
 
-hydrate(document, <About />, {
-  data: getStorageHtml(),
-  window,
-});
+hydrateApp(About);
