@@ -118,22 +118,22 @@ describe('serializeCookie', () => {
 
 describe('setCookie', () => {
   it('добавляет Set-Cookie через append (не затирая предыдущий)', () => {
-    const headers = new Headers();
+    const res = new Response();
 
-    setCookie(headers, 'a', '1');
-    setCookie(headers, 'b', '2');
+    setCookie(res, 'a', '1');
+    setCookie(res, 'b', '2');
 
-    expect(headers.getSetCookie()).toEqual(['a=1; Path=/', 'b=2; Path=/']);
+    expect(res.headers.getSetCookie()).toEqual(['a=1; Path=/', 'b=2; Path=/']);
   });
 });
 
 describe('deleteCookie', () => {
   it('ставит Max-Age=0 и Expires в прошлом', () => {
-    const headers = new Headers();
+    const res = new Response();
 
-    deleteCookie(headers, 'session');
+    deleteCookie(res, 'session');
 
-    const [cookie] = headers.getSetCookie();
+    const [cookie] = res.headers.getSetCookie();
     expect(cookie).toContain('session=;');
     expect(cookie).toContain('Max-Age=0');
     expect(cookie).toContain('Expires=Thu, 01 Jan 1970 00:00:00 GMT');

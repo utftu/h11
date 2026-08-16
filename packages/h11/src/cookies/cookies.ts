@@ -70,20 +70,20 @@ export const serializeCookie = (
 };
 
 export const setCookie = (
-  headers: Headers,
+  res: Response,
   name: string,
   value: string,
   options?: CookieOptions,
 ): void => {
   // Set-Cookie может повторяться — append, а не set (иначе перезапишет
   // предыдущую куку вместо добавления новой).
-  headers.append('Set-Cookie', serializeCookie(name, value, options));
+  res.headers.append('Set-Cookie', serializeCookie(name, value, options));
 };
 
 export const deleteCookie = (
-  headers: Headers,
+  res: Response,
   name: string,
   options?: Pick<CookieOptions, 'path' | 'domain'>,
 ): void => {
-  setCookie(headers, name, '', { ...options, maxAge: 0, expires: new Date(0) });
+  setCookie(res, name, '', { ...options, maxAge: 0, expires: new Date(0) });
 };
