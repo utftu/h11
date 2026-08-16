@@ -13,6 +13,14 @@ import {
   getContentTypeHeaders,
   getContentTypeConfig,
 } from './utils/content-type.ts';
+import {
+  parseCookies,
+  getCookie,
+  serializeCookie,
+  setCookie,
+  deleteCookie,
+  type CookieOptions,
+} from './cookies/cookies.ts';
 
 export {
   H11,
@@ -31,4 +39,10 @@ export {
   getContentType,
   getContentTypeHeaders,
   getContentTypeConfig,
+  parseCookies,
+  getCookie,
+  serializeCookie,
+  setCookie,
+  deleteCookie,
+  type CookieOptions,
 };
