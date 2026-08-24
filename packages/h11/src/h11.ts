@@ -1,9 +1,5 @@
-import { H11 } from './core.ts';
-import {
-  createReqIdModule,
-  REQUEST_ID_HEADER,
-  type ReqIdData,
-} from './modules/req-id.ts';
+import { H11, REQUEST_ID_HEADER } from './core.ts';
+import { createReqIdModule, type ReqIdData } from './modules/req-id.ts';
 import type { Handler, FsApi, Context, Method } from './types.ts';
 import { joinUserPath, joinPath } from './utils/join.ts';
 import { copyReq } from './utils/req.ts';
@@ -24,8 +20,8 @@ import {
 
 export {
   H11,
-  createReqIdModule,
   REQUEST_ID_HEADER,
+  createReqIdModule,
   type ReqIdData,
   type Handler,
   type FsApi,

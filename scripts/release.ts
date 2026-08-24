@@ -36,7 +36,7 @@ console.log(`Версия: ${version}`);
 console.log(`Тег:    ${tag}`);
 
 const answer = prompt(`Создать и запушить тег ${tag}? (Y/n)`);
-if (answer?.trim().toLowerCase() !== 'n') {
+if (answer?.trim().toLowerCase() === 'n') {
   console.log('Отменено');
   process.exit(0);
 }

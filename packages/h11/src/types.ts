@@ -8,6 +8,7 @@ export type Context<TData extends Record<any, any> = Record<any, any>> = {
   providers: Record<string, any>;
   params: Record<string, string>;
   data: TData;
+  reqId: string;
 };
 
 export type HandlerResponse =

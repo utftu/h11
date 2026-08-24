@@ -11,6 +11,7 @@ const makeCtx = (headers: Record<string, string> = {}, body?: BodyInit) => ({
   providers: {},
   params: {},
   h11: {} as any,
+  reqId: 'test-req-id',
 });
 
 describe('createRateLimiterModule', () => {

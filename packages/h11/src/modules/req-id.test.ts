@@ -7,6 +7,7 @@ const makeCtx = (headers: Record<string, string> = {}) => ({
   providers: {},
   params: {},
   h11: {} as any,
+  reqId: 'test-req-id',
 });
 
 describe('createReqIdModule', () => {

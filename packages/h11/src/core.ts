@@ -13,6 +13,8 @@ import {
   type NotFoundHandler,
 } from './errors.ts';
 
+export const REQUEST_ID_HEADER = 'x-request-id';
+
 export class H11<TData extends Record<any, any> = Record<any, any>> {
   radix = new Radix();
   fsApi?: FsApi;
@@ -98,6 +100,7 @@ export class H11<TData extends Record<any, any> = Record<any, any>> {
   }): Promise<Response> {
     const url = new URL(req.url);
     const { params, handlers } = this.radix.find(url.pathname, req.method as Method);
+    const reqId = req.headers.get(REQUEST_ID_HEADER) ?? crypto.randomUUID();
 
     const props = {
       req,
@@ -105,6 +108,7 @@ export class H11<TData extends Record<any, any> = Record<any, any>> {
       data,
       providers,
       h11: this,
+      reqId,
     };
     try {
       for (const handler of handlers) {
