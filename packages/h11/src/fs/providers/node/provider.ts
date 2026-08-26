@@ -1,4 +1,4 @@
-import type { H11 } from 'h11';
+import type { H11 } from '../../../core.ts';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { Readable } from 'node:stream';
 

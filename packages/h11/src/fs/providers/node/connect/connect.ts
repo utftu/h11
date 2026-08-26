@@ -3,7 +3,8 @@ import { convertReqToNodeReq } from './req.ts';
 import { Readable } from 'node:stream';
 import { convertNodeResToRes, createNodeRes } from './res.ts';
 import { createControlledPromise } from 'utftu';
-import { copyReq, type Handler } from 'h11';
+import { copyReq } from '../../../../utils/req.ts';
+import type { Handler } from '../../../../types.ts';
 
 const deletePrefix = (url: string, prefix: string) => {
   const parsedUrl = new URL(url);
@@ -53,14 +54,6 @@ export const createConnectAdapter = ({
     const nodeRes = createNodeRes();
 
     const promiseEnt = createControlledPromise();
-
-    // nodeRes.on('data', (chunk) => {
-    //   console.log('data', chunk);
-    // });
-
-    // nodeRes.once('data', () => {
-    //   promiseEnt.controls.resolve();
-    // });
 
     nodeRes.once('finish', () => {
       promiseEnt.controls.resolve();

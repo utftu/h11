@@ -1,5 +1,5 @@
 import { file as fileBun, write } from 'bun';
-import type { FsApi } from 'h11';
+import type { FsApi } from '../../../types.ts';
 import { mkdir, copyFile, rm } from 'node:fs/promises';
 import { dirname } from 'node:path';
 

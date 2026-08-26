@@ -1,14 +1,10 @@
 import { Group, startIfMain, Task } from 'dapes';
 import { getAbsolutePath } from 'utftu';
 import { groupH11X } from '../h11-x/dapes.x.ts';
-import { groupH11Fs } from '../h11-fs/dapes.fs.ts';
 
 const runFull = new Task({
   name: 'build',
-  parents: [
-    groupH11X.getTaskControl('build'),
-    groupH11Fs.getTaskControl('build'),
-  ],
+  parents: [groupH11X.getTaskControl('build')],
   exec: async ({ command }) => {
     await command('bun run src/server.ts', {
       cwd: getAbsolutePath('.', import.meta),

@@ -1,4 +1,4 @@
-import { fsApi } from 'h11-fs';
+import { fsApi } from 'h11';
 import { makeSsg } from './ssg.ts';
 import { makeSsr, getSsrHtml, readSsrConfig, createGetHtml } from './ssr.tsx';
 import type { EditViteConfig, Route } from './types.ts';

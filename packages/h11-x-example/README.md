@@ -11,7 +11,7 @@ bun run src/server.ts
 
 Откроется на `http://localhost:3000/about`, dev-режим (`prod: false`) — с HMR через Vite.
 
-Либо через [`dapes`](../../dapes.run.ts) (соберёт `h11` → `h11-fs` → `h11-x` перед запуском):
+Либо через [`dapes`](../../dapes.run.ts) (соберёт `h11` → `h11-x` перед запуском):
 
 ```bash
 bun run ../../dapes.run.ts example run

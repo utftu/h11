@@ -1,10 +1,9 @@
 import { defineConfig, build as buildVite } from 'vite';
-import { getFsApi } from 'h11-fs';
+import { getFsApi, joinPath } from 'h11';
 import { checkFile, createScriptText } from './utils.ts';
 import type { GetHtmlSsg, Route } from './types.ts';
 import { reganVite } from 'regan-vite';
 import { relative } from 'node:path';
-import { joinPath } from 'h11';
 import defu from 'defu';
 import { viteConfigBaseClient, viteConfigBaseServer } from './config.ts';
 import { scriptKey } from './conts.ts';

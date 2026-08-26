@@ -1,6 +1,5 @@
-import { H11, joinPath } from 'h11';
-import { serveFiles } from 'h11-fs';
-import { createConnectAdapter } from 'h11-fs/node';
+import { H11, joinPath, serveFiles } from 'h11';
+import { createConnectAdapter } from 'h11/node';
 import {
   createServer as createViteServer,
   type ViteDevServer,

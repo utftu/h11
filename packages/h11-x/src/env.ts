@@ -1,5 +1,5 @@
 import { parseEnv } from 'node:util';
-import { getFsApi } from 'h11-fs';
+import { getFsApi } from 'h11';
 import { convertStreamToString } from './utils.ts';
 
 export const loadEnvFile = async (path?: string) => {

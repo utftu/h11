@@ -1,5 +1,5 @@
 import { getContentTypeConfig } from 'h11';
-import { createBunProvider } from 'h11-fs/bun';
+import { createBunProvider } from 'h11/bun';
 import { getAbsolutePath } from 'utftu';
 import { createH11XApp, getSsrHtml } from 'h11-x';
 

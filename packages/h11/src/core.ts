@@ -15,7 +15,7 @@ import {
 
 export const REQUEST_ID_HEADER = 'x-request-id';
 
-export class H11<TData extends Record<any, any> = Record<any, any>> {
+export class H11<TData extends Record<any, any> = {}> {
   radix = new Radix();
   fsApi?: FsApi;
   ee = createEventEmitter<

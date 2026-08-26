@@ -116,14 +116,6 @@ export class MockServerResponse
     return this;
   }
 
-  // get bodyString(): string {
-  //   return Buffer.concat(this._responseData).toString();
-  // }
-
-  // get bodyJSON(): unknown {
-  //   return JSON.parse(this.bodyString);
-  // }
-
   override end(...args: any[]): this {
     super.end(...args);
     this.finished = true;
@@ -132,27 +124,4 @@ export class MockServerResponse
 
     return this;
   }
-
-  // Not implemented methods can be stubbed or extended later
-  // writeContinue?(): void;
-  // setTimeout?(msecs: number, callback?: () => void): this;
-  // get headersSent(): boolean;
-  // sendDate?: boolean;
-  // addTrailers?(headers: NodeJS.OutgoingHttpHeaders): void;
 }
-
-// const a = new MockServerResponse(() => {
-//   console.log('end');
-// });
-
-// const readable = Readable.from('hello world');
-// readable.pipe(a);
-
-// const b = Readable.toWeb(a);
-
-// const reader = b.getReader();
-// const decoder = new TextDecoder('utf-8');
-
-// const result = await reader.read();
-
-// console.log(decoder.decode(result.value));

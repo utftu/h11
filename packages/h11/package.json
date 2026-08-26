@@ -2,13 +2,32 @@
   "name": "h11",
   "version": "1.0.6",
   "description": "",
-  "license": "ISC",
+  "license": "MIT",
   "author": "",
   "type": "module",
   "types": "dist/types/h11.d.ts",
   "main": "dist/h11.js",
+  "exports": {
+    ".": {
+      "types": "./dist/types/h11.d.ts",
+      "default": "./dist/h11.js"
+    },
+    "./bun": {
+      "types": "./dist/types/fs/providers/bun/fsapi.d.ts",
+      "default": "./dist/fs/bun/fsapi.js"
+    },
+    "./node": {
+      "types": "./dist/types/fs/providers/node/fsapi.d.ts",
+      "default": "./dist/fs/node/fsapi.js"
+    }
+  },
   "scripts": {
-    "build": "bun build ./src/h11.ts --target bun --outdir ./dist",
+    "build": "bun run build:js && bun run build:types",
+    "build:js": "bun build ./src/h11.ts --target bun --outdir ./dist && bun build ./src/fs/providers/bun/fsapi.ts ./src/fs/providers/node/fsapi.ts --target node --external bun --outdir ./dist/fs",
+    "build:types": "tsc --project tsconfig.types.json",
     "types": "tsc --project tsconfig.types.json"
+  },
+  "dependencies": {
+    "utftu": "*"
   }
 }

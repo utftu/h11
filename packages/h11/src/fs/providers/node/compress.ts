@@ -105,5 +105,3 @@ export const compressRecursive = async (pathToDir: string) => {
     }
   }
 };
-
-// await recComporess('./dist');

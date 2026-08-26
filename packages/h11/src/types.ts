@@ -1,8 +1,15 @@
 import type { H11 } from './core.ts';
 
-export type Method = 'GET' | 'POST' | 'DELETE' | 'PUT' | 'PATCH' | 'HEAD' | 'OPTIONS';
+export type Method =
+  | 'GET'
+  | 'POST'
+  | 'DELETE'
+  | 'PUT'
+  | 'PATCH'
+  | 'HEAD'
+  | 'OPTIONS';
 
-export type Context<TData extends Record<any, any> = Record<any, any>> = {
+export type Context<TData extends Record<any, any> = {}> = {
   req: Request;
   h11: H11<TData>;
   providers: Record<string, any>;
@@ -20,7 +27,7 @@ export type HandlerResponse =
   | Response
   | Promise<Response>;
 
-export type Handler<TData extends Record<any, any> = Record<any, any>> = (
+export type Handler<TData extends Record<any, any> = {}> = (
   props: Context<TData>,
 ) => HandlerResponse;
 

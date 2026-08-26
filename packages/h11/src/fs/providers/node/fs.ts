@@ -1,4 +1,4 @@
-import type { FsApi } from 'h11';
+import type { FsApi } from '../../../types.ts';
 import { createReadStream, createWriteStream } from 'node:fs';
 import { mkdir, copyFile, rm, writeFile, access } from 'node:fs/promises';
 import { dirname } from 'node:path';

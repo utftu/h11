@@ -1,4 +1,4 @@
-import { fsApi } from '../api.ts';
+import { fsApi } from '../fs/api.ts';
 
 type FileWithExt = {
   filepath: string;
@@ -54,7 +54,7 @@ const gitFiles = (filepath: string, formats: string[]): FileWithExt[] => {
 
 const findFilesCompressed = async (
   filepath: string,
-  formats: string[]
+  formats: string[],
 ): Promise<FileWithExt | undefined> => {
   const files = gitFiles(filepath, formats);
 
@@ -76,7 +76,7 @@ const contentTypeName = 'content-type' as const;
 
 export const getFileEnt = async (
   filepath: string,
-  formats: string[]
+  formats: string[],
 ): Promise<FileEnt | undefined> => {
   const headers: Record<string, string> = {};
   const fileEnt = await findFilesCompressed(filepath, formats);

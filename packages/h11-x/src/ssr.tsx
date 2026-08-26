@@ -1,5 +1,5 @@
 import { defineConfig, build as buildVite, type ViteDevServer } from 'vite';
-import { getFsApi } from 'h11-fs';
+import { getFsApi, joinPath } from 'h11';
 import {
   checkFile,
   convertStreamToString,
@@ -7,7 +7,6 @@ import {
   getDefaultBasedir,
 } from './utils.ts';
 import type { EditViteConfig, Route } from './types.ts';
-import { joinPath } from 'h11';
 import { scriptKey } from './conts.ts';
 import { defu } from 'defu';
 import { viteConfigBaseClient, viteConfigBaseServer } from './config.ts';

@@ -1,6 +1,6 @@
 # h11-x
 
-SSR/гидрация поверх [`h11`](../h11) + [`h11-fs`](../h11-fs) + Vite + [regan](https://www.npmjs.com/package/regan). Экспериментальный, активно меняющийся слой (версия `0.0.x`) — рабочий пример смотри в [`h11-x-example`](../h11-x-example).
+SSR/гидрация поверх [`h11`](../h11) + Vite + [regan](https://www.npmjs.com/package/regan). Экспериментальный, активно меняющийся слой (версия `0.0.x`) — рабочий пример смотри в [`h11-x-example`](../h11-x-example).
 
 ## Конвенция файлов роута
 
@@ -20,7 +20,7 @@ routes/about/
 ```ts
 // server.ts
 import { getContentTypeConfig } from 'h11';
-import { createBunProvider } from 'h11-fs/bun';
+import { createBunProvider } from 'h11/bun';
 import { getAbsolutePath } from 'utftu';
 import { createH11XApp, getSsrHtml } from 'h11-x';
 

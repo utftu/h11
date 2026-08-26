@@ -1,5 +1,6 @@
-import { joinUserPath, type Handler } from 'h11';
-import { fsApi } from '../api.ts';
+import { joinUserPath } from '../utils/join.ts';
+import type { Handler } from '../types.ts';
+import { fsApi } from '../fs/api.ts';
 import { getFileEnt } from '../utils/files.ts';
 
 export const serveFiles = ({
@@ -17,7 +18,7 @@ export const serveFiles = ({
 
     const fileEnt = await getFileEnt(
       filePath,
-      req.headers.get('Accept-Encoding')?.split(', ') || []
+      req.headers.get('Accept-Encoding')?.split(', ') || [],
     );
 
     if (!fileEnt) {
@@ -40,7 +41,7 @@ export const serveFiles = ({
       {
         status: 200,
         headers: fileEnt.headers,
-      }
+      },
     );
   };
 

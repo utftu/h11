@@ -1,6 +1,6 @@
 import { H11, REQUEST_ID_HEADER } from './core.ts';
 import { createReqIdModule, type ReqIdData } from './modules/req-id.ts';
-import type { Handler, FsApi, Context, Method } from './types.ts';
+import type { Handler, FsApi, Context, Method, DataModule } from './types.ts';
 import { joinUserPath, joinPath } from './utils/join.ts';
 import { copyReq } from './utils/req.ts';
 import { type SwitchParam, switchFunc } from './utils/switch.ts';
@@ -17,6 +17,8 @@ import {
   deleteCookie,
   type CookieOptions,
 } from './cookies/cookies.ts';
+import { getFsApi, fsApi } from './fs/api.ts';
+import { serveFiles } from './modules/serve.ts';
 
 export {
   H11,
@@ -27,6 +29,7 @@ export {
   type FsApi,
   type Context,
   type Method,
+  type DataModule,
   joinUserPath,
   joinPath,
   copyReq,
@@ -41,4 +44,7 @@ export {
   setCookie,
   deleteCookie,
   type CookieOptions,
+  getFsApi,
+  fsApi,
+  serveFiles,
 };

@@ -1,6 +1,7 @@
 {
   "name": "h11-workspace",
   "private": true,
+  "license": "MIT",
   "type": "module",
   "workspaces": [
     "packages/*"
