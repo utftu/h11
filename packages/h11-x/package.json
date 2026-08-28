@@ -18,9 +18,13 @@
       "default": "./dist/h11-x.client.js"
     }
   },
+  "files": [
+    "dist"
+  ],
   "dependencies": {
     "defu": "^6.1.4",
     "h11": "*",
-    "regan": "^0.0.12"
+    "regan": "^0.0.12",
+    "vite": ">=7"
   }
 }
