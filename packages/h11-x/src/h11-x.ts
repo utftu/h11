@@ -2,12 +2,13 @@ import { fsApi } from 'h11';
 import { makeSsg } from './ssg.ts';
 import { makeSsr, getSsrHtml, readSsrConfig, createGetHtml } from './ssr.tsx';
 import type { EditViteConfig, Route } from './types.ts';
-import { checkFile, getEntName } from './utils.ts';
+import { checkFileOptional, getEntName } from './utils/utils.ts';
+import { getDefaultRoutes } from './utils/routes.ts';
 import type { UserConfig } from 'vite';
 
 type BuildProps = {
   baseDir?: string;
-  routes: (string | Route)[];
+  routes?: (string | Route)[];
   prod?: boolean;
   devPrefix?: string;
   prefix?: string;
@@ -31,7 +32,7 @@ export const makeRouteUniversal = (route: string | Route) => {
 
 export const buildH11X = async ({
   baseDir,
-  prod = true,
+  prod = process.env.NODE_ENV === 'production',
   routes,
   prefix = '/h11x',
   devPrefix = '/_vite',
@@ -41,22 +42,36 @@ export const buildH11X = async ({
 
   await fsApi.rm(baseDirPrepared);
 
+  const routesResolved = routes ?? (await getDefaultRoutes(fsApi));
+
   const ssrRoutes: Route[] = [];
 
-  for (const route of routes) {
+  for (const route of routesResolved) {
     const { dir, name } = makeRouteUniversal(route);
+    // Файлы внутри dir всегда именуются по basename самой директории, даже
+    // если name — вложенный путь вида "blog/aleksei" (см. getDefaultRoutes).
+    const fileName = getEntName(dir);
 
-    const ssrFile = await checkFile(dir, `${name}.ssr`, fsApi);
+    const ssrFile = await checkFileOptional(dir, `${fileName}.ssr`, fsApi);
+    const clientFile = await checkFileOptional(
+      dir,
+      `${fileName}.client`,
+      fsApi
+    );
 
-    const clientFile = await checkFile(dir, `${name}.client`, fsApi);
-
-    const clientFileCheck = await fsApi.checkExist(clientFile);
-    if (!clientFileCheck) {
-      throw new Error(`No client file ${clientFile}`);
+    if (!ssrFile && !clientFile) {
+      throw new Error(`No .client or .ssr file for route ${dir}`);
     }
 
-    const ssrFileCheck = await fsApi.checkExist(ssrFile);
-    if (ssrFileCheck) {
+    // SSR-роут гидрируется на клиенте, поэтому makeSsr требует оба файла —
+    // без .client там некому подхватить разметку в браузере.
+    if (ssrFile && !clientFile) {
+      throw new Error(
+        `Route ${dir} has .ssr but no .client file — SSR routes need both`
+      );
+    }
+
+    if (ssrFile) {
       ssrRoutes.push({ dir, name });
     }
   }

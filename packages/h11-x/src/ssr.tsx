@@ -5,7 +5,8 @@ import {
   convertStreamToString,
   createScriptText,
   getDefaultBasedir,
-} from './utils.ts';
+  getEntName,
+} from './utils/utils.ts';
 import type { EditViteConfig, Route } from './types.ts';
 import { scriptKey } from './conts.ts';
 import { defu } from 'defu';
@@ -55,8 +56,11 @@ export const makeSsr = async ({
   };
 
   const routesPromises = routes.map(async ({ dir, name }) => {
-    const ssrFile = await checkFile(dir, `${name}.ssr`, fsApi);
-    const clientFile = await checkFile(dir, `${name}.client`, fsApi);
+    // Файлы внутри dir именуются по basename директории, а не по name
+    // (name может быть вложенным путём вида "blog/aleksei").
+    const fileName = getEntName(dir);
+    const ssrFile = await checkFile(dir, `${fileName}.ssr`, fsApi);
+    const clientFile = await checkFile(dir, `${fileName}.client`, fsApi);
 
     const configServer = defineConfig({
       build: {

@@ -45,4 +45,5 @@ export type FsApi = {
   mkdir: (path: string) => Promise<void>;
   copyFile: (from: string, to: string) => Promise<void>;
   rm: (path: string) => Promise<void>;
+  readdir: (path: string) => Promise<{ name: string; directory: boolean }[]>;
 };

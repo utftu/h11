@@ -1,7 +1,25 @@
 import { file as fileBun, write } from 'bun';
 import type { FsApi } from '../../../types.ts';
-import { mkdir, copyFile, rm } from 'node:fs/promises';
+import { mkdir, copyFile, rm, readdir, access } from 'node:fs/promises';
 import { dirname } from 'node:path';
+
+const checkExistBun = async (path: string) => {
+  try {
+    await access(path);
+    return true;
+  } catch {
+    return false;
+  }
+};
+
+const readdirBun = async (path: string) => {
+  const ents = await readdir(path, { withFileTypes: true });
+
+  return ents.map((ent) => ({
+    name: ent.name,
+    directory: ent.isDirectory(),
+  }));
+};
 
 const mkdirBun = async (path: string) => {
   await mkdir(path, { recursive: true });
@@ -29,12 +47,9 @@ export const fsApiBun: FsApi = {
   writeFile: async (path: string, text: string) => {
     await write(path, text);
   },
-  checkExist: async (path: string) => {
-    const file = fileBun(path);
-
-    return await file.exists();
-  },
+  checkExist: checkExistBun,
   mkdir: mkdirBun,
   copyFile: copyFilesBun,
   rm: rmBun,
+  readdir: readdirBun,
 };

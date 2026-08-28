@@ -1,9 +1,25 @@
 import type { FsApi } from '../../../types.ts';
 import { createReadStream, createWriteStream } from 'node:fs';
-import { mkdir, copyFile, rm, writeFile, access } from 'node:fs/promises';
+import {
+  mkdir,
+  copyFile,
+  rm,
+  writeFile,
+  access,
+  readdir,
+} from 'node:fs/promises';
 import { dirname } from 'node:path';
 import { Readable } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
+
+export const readdirNode = async (path: string) => {
+  const ents = await readdir(path, { withFileTypes: true });
+
+  return ents.map((ent) => ({
+    name: ent.name,
+    directory: ent.isDirectory(),
+  }));
+};
 
 export const copyFiles = async (from: string, to: string) => {
   const destDir = dirname(to);
@@ -44,4 +60,5 @@ export const fsApiNode: FsApi = {
   mkdir: mkdirNode,
   copyFile,
   rm: rmNode,
+  readdir: readdirNode,
 };

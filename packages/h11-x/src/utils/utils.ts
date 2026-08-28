@@ -20,27 +20,31 @@ export const convertStreamToString = async (stream: ReadableStream) => {
   return result;
 };
 
-export const checkFile = async (
+export const checkFileOptional = async (
   dir: string,
   nameWithoutExt: string,
   fsApi: FsApi
 ) => {
   const exts = ['.ts', '.tsx'];
-  const variantsEnt = exts.map((ext) => {
-    const filename = dir + '/' + nameWithoutExt + ext;
-    return {
-      filename,
-      promise: fsApi.checkExist(dir + '/' + nameWithoutExt + ext),
-    };
-  });
 
-  for (const { promise, filename } of variantsEnt) {
-    const fileExist = await promise;
+  for (const ext of exts) {
+    const filename = `${dir}/${nameWithoutExt}${ext}`;
 
-    if (fileExist) {
+    if (await fsApi.checkExist(filename)) {
       return filename;
     }
   }
+
+  return null;
+};
+
+export const checkFile = async (
+  dir: string,
+  nameWithoutExt: string,
+  fsApi: FsApi
+) => {
+  const found = await checkFileOptional(dir, nameWithoutExt, fsApi);
+  if (found) return found;
 
   throw new Error('Unknown file pattern');
 };

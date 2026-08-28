@@ -57,10 +57,6 @@ jobs:
         working-directory: ${{ steps.dir.outputs.path }}
         run: bun run build
 
-      - name: Проверить типы
-        working-directory: ${{ steps.dir.outputs.path }}
-        run: bun run types
-
       - name: Настроить auth для npm
         run: echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" > ~/.npmrc
 

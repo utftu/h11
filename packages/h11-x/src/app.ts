@@ -25,7 +25,7 @@ export type H11XApp = {
 export const createH11XApp = async ({
   baseDir,
   routes,
-  prod = true,
+  prod = process.env.NODE_ENV === 'production',
   prefix = defaultPrefix,
   devPrefix = defaultDevPrefix,
   editViteConfig = (_, config) => config,
@@ -33,7 +33,7 @@ export const createH11XApp = async ({
   h11,
 }: {
   baseDir?: string;
-  routes: (string | Route)[];
+  routes?: (string | Route)[];
   prod?: boolean;
   prefix?: string;
   devPrefix?: string;

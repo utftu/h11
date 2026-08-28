@@ -1,6 +1,6 @@
 import { defineConfig, build as buildVite } from 'vite';
 import { getFsApi, joinPath } from 'h11';
-import { checkFile, createScriptText } from './utils.ts';
+import { checkFile, createScriptText } from './utils/utils.ts';
 import type { GetHtmlSsg, Route } from './types.ts';
 import { reganVite } from 'regan-vite';
 import { relative } from 'node:path';
