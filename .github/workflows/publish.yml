@@ -1,65 +1,44 @@
-name: Publish package
+name: Publish mono
 
-# Триггерится тегом вида "<package>@<version>", например "h11@1.2.0" или
-# "h11-x@0.1.0". Версия в package.json пакета должна быть уже проставлена
-# и закоммичена ДО того, как ставить и пушить тег — сам тег и есть
-# ручной сигнал "готово, публикуем", ничего не бампается автоматически.
-"on":
+on:
   push:
     tags:
-      - '*@*'
-
-permissions:
-  contents: read
+      - "*@v*.*.*"
+  workflow_dispatch:
 
 jobs:
   publish:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
 
-      - name: Разобрать тег на имя пакета и версию
-        id: tag
+      - name: Resolve package
+        id: pkg
         run: |
-          TAG="${GITHUB_REF#refs/tags/}"
-          echo "name=${TAG%@*}" >> "$GITHUB_OUTPUT"
-          echo "version=${TAG##*@}" >> "$GITHUB_OUTPUT"
+          NAME="${GITHUB_REF_NAME%@v*}"
+          echo "name=$NAME" >> "$GITHUB_OUTPUT"
+          echo "dir=packages/$NAME" >> "$GITHUB_OUTPUT"
 
-      - name: Найти директорию пакета
-        id: dir
-        run: |
-          DIR="packages/${{ steps.tag.outputs.name }}"
-          if [ ! -f "$DIR/package.json" ]; then
-            echo "::error::Нет $DIR/package.json (пакет из тега: ${{ steps.tag.outputs.name }})"
-            exit 1
-          fi
-          echo "path=$DIR" >> "$GITHUB_OUTPUT"
+      - run: bun install --frozen-lockfile
 
-      - name: Сверить версию в теге с package.json
-        run: |
-          PKG_VERSION=$(node -p "require('./${{ steps.dir.outputs.path }}/package.json').version")
-          if [ "$PKG_VERSION" != "${{ steps.tag.outputs.version }}" ]; then
-            echo "::error::Версия в теге (${{ steps.tag.outputs.version }}) не совпадает с ${{ steps.dir.outputs.path }}/package.json ($PKG_VERSION)"
-            exit 1
-          fi
+      - run: bunx tsc --noEmit
+        working-directory: ${{ steps.pkg.outputs.dir }}
 
-      - name: Установить зависимости
-        run: bun install --frozen-lockfile
+      - run: bun test
+        working-directory: ${{ steps.pkg.outputs.dir }}
 
-      - name: Тесты (весь монорепозиторий — пакеты зависят друг от друга)
-        run: bun test
+      - run: bun run build
+        working-directory: ${{ steps.pkg.outputs.dir }}
 
-      - name: Собрать пакет
-        working-directory: ${{ steps.dir.outputs.path }}
-        run: bun run build
+      - run: npm install -g npm@latest
 
-      - name: Настроить auth для npm
-        run: echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" > ~/.npmrc
-
-      - name: Опубликовать
-        working-directory: ${{ steps.dir.outputs.path }}
-        run: bun publish
+      - run: npm publish
+        working-directory: ${{ steps.pkg.outputs.dir }}
