@@ -1,18 +1,9 @@
 import { Group, startIfMain, Task } from 'dapes';
 import { getAbsolutePath } from 'utftu';
 
-const types = new Task({
-  name: 'types',
-  exec: async ({ command }) => {
-    await command('npm run types', {
-      cwd: getAbsolutePath('.', import.meta),
-    });
-  },
-});
-
 export const buildH11 = new Task({
   name: 'build',
-  children: [types],
+  children: [],
   exec: async ({ command }) => {
     await command('npm run build', { cwd: getAbsolutePath('.', import.meta) });
   },
