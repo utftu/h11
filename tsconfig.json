@@ -8,6 +8,7 @@
     "jsx": "preserve",
     "jsxImportSource": "regan",
     "allowJs": true,
+    "skipDefaultLibCheck": true,
 
     // Bundler mode
     "moduleResolution": "bundler",

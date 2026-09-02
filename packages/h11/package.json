@@ -9,16 +9,32 @@
   "main": "dist/h11.js",
   "exports": {
     ".": {
-      "types": "./dist/types/h11.d.ts",
+      "types": "./src/h11.ts",
       "default": "./dist/h11.js"
     },
     "./bun": {
-      "types": "./dist/types/fs/providers/bun/fsapi.d.ts",
+      "types": "./src/fs/providers/bun/fsapi.ts",
       "default": "./dist/fs/bun/fsapi.js"
     },
     "./node": {
-      "types": "./dist/types/fs/providers/node/fsapi.d.ts",
+      "types": "./src/fs/providers/node/fsapi.ts",
       "default": "./dist/fs/node/fsapi.js"
+    }
+  },
+  "publishConfig": {
+    "exports": {
+      ".": {
+        "types": "./dist/types/h11.d.ts",
+        "default": "./dist/h11.js"
+      },
+      "./bun": {
+        "types": "./dist/types/fs/providers/bun/fsapi.d.ts",
+        "default": "./dist/fs/bun/fsapi.js"
+      },
+      "./node": {
+        "types": "./dist/types/fs/providers/node/fsapi.d.ts",
+        "default": "./dist/fs/node/fsapi.js"
+      }
     }
   },
   "scripts": {
