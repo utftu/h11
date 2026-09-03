@@ -5,6 +5,11 @@
   "license": "MIT",
   "author": "",
   "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/utftu/h11.git",
+    "directory": "packages/h11"
+  },
   "types": "dist/types/h11.d.ts",
   "main": "dist/h11.js",
   "exports": {
