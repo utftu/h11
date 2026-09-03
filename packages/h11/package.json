@@ -15,15 +15,15 @@
   "exports": {
     ".": {
       "types": "./src/h11.ts",
-      "default": "./dist/h11.js"
+      "default": "./src/h11.ts"
     },
     "./bun": {
       "types": "./src/fs/providers/bun/fsapi.ts",
-      "default": "./dist/fs/bun/fsapi.js"
+      "default": "./src/fs/providers/bun/fsapi.ts"
     },
     "./node": {
       "types": "./src/fs/providers/node/fsapi.ts",
-      "default": "./dist/fs/node/fsapi.js"
+      "default": "./src/fs/providers/node/fsapi.ts"
     }
   },
   "publishConfig": {
