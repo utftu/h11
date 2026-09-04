@@ -5,7 +5,7 @@
       "name": "h11",
       "dependencies": {
         "@types/serve-static": "^1.15.8",
-        "dapes": "^0.0.52",
+        "dapes": "^0.0.54",
         "esbuild": "^0.25.11",
         "express": "^5.1.0",
         "logw": "^0.0.2",
@@ -26,14 +26,14 @@
     },
     "packages/h11": {
       "name": "h11",
-      "version": "1.0.10",
+      "version": "1.0.11",
       "dependencies": {
         "utftu": "*",
       },
     },
     "packages/h11-x": {
       "name": "h11-x",
-      "version": "0.0.12",
+      "version": "0.0.13",
       "dependencies": {
         "defu": "^6.1.4",
         "h11": "*",
@@ -282,7 +282,7 @@
 
     "cookie-signature": ["cookie-signature@1.2.2", "", {}, "sha512-D76uU73ulSXrD1UXF4KE2TMxVVwhsnCgfAyTg9k8P6KGZjlXKrOLe4dJQKI3Bxi5wjesZoFXJWElNWBjPZMbhg=="],
 
-    "dapes": ["dapes@0.0.52", "", { "bin": { "dapes": "dist/cli.js" } }, "sha512-FT/CicbbUIme3AZTF5R3fnHhKYLTqx+/7ngregGaRbC25D83fJcqVDvjz+c6zCByeTYp6Z47dvpHcPF/QqT+6w=="],
+    "dapes": ["dapes@0.0.54", "", { "bin": { "dapes": "dist/cli.js" } }, "sha512-5mAkHG8cow4p/CfzS4c0DCkGf5tIRisR0LjVZ7GzfSAfklsVbyWsbx1Xriho9qC/I1T1oIVZKjetQaxRsefJ2w=="],
 
     "de-indent": ["de-indent@1.0.2", "", {}, "sha512-e/1zu3xH5MQryN2zdVaF0OrdNLUbvWxzMbi+iNA6Bky7l1RoP8a2fIbRocyHclXt/arDrrR6lL3TqFD9pMQTsg=="],
 
