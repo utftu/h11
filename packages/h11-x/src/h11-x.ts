@@ -76,16 +76,16 @@ export const buildH11X = async ({
     }
   }
 
-  if (ssrRoutes.length) {
-    await makeSsr({
-      routes: ssrRoutes,
-      baseDir,
-      prod,
-      prefix,
-      devPrefix,
-      editViteConfig,
-    });
-  }
+  // makeSsr пишет .h11x/ssr/config.json — createH11XApp всегда читает его,
+  // поэтому запускаем его даже без роутов (тогда config будет с routes: {}).
+  await makeSsr({
+    routes: ssrRoutes,
+    baseDir,
+    prod,
+    prefix,
+    devPrefix,
+    editViteConfig,
+  });
 };
 
 export { makeSsg, makeSsr, getSsrHtml, readSsrConfig, createGetHtml };
