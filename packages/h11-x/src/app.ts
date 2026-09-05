@@ -40,7 +40,7 @@ export const createH11XApp = async ({
   editViteConfig?: EditViteConfig;
   viteConfig?: UserConfig;
   h11?: H11;
-}): Promise<H11XApp> => {
+} = {}): Promise<H11XApp> => {
   const projectRoot = baseDir || process.cwd();
   const baseDirPrepared = baseDir || `${projectRoot}/.h11x`;
 
