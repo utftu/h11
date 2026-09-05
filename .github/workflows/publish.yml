@@ -35,6 +35,11 @@ jobs:
       - run: bun test
         working-directory: ${{ steps.pkg.outputs.dir }}
 
+      - name: Build workspace dependencies
+        run: bun run build
+        working-directory: packages/h11
+        if: steps.pkg.outputs.name == 'h11-x'
+
       - run: bun run build
         working-directory: ${{ steps.pkg.outputs.dir }}
 

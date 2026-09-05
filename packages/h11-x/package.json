@@ -15,24 +15,12 @@
   },
   "exports": {
     ".": {
-      "types": "./src/h11-x.ts",
+      "types": "./dist/types/h11-x.d.ts",
       "default": "./dist/h11-x.js"
     },
     "./client": {
-      "types": "./src/h11-x.client.ts",
+      "types": "./dist/types/h11-x.client.d.ts",
       "default": "./dist/h11-x.client.js"
-    }
-  },
-  "publishConfig": {
-    "exports": {
-      ".": {
-        "types": "./dist/types/h11-x.d.ts",
-        "default": "./dist/h11-x.js"
-      },
-      "./client": {
-        "types": "./dist/types/h11-x.client.d.ts",
-        "default": "./dist/h11-x.client.js"
-      }
     }
   },
   "files": [

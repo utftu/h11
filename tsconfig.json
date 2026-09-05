@@ -21,6 +21,16 @@
     "skipLibCheck": true,
     "noFallthroughCasesInSwitch": true,
 
+    // Workspace: резолвим локальные пакеты из исходников, чтобы типы не зависели
+    // от собранного dist (в npm-пакете экспортируются dist/types).
+    "paths": {
+      "h11": ["./packages/h11/src/h11.ts"],
+      "h11/bun": ["./packages/h11/src/fs/providers/bun/fsapi.ts"],
+      "h11/node": ["./packages/h11/src/fs/providers/node/fsapi.ts"],
+      "h11-x": ["./packages/h11-x/src/h11-x.ts"],
+      "h11-x/client": ["./packages/h11-x/src/h11-x.client.ts"]
+    },
+
     // Some stricter flags (disabled by default)
     "noUnusedLocals": false,
     "noUnusedParameters": false,
