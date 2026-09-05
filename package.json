@@ -22,7 +22,7 @@
   },
   "dependencies": {
     "@types/serve-static": "^1.15.8",
-    "dapes": "^0.0.58",
+    "dapes": "^0.0.59",
     "esbuild": "^0.25.11",
     "express": "^5.1.0",
     "logw": "^0.0.2",
