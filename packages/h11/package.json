@@ -31,7 +31,7 @@
   ],
   "scripts": {
     "build": "bun run build:js && bun run build:types",
-    "build:js": "bun build ./src/h11.ts --target bun --outdir ./dist && bun build ./src/fs/providers/bun/fsapi.ts ./src/fs/providers/node/fsapi.ts --target node --external bun --outdir ./dist/fs",
+    "build:js": "bun build ./src/h11.ts --target bun --packages external --outdir ./dist && bun build ./src/fs/providers/bun/fsapi.ts ./src/fs/providers/node/fsapi.ts --target node --packages external --outdir ./dist/fs",
     "build:types": "tsc --project tsconfig.types.json",
     "types": "tsc --project tsconfig.types.json"
   },
