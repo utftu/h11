@@ -1,7 +1,7 @@
 import { getContentTypeConfig } from 'h11';
 import { createBunProvider } from 'h11/bun';
 import { getAbsolutePath } from 'utftu';
-import { createH11XApp, getSsrHtml } from 'h11-x';
+import { createH11XApp, renderSsr } from 'h11-x';
 
 const app = await createH11XApp({
   baseDir: getAbsolutePath('../.h11x', import.meta),
@@ -10,10 +10,10 @@ const app = await createH11XApp({
 });
 
 app.h11.get('/about', async () => {
-  const getHtml = await getSsrHtml({
+  const getHtml = await renderSsr({
     app,
     name: 'about',
-    props: {},
+    // props: {},
   });
   const html = getHtml();
   return new Response(html, getContentTypeConfig('html'));

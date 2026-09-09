@@ -108,7 +108,7 @@ export const makeSsr = async ({
   await fsApi.writeFile(joinPath(baseDirPrepared, 'ssr/config.json'), assetsJson);
 };
 
-export const readSsrConfig = async (baseDir?: string): Promise<ConfigSsr> => {
+export const readConfig = async (baseDir?: string): Promise<ConfigSsr> => {
   const baseDirPrepared = baseDir ?? getDefaultBasedir();
 
   const configPath = joinPath(baseDirPrepared, 'ssr/config.json');
@@ -120,7 +120,7 @@ export const readSsrConfig = async (baseDir?: string): Promise<ConfigSsr> => {
   return config;
 };
 
-export const getSsrHtml = async <TProps extends Record<any, any> = any>({
+export const renderSsr = async <TProps extends Record<any, any> = any>({
   app,
   name,
   props = {} as any,
@@ -133,10 +133,10 @@ export const getSsrHtml = async <TProps extends Record<any, any> = any>({
   const route = config.routes[name];
 
   if (config.prod) {
-    const { getHtml } = await import(/* @vite-ignore */ route.ssrFile);
+    const { page } = await import(/* @vite-ignore */ route.ssrFile);
 
     return () => {
-      const html = getHtml(props);
+      const html = page(props);
 
       const path = joinPath(config.prefix, route.clientUrl);
 
@@ -146,9 +146,9 @@ export const getSsrHtml = async <TProps extends Record<any, any> = any>({
       return htmlWithScript;
     };
   } else {
-    const { getHtml } = await vite!.ssrLoadModule(route.ssrFileRaw);
+    const { page } = await vite!.ssrLoadModule(route.ssrFileRaw);
     return () => {
-      const html = getHtml(props);
+      const html = page(props);
 
       const prefixPath = joinPath(config.devPrefix, config.prefix);
 
@@ -166,7 +166,7 @@ export const getSsrHtml = async <TProps extends Record<any, any> = any>({
   }
 };
 
-export const createGetHtml = <TProps extends Record<string, any> = Record<string, any>>(
+export const createPage = <TProps extends Record<string, any> = Record<string, any>>(
   Component: FC<any>,
 ) => {
   return (props: TProps = {} as TProps) => {

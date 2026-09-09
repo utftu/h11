@@ -9,7 +9,7 @@ SSR/гидрация поверх [`h11`](../h11) + Vite + [regan](https://www.n
 ```
 routes/about/
   about.tsx         # сам regan-компонент
-  about.ssr.tsx      # export const getHtml — рендерит компонент в HTML на сервере
+  about.ssr.tsx      # export const page — рендерит компонент в HTML на сервере
   about.client.tsx    # гидрирует тот же компонент в браузере
 ```
 
@@ -22,7 +22,7 @@ routes/about/
 import { getContentTypeConfig } from 'h11';
 import { createBunProvider } from 'h11/bun';
 import { getAbsolutePath } from 'utftu';
-import { createH11XApp, getSsrHtml } from 'h11-x';
+import { createH11XApp, renderSsr } from 'h11-x';
 
 const app = await createH11XApp({
   baseDir: getAbsolutePath('../.h11x', import.meta),
@@ -31,7 +31,7 @@ const app = await createH11XApp({
 });
 
 app.h11.get('/about', async () => {
-  const getHtml = await getSsrHtml({ app, name: 'about', props: {} });
+  const getHtml = await renderSsr({ app, name: 'about', props: {} });
   return new Response(getHtml(), getContentTypeConfig('html'));
 });
 
@@ -41,7 +41,7 @@ Bun.serve({ port: 3000, fetch: (req, server) => bunProvider(req, server) });
 
 `createH11XApp` берёт на себя: поднятие vite dev-сервера (в dev), сборку SSR/клиентских бандлов, dev-proxy к vite, раздачу собранной статики. Регистрация конкретных роутов и сам рендер — на вызывающей стороне, никакой магии.
 
-Возвращает `{ h11, vite?, ssrConfig }` — `h11` для регистрации своих роутов, `vite`/`ssrConfig` нужны только если рендеришь вручную через `getSsrHtml`.
+Возвращает `{ h11, vite?, ssrConfig }` — `h11` для регистрации своих роутов, `vite`/`ssrConfig` нужны только если рендеришь вручную через `renderSsr`.
 
 ### Опции `createH11XApp`
 
@@ -60,13 +60,13 @@ Bun.serve({ port: 3000, fetch: (req, server) => bunProvider(req, server) });
 
 ```tsx
 // about.ssr.tsx
-import { createGetHtml } from 'h11-x';
+import { createPage } from 'h11-x';
 import { About } from './about.tsx';
 
-export const getHtml = createGetHtml(About);
+export const page = createPage(About);
 ```
 
-`createGetHtml(Component)` возвращает `(props) => string` — рендерит компонент через `regan`'s `stringify`, автоматически прокидывая в `data.envs` публичные переменные окружения (см. ниже) и переданные `props` — в `data.props`.
+`createPage(Component)` возвращает `(props) => string` — рендерит компонент через `regan`'s `stringify`, автоматически прокидывая в `data.envs` публичные переменные окружения (см. ниже) и переданные `props` — в `data.props`.
 
 ## `.client.tsx` — гидрация в браузере
 
@@ -91,15 +91,15 @@ hydrateApp(About);
 
 При каждом вызове `createH11XApp` автоматически подгружается `.env` из корня проекта (`${baseDir}/.env`), если файл есть — парсится через `node:util`'s `parseEnv`, не перезаписывает уже выставленные снаружи переменные (окружение деплоя в приоритете).
 
-В SSR (`createGetHtml`) в `data.envs` автоматически попадают **только** переменные с префиксом `PUBLIC_` — остальные остаются server-only и не утекают в отрендеренный HTML/клиентский JS. См. [`.env.example`](../h11-x-example/.env.example) в примере.
+В SSR (`createPage`) в `data.envs` автоматически попадают **только** переменные с префиксом `PUBLIC_` — остальные остаются server-only и не утекают в отрендеренный HTML/клиентский JS. См. [`.env.example`](../h11-x-example/.env.example) в примере.
 
 ## Низкоуровневые примитивы
 
-Если `createH11XApp`/`createGetHtml` не подходят под задачу, доступны более примитивные функции:
+Если `createH11XApp`/`createPage` не подходят под задачу, доступны более примитивные функции:
 
 - `buildH11X({ baseDir, routes, prod, prefix, devPrefix, editViteConfig })` — только сборка (без создания `H11`/vite dev-сервера).
-- `readSsrConfig(baseDir?)` — читает `ssr/config.json`, записанный сборкой.
-- `getSsrHtml({ app, name, props })` — рендерит конкретный роут по имени (то, чем пользуется пример выше).
+- `readConfig(baseDir?)` — читает `ssr/config.json`, записанный сборкой.
+- `renderSsr({ app, name, props })` — рендерит конкретный роут по имени (то, чем пользуется пример выше).
 - `makeSsg(...)` — статическая генерация страниц (аналог SSR, но пишет готовый HTML на диск при сборке, а не рендерит на каждый запрос).
 
 ## Сборка

@@ -5,14 +5,14 @@ import {
   type ViteDevServer,
   type UserConfig,
 } from 'vite';
-import { reganVite } from 'regan-vite';
 import { buildH11X, prefix as defaultPrefix } from './h11-x.ts';
-import { readSsrConfig, type ConfigSsr } from './ssr.tsx';
+import { reganVite } from 'regan-vite';
+import { readConfig, type ConfigSsr } from './ssr.tsx';
 import type { EditViteConfig, Route } from './types.ts';
 import { loadEnvFile } from './env.ts';
 
 // Where vite's own dev middleware is mounted, before `prefix` is nested in
-// front of it. Matches buildH11X's internal default — see getSsrHtml, which
+// front of it. Matches buildH11X's internal default — see renderSsr, which
 // reconstructs the same `joinPath(devPrefix, prefix)` from ConfigSsr.
 const defaultDevPrefix = '/_vite';
 
@@ -70,7 +70,7 @@ export const createH11XApp = async ({
     editViteConfig,
   });
 
-  const ssrConfig = await readSsrConfig(baseDirPrepared);
+  const ssrConfig = await readConfig(baseDirPrepared);
 
   const h11Internal = h11 || new H11();
 
