@@ -47,7 +47,7 @@ export const Body: FC = (props, { children }) => {
   return children;
 };
 
-export const Template: FC<{ data?: Record<string, any> | void }> = (
+export const Template: FC<{ data?: Record<string, any> | void; children?: Child }> = (
   { data = {} },
   { children },
 ) => {
