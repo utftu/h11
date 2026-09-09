@@ -10,7 +10,7 @@
   },
   "scripts": {
     "build": "bun run build:js && bun run build:types",
-    "build:js": "bun build ./src/h11-x.ts --target bun --external vite --external h11 --external regan --outdir ./dist && bun build ./src/h11-x.client.ts --target browser --external regan --outdir ./dist",
+    "build:js": "bun build ./src/h11-x.ts --target bun --packages external --outdir ./dist && bun build ./src/h11-x.client.ts --target browser --packages external --outdir ./dist",
     "build:types": "tsc --project tsconfig.types.json"
   },
   "exports": {
@@ -29,7 +29,8 @@
   "dependencies": {
     "defu": "^6.1.4",
     "h11": "*",
-    "regan": "^0.0.12",
+    "regan": "^0.0.16",
+    "regan-vite": "^1.0.1",
     "vite": ">=7"
   }
 }
