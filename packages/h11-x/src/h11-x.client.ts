@@ -6,7 +6,7 @@ import {
   Body,
   getStorageHtml,
   createStorage,
-  hydrateApp,
+  hydratePage,
 } from './client/components.tsx';
 
 export {
@@ -17,5 +17,5 @@ export {
   Body,
   getStorageHtml,
   createStorage,
-  hydrateApp,
+  hydratePage,
 };

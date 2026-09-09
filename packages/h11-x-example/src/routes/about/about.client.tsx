@@ -1,4 +1,4 @@
-import { hydrateApp } from 'h11-x/client';
+import { hydratePage } from 'h11-x/client';
 import { About } from './about.tsx';
 
-hydrateApp(About);
+hydratePage(About);

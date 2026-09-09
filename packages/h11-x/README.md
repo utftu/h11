@@ -31,8 +31,8 @@ const app = await createH11XApp({
 });
 
 app.h11.get('/about', async () => {
-  const getHtml = await renderSsr({ app, name: 'about', props: {} });
-  return new Response(getHtml(), getContentTypeConfig('html'));
+  const renderHtml = await renderSsr({ app, name: 'about', props: {} });
+  return new Response(renderHtml(), getContentTypeConfig('html'));
 });
 
 const bunProvider = createBunProvider({ h11: app.h11 });
@@ -72,10 +72,10 @@ export const page = createPage(About);
 
 ```tsx
 // about.client.tsx
-import { hydrateApp } from 'h11-x/client';
+import { hydratePage } from 'h11-x/client';
 import { About } from './about.tsx';
 
-hydrateApp(About);
+hydratePage(About);
 ```
 
 Внутри компонента данные, положенные на сервере, доступны через второй аргумент FC: `(props, { globalCtx }) => { globalCtx.data.props; globalCtx.data.envs; }`.
@@ -85,7 +85,7 @@ hydrateApp(About);
 - `Template` — оборачивает контент в `<!DOCTYPE html><html>...`, вставляет `<Script/>` (плейсхолдер для инжекта тегов скриптов) и `<DataSet/>` (сериализует `data` в `<template>` для гидрации).
 - `Head` / `Body` — дочерние компоненты `Template`, добавляют содержимое/атрибуты в `<head>`/`<body>`.
 - `getStorageHtml()` — на клиенте читает и парсит `data`, записанные `<DataSet/>`.
-- `hydrateApp(Component)` — см. выше.
+- `hydratePage(Component)` — см. выше.
 
 ## `.env` и переменные окружения
 

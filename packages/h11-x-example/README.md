@@ -24,8 +24,8 @@ src/
   server.ts                     # createH11XApp + регистрация /about
   routes/about/
     about.tsx                   # regan-компонент
-    about.ssr.tsx                # createGetHtml(About)
-    about.client.tsx              # hydrateApp(About)
+    about.ssr.tsx                # createPage(About)
+    about.client.tsx              # hydratePage(About)
 ```
 
 ## `.env`

@@ -18,7 +18,7 @@ export const getStorageHtml = (localWindow?: Window) => {
   return data;
 };
 
-export const hydrateApp = (Component: FC<any>) => {
+export const hydratePage = (Component: FC<any>) => {
   hydrate(document, <Component />, { data: getStorageHtml() });
 };
 
