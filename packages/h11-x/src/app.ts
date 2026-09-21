@@ -4,17 +4,12 @@ import {
   type ViteDevServer,
   type UserConfig,
 } from 'vite';
-import { buildH11X, prefix as defaultPrefix } from './h11-x.ts';
+import { buildH11X, defaultPrefix, defaultDevPrefix } from './build.ts';
 import { reganVite } from 'regan-vite';
-import { readConfig } from './route-config.ts';
+import { readConfig } from './assets.ts';
 import type { ConfigH11X } from './types.ts';
 import type { EditViteConfig, Route } from './types.ts';
 import { loadEnvFile } from './env.ts';
-
-// Where vite's own dev middleware is mounted, before `prefix` is nested in
-// front of it. Matches buildH11X's internal default — see renderSsr, which
-// reconstructs the same `joinPath(devPrefix, prefix)` from ConfigH11X.
-const defaultDevPrefix = '/_vite';
 
 export type App = {
   h11: H11;

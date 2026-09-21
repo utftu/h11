@@ -1,6 +1,6 @@
 import { readdir } from 'node:fs/promises';
 import { cwd } from 'node:process';
-import type { Route } from '../types.ts';
+import type { Route } from './types.ts';
 import { checkFileOptional, getEntName } from './utils.ts';
 
 export const getDefaultRoutesDir = () => {

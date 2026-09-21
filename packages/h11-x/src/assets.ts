@@ -6,7 +6,7 @@ import {
   createScriptText,
   getDefaultBasedir,
   getEntName,
-} from './utils/utils.ts';
+} from './utils.ts';
 
 const configFile = 'config.json';
 

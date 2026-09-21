@@ -1,5 +1,5 @@
 import { joinPath } from 'h11';
-import { checkFile, getEntName } from './utils/utils.ts';
+import { checkFile, getEntName } from './utils.ts';
 import type {
   EditViteConfig,
   Route,
@@ -7,8 +7,8 @@ import type {
   RoutePage,
   SsgPages,
 } from './types.ts';
-import { scriptKey } from './conts.ts';
-import { createAssetsHtml } from './route-config.ts';
+import { scriptKey } from './consts.ts';
+import { createAssetsHtml } from './assets.ts';
 import { buildClient, buildServer } from './build.ts';
 
 // Путь страницы становится файлом внутри каталога ассетов: "/blog" → blog.html,

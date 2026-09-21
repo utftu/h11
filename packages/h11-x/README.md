@@ -99,6 +99,7 @@ hydratePage(About);
 - `buildH11X({ baseDir, routes, prod, prefix, devPrefix, editViteConfig })` — только сборка (без создания `H11`/vite dev-сервера).
 - `readConfig(baseDir?)` — читает `.h11x/config.json`, записанный сборкой: `{ prod, prefix, devPrefix, routes }`, где каждый роут — `{ mode: 'ssr' | 'ssg', client: { src, out }, server: { src, out } }`, а у ssg ещё и `pages: [{ pathname, file }]`. `src` — исходник, `out` — результат сборки: у клиента объект со списками (`js`, `chunks`, `css`, `assets`), у сервера один собранный модуль.
 - `makeSsr(...)` / `makeSsg(...)` — сборка роутов одного режима; обе возвращают свою часть `routes` и ничего не пишут, конфиг собирает и записывает `buildH11X`.
+- `defaultPrefix` (`/h11x`) и `defaultDevPrefix` (`/_vite`) — дефолты одноимённых опций.
 - `renderSsr({ app, name, props })` — рендерит конкретный роут по имени (то, чем пользуется пример выше). В проде вставляет на место `<Script/>` все CSS-файлы роута (`<link rel="stylesheet">`) и его entry-скрипты.
 - `getAssets(app, name)` — весь выход vite-сборки роута с готовыми URL: `{ js, chunks, css, assets: [{ src, url }] }`. `src` — исходное имя файла до хеширования, по нему страница находит нужный ассет, если хочет сама вставить `<link rel="preload">`. Сам h11-x preload-теги не вставляет: какой файл важен для первого экрана, знает только приложение.
 
@@ -122,4 +123,19 @@ export const pages = [
 ```bash
 bun run build   # два entry-point'а: h11-x.ts (--target bun) и h11-x.client.ts (--target browser)
 bun run types
+```
+
+## Раскладка
+
+```
+src/
+  h11-x.ts          серверная точка входа, только ре-экспорт
+  h11-x.client.ts   браузерная точка входа, только ре-экспорт
+  app.ts            createApp
+  build.ts          buildH11X, обнаружение роутов, vite-сборки
+  ssr.tsx           ssr целиком: makeSsr, renderSsr, createPage
+  ssg.ts            ssg целиком: makeSsg и раскладка страниц по файлам
+  assets.ts         разбор выхода vite, config.json, getAssets, теги
+  client.tsx        Template, Head, Body, гидрация
+  routes.ts  utils.ts  types.ts  env.ts  consts.ts
 ```

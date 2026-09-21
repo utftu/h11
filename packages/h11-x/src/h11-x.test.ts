@@ -2,8 +2,13 @@ import { describe, expect, it } from 'bun:test';
 import { mkdir } from 'node:fs/promises';
 import { pid } from 'process';
 import { rm } from 'node:fs/promises';
-import { readConfig } from './route-config.ts';
-import { buildH11X, makeRouteUniversal, prefix, devPrefix } from './h11-x.ts';
+import { readConfig } from './assets.ts';
+import {
+  buildH11X,
+  makeRouteUniversal,
+  defaultPrefix,
+  defaultDevPrefix,
+} from './h11-x.ts';
 
 describe('makeRouteUniversal', () => {
   it('превращает строку в Route, выводя name из последнего сегмента', () => {
@@ -20,10 +25,9 @@ describe('makeRouteUniversal', () => {
 });
 
 describe('дефолтные префиксы', () => {
-  it('prefix и devPrefix согласованы: devPrefix = joinPath-эквивалент "/_vite" + prefix', () => {
-    expect(prefix).toBe('/h11x');
-    expect(devPrefix).toBe('/_vite/h11x');
-    expect(devPrefix.endsWith(prefix)).toBe(true);
+  it('раздача ассетов и dev-монтирование vite разведены', () => {
+    expect(defaultPrefix).toBe('/h11x');
+    expect(defaultDevPrefix).toBe('/_vite');
   });
 });
 
@@ -35,7 +39,7 @@ describe('buildH11X без роутов', () => {
       await buildH11X({ baseDir, routes: [] });
       const config = await readConfig(baseDir);
       expect(config.routes).toEqual({});
-      expect(config.prefix).toBe(prefix);
+      expect(config.prefix).toBe(defaultPrefix);
     } finally {
       await rm(baseDir, { recursive: true, force: true });
     }

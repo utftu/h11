@@ -1,4 +1,4 @@
-import { scriptKey } from '../conts.ts';
+import { scriptKey } from './consts.ts';
 import { Fragment, h, hydrate, type Child, type FC } from 'regan';
 
 const storage_id = 'h11x_storage_id';
@@ -47,19 +47,14 @@ export const DataSet: FC<{ data: Record<any, any> }> = (_, { globalCtx }) => {
   return <template id={storage_id}>{dataStr}</template>;
 };
 
-const h11x_head = 'h11x_head';
-export const Head: FC = (props, { children }) => {
-  const newChildren = [...children];
-  // @ts-ignore
-  newChildren[h11x_head] = props;
+// Head и Body сами ничего не рендерят — Template вынимает их детей и кладёт
+// в <head> и <body>. Собственный рендер случается, только если их поставили
+// мимо Template.
+export const Head: FC = (_, { children }) => {
   return children;
 };
 
-const h11x_body = 'h11x_body';
-export const Body: FC = (props, { children }) => {
-  const newChildren = [...children];
-  // @ts-ignore
-  newChildren[h11x_body] = props;
+export const Body: FC = (_, { children }) => {
   return children;
 };
 
@@ -72,17 +67,21 @@ export const Template: FC<{
   let bodies: Child[] = [];
   let bodyProps = {};
 
-  const realChildren = children.filter((child) => {
-    if (Array.isArray(child) && h11x_head in child) {
-      heads.push(...child);
-      headProps = child[h11x_head] as any;
+  // Дети приезжают сюда неразвёрнутыми узлами, поэтому Head и Body узнаются
+  // по самому компоненту, а их содержимое и атрибуты берутся из узла.
+  const realChildren = children.filter((child: any) => {
+    if (child?.component === Head) {
+      heads.push(...child.children);
+      headProps = child.props;
       return false;
     }
-    if (Array.isArray(child) && h11x_body in child) {
-      bodies.push(...child);
-      bodyProps = child[h11x_body] as any;
+
+    if (child?.component === Body) {
+      bodies.push(...child.children);
+      bodyProps = child.props;
       return false;
     }
+
     return true;
   });
 

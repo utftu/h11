@@ -1,16 +1,16 @@
 import { type ViteDevServer } from 'vite';
 import { joinPath } from 'h11';
-import { checkFile, createScriptText, getEntName } from './utils/utils.ts';
+import { checkFile, createScriptText, getEntName } from './utils.ts';
 import type {
   ConfigH11X,
   EditViteConfig,
   Route,
   RouteConfig,
 } from './types.ts';
-import { scriptKey } from './conts.ts';
+import { scriptKey } from './consts.ts';
 import { stringify, type FC } from 'regan';
 import { getPublicEnvs } from './env.ts';
-import { createAssetsHtml } from './route-config.ts';
+import { createAssetsHtml } from './assets.ts';
 import { buildClient, buildServer } from './build.ts';
 
 // Собирает ssr-роуты и возвращает свою часть config.json. Сам ничего не пишет:
