@@ -19,12 +19,11 @@ routes/about/
 
 ```ts
 // server.ts
-import { getInit } from 'h11';
-import { createBunProvider } from 'h11/bun';
+import { getInit, createServer } from 'h11';
 import { getAbsolutePath } from 'utftu';
-import { createH11XApp, renderSsr } from 'h11-x';
+import { createApp, renderSsr } from 'h11-x';
 
-const app = await createH11XApp({
+const app = await createApp({
   baseDir: getAbsolutePath('../.h11x', import.meta),
   routes: [getAbsolutePath('./routes/about', import.meta)],
   prod: false, // true — прод-режим: без vite dev-сервера, готовые бандлы
@@ -35,15 +34,15 @@ app.h11.get('/about', async () => {
   return new Response(renderHtml(), getInit('html'));
 });
 
-const bunProvider = createBunProvider({ h11: app.h11 });
+const bunProvider = createServer({ h11: app.h11 });
 Bun.serve({ port: 3000, fetch: (req, server) => bunProvider(req, server) });
 ```
 
-`createH11XApp` берёт на себя: поднятие vite dev-сервера (в dev), сборку SSR/клиентских бандлов, dev-proxy к vite, раздачу собранной статики. Регистрация конкретных роутов и сам рендер — на вызывающей стороне, никакой магии.
+`createApp` берёт на себя: поднятие vite dev-сервера (в dev), сборку SSR/клиентских бандлов, dev-proxy к vite, раздачу собранной статики. Регистрация конкретных роутов и сам рендер — на вызывающей стороне, никакой магии.
 
 Возвращает `{ h11, vite?, config }` — `h11` для регистрации своих роутов, `vite`/`config` нужны только если рендеришь вручную через `renderSsr`.
 
-### Опции `createH11XApp`
+### Опции `createApp`
 
 | Опция | По умолчанию | Что делает |
 |---|---|---|
@@ -89,13 +88,13 @@ hydratePage(About);
 
 ## `.env` и переменные окружения
 
-При каждом вызове `createH11XApp` автоматически подгружается `.env` из корня проекта (`${baseDir}/.env`), если файл есть — парсится через `node:util`'s `parseEnv`, не перезаписывает уже выставленные снаружи переменные (окружение деплоя в приоритете).
+При каждом вызове `createApp` автоматически подгружается `.env` из корня проекта (`${baseDir}/.env`), если файл есть — парсится через `node:util`'s `parseEnv`, не перезаписывает уже выставленные снаружи переменные (окружение деплоя в приоритете).
 
 В SSR (`createPage`) в `data.envs` автоматически попадают **только** переменные с префиксом `PUBLIC_` — остальные остаются server-only и не утекают в отрендеренный HTML/клиентский JS. См. [`.env.example`](../h11-x-example/.env.example) в примере.
 
 ## Низкоуровневые примитивы
 
-Если `createH11XApp`/`createPage` не подходят под задачу, доступны более примитивные функции:
+Если `createApp`/`createPage` не подходят под задачу, доступны более примитивные функции:
 
 - `buildH11X({ baseDir, routes, prod, prefix, devPrefix, editViteConfig })` — только сборка (без создания `H11`/vite dev-сервера).
 - `readConfig(baseDir?)` — читает `.h11x/config.json`, записанный сборкой: `{ prod, prefix, devPrefix, routes }`, где каждый роут — `{ mode: 'ssr' | 'ssg', client: { src, out }, server: { src, out } }`, а у ssg ещё и `pages: [{ pathname, file }]`. `src` — исходник, `out` — результат сборки: у клиента объект со списками (`js`, `chunks`, `css`, `assets`), у сервера один собранный модуль.

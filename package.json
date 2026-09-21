@@ -10,7 +10,9 @@
     "@types/bun": "^1.3.0",
     "dapes": "^0.0.59",
     "typescript": "^5.0.0",
-    "utftu": "1.0.33",
-    "vitest": "^3.2.4"
+    "utftu": "1.0.33"
+  },
+  "scripts": {
+    "test": "bun test"
   }
 }

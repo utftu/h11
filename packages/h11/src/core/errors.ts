@@ -1,4 +1,4 @@
-import type { Context } from './types.ts';
+import type { Context } from '../types.ts';
 
 export type NotFoundHandler = (props: Context) => Response | Promise<Response>;
 export type ErrorHandler = (

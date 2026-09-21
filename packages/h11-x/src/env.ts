@@ -1,15 +1,12 @@
 import { parseEnv } from 'node:util';
-import { getFsApi } from 'h11';
-import { convertStreamToString } from './utils/utils.ts';
 
 export const loadEnvFile = async (path?: string) => {
-  const fsApi = await getFsApi();
   const envPath = path || `${process.cwd()}/.env`;
 
-  const exists = await fsApi.checkExist(envPath);
-  if (!exists) return;
+  const file = Bun.file(envPath);
+  if (!(await file.exists())) return;
 
-  const text = await convertStreamToString(fsApi.getFileStream(envPath));
+  const text = await file.text();
   const parsed = parseEnv(text);
 
   for (const [key, value] of Object.entries(parsed)) {

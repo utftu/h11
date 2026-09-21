@@ -21,7 +21,7 @@ bun run ../../dapes.run.ts example run
 
 ```
 src/
-  server.ts                     # createH11XApp + регистрация /about
+  server.ts                     # createApp + регистрация /about
   routes/about/
     about.tsx                   # regan-компонент
     about.ssr.tsx                # createPage(About)

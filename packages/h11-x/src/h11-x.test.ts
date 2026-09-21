@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'bun:test';
 import { mkdir } from 'node:fs/promises';
 import { pid } from 'process';
-import { fsApi } from 'h11';
+import { rm } from 'node:fs/promises';
 import { readConfig } from './route-config.ts';
 import { buildH11X, makeRouteUniversal, prefix, devPrefix } from './h11-x.ts';
 
@@ -28,7 +28,7 @@ describe('дефолтные префиксы', () => {
 });
 
 describe('buildH11X без роутов', () => {
-  it('всё равно пишет config.json, чтобы createH11XApp мог прочитать конфиг', async () => {
+  it('всё равно пишет config.json, чтобы createApp мог прочитать конфиг', async () => {
     const baseDir = `/tmp/h11x-test-${pid}-${Date.now()}/.h11x`;
     await mkdir(baseDir, { recursive: true });
     try {
@@ -37,7 +37,7 @@ describe('buildH11X без роутов', () => {
       expect(config.routes).toEqual({});
       expect(config.prefix).toBe(prefix);
     } finally {
-      await fsApi.rm(baseDir);
+      await rm(baseDir, { recursive: true, force: true });
     }
   });
 });

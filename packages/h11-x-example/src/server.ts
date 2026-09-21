@@ -1,9 +1,8 @@
-import { getInit } from 'h11';
-import { createBunProvider } from 'h11/bun';
+import { getInit, createServer } from 'h11';
 import { getAbsolutePath } from 'utftu';
-import { createH11XApp, renderSsr } from 'h11-x';
+import { createApp, renderSsr } from 'h11-x';
 
-const app = await createH11XApp({
+const app = await createApp({
   baseDir: getAbsolutePath('../.h11x', import.meta),
   routes: [
     getAbsolutePath('./routes/about', import.meta),
@@ -13,20 +12,16 @@ const app = await createH11XApp({
 });
 
 app.h11.get('/about', async () => {
-  const getHtml = await renderSsr({
-    app,
-    name: 'about',
-    // props: {},
-  });
+  const getHtml = await renderSsr({ app, name: 'about' });
   const html = getHtml();
   return new Response(html, getInit('html'));
 });
 
-const bunProvider = createBunProvider({ h11: app.h11 });
+const server = createServer({ h11: app.h11 });
 
 Bun.serve({
   port: 3000,
-  async fetch(req, server) {
-    return bunProvider(req, server);
+  async fetch(req, bunServer) {
+    return server(req, bunServer);
   },
 });

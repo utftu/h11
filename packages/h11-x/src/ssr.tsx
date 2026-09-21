@@ -1,5 +1,5 @@
 import { type ViteDevServer } from 'vite';
-import { getFsApi, joinPath } from 'h11';
+import { joinPath } from 'h11';
 import { checkFile, createScriptText, getEntName } from './utils/utils.ts';
 import type {
   ConfigH11X,
@@ -12,8 +12,6 @@ import { stringify, type FC } from 'regan';
 import { getPublicEnvs } from './env.ts';
 import { createAssetsHtml } from './route-config.ts';
 import { buildClient, buildServer } from './build.ts';
-
-const fsApi = await getFsApi();
 
 // Собирает ssr-роуты и возвращает свою часть config.json. Сам ничего не пишет:
 // конфиг целиком, вместе с ssg, собирает и записывает buildH11X.
@@ -36,8 +34,8 @@ export const makeSsr = async ({
     // Файлы внутри dir именуются по basename директории, а не по name
     // (name может быть вложенным путём вида "blog/aleksei").
     const fileName = getEntName(dir);
-    const ssrFile = await checkFile(dir, `${fileName}.ssr`, fsApi);
-    const clientFile = await checkFile(dir, `${fileName}.client`, fsApi);
+    const ssrFile = await checkFile(dir, `${fileName}.ssr`);
+    const clientFile = await checkFile(dir, `${fileName}.client`);
 
     const serverOut = await buildServer({
       entry: ssrFile,

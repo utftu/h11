@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'bun:test';
-import { createRateLimiterModule, SIZE_1mb } from './limit.ts';
+import { createSizeLimitModule, SIZE_1mb } from './size-limit.ts';
 
 const makeCtx = (headers: Record<string, string> = {}, body?: BodyInit) => ({
   req: new Request('http://localhost/', {
@@ -14,9 +14,9 @@ const makeCtx = (headers: Record<string, string> = {}, body?: BodyInit) => ({
   reqId: 'test-req-id',
 });
 
-describe('createRateLimiterModule', () => {
+describe('createSizeLimitModule', () => {
   it('возвращает 413 когда content-length превышает лимит', async () => {
-    const handler = createRateLimiterModule(100);
+    const handler = createSizeLimitModule(100);
     const ctx = makeCtx({ 'content-length': '200' });
 
     const res = await handler(ctx);
@@ -25,7 +25,7 @@ describe('createRateLimiterModule', () => {
   });
 
   it('пропускает запрос когда content-length в пределах лимита', async () => {
-    const handler = createRateLimiterModule(100);
+    const handler = createSizeLimitModule(100);
     const ctx = makeCtx({ 'content-length': '50' });
 
     const res = await handler(ctx);
@@ -34,7 +34,7 @@ describe('createRateLimiterModule', () => {
   });
 
   it('пропускает запрос без тела', async () => {
-    const handler = createRateLimiterModule(100);
+    const handler = createSizeLimitModule(100);
     const ctx = makeCtx();
 
     const res = await handler(ctx);
@@ -43,7 +43,7 @@ describe('createRateLimiterModule', () => {
   });
 
   it('пропускает без ошибки при content-length равном лимиту', async () => {
-    const handler = createRateLimiterModule(100);
+    const handler = createSizeLimitModule(100);
     const ctx = makeCtx({ 'content-length': '100' });
 
     const res = await handler(ctx);
@@ -52,7 +52,7 @@ describe('createRateLimiterModule', () => {
   });
 
   it('заменяет req на новый с прокси-стримом', async () => {
-    const handler = createRateLimiterModule(SIZE_1mb);
+    const handler = createSizeLimitModule(SIZE_1mb);
     const ctx = makeCtx({}, 'hello world');
     const originalReq = ctx.req;
 
@@ -63,7 +63,7 @@ describe('createRateLimiterModule', () => {
   });
 
   it('проксированное тело читается без изменений', async () => {
-    const handler = createRateLimiterModule(SIZE_1mb);
+    const handler = createSizeLimitModule(SIZE_1mb);
     const ctx = makeCtx({}, 'hello');
 
     await handler(ctx);

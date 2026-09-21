@@ -16,24 +16,16 @@
     ".": {
       "types": "./dist/types/h11.d.ts",
       "default": "./dist/h11.js"
-    },
-    "./bun": {
-      "types": "./dist/types/fs/providers/bun/fsapi.d.ts",
-      "default": "./dist/fs/bun/fsapi.js"
-    },
-    "./node": {
-      "types": "./dist/types/fs/providers/node/fsapi.d.ts",
-      "default": "./dist/fs/node/fsapi.js"
     }
   },
   "files": [
     "dist"
   ],
   "scripts": {
+    "test": "bun test",
     "build": "bun run build:js && bun run build:types",
-    "build:js": "bun build ./src/h11.ts --target bun --packages external --outdir ./dist && bun build ./src/fs/providers/bun/fsapi.ts ./src/fs/providers/node/fsapi.ts --target node --packages external --outdir ./dist/fs",
-    "build:types": "tsc --project tsconfig.types.json",
-    "types": "tsc --project tsconfig.types.json"
+    "build:js": "bun build ./src/h11.ts --target bun --packages external --outdir ./dist",
+    "build:types": "tsc --project tsconfig.types.json"
   },
   "dependencies": {
     "utftu": "*"

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'bun:test';
-import type { FsApi } from 'h11';
+import { mkdir, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
 import {
   checkFile,
   convertStreamToString,
@@ -9,10 +10,16 @@ import {
   getEntPath,
 } from './utils.ts';
 
-const fakeFsApi = (existing: string[]): FsApi =>
-  ({
-    checkExist: async (path: string) => existing.includes(path),
-  }) as FsApi;
+const makeRouteDir = async (files: string[]) => {
+  const dir = `${tmpdir()}/h11x-utils-${process.pid}-${Date.now()}-${files.length}`;
+  await mkdir(dir, { recursive: true });
+
+  for (const file of files) {
+    await writeFile(`${dir}/${file}`, '');
+  }
+
+  return dir;
+};
 
 describe('getEntName', () => {
   it('берёт последний сегмент пути', () => {
@@ -64,27 +71,26 @@ describe('convertStreamToString', () => {
 
 describe('checkFile', () => {
   it('возвращает первый существующий вариант расширения (.ts перед .tsx)', async () => {
-    const fsApi = fakeFsApi([
-      '/routes/about/about.ts',
-      '/routes/about/about.tsx',
-    ]);
+    const dir = await makeRouteDir(['about.ts', 'about.tsx']);
 
-    const result = await checkFile('/routes/about', 'about', fsApi);
-    expect(result).toBe('/routes/about/about.ts');
+    expect(await checkFile(dir, 'about')).toBe(`${dir}/about.ts`);
+
+    await rm(dir, { recursive: true, force: true });
   });
 
-  it('падает на .tsx, если .ts не существует', async () => {
-    const fsApi = fakeFsApi(['/routes/about/about.tsx']);
+  it('берёт .tsx, если .ts не существует', async () => {
+    const dir = await makeRouteDir(['about.tsx']);
 
-    const result = await checkFile('/routes/about', 'about', fsApi);
-    expect(result).toBe('/routes/about/about.tsx');
+    expect(await checkFile(dir, 'about')).toBe(`${dir}/about.tsx`);
+
+    await rm(dir, { recursive: true, force: true });
   });
 
-  it('бросает ошибку, если нет ни одного варианта', async () => {
-    const fsApi = fakeFsApi([]);
+  it('бросает ошибку с путём, если нет ни одного варианта', async () => {
+    const dir = await makeRouteDir([]);
 
-    await expect(checkFile('/routes/about', 'about', fsApi)).rejects.toThrow(
-      'Unknown file pattern',
-    );
+    await expect(checkFile(dir, 'about')).rejects.toThrow(dir);
+
+    await rm(dir, { recursive: true, force: true });
   });
 });

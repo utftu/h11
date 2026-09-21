@@ -2,7 +2,6 @@
   "name": "h11-x-example",
   "version": "0.0.1",
   "license": "MIT",
-  "module": "index.ts",
   "type": "module",
   "private": true,
   "dependencies": {

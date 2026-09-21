@@ -123,7 +123,7 @@ describe('radix', () => {
     expect(result.handlers).toContain(apiHandler);
     // глубокий (более специфичный) вайлд идёт раньше поверхностного
     expect(result.handlers.indexOf(apiHandler)).toBeLessThan(
-      result.handlers.indexOf(globalHandler)
+      result.handlers.indexOf(globalHandler),
     );
     // wild param от самого глубокого совпадения
     expect(result.params.wild).toBe('users');
@@ -152,5 +152,38 @@ describe('radix', () => {
     const result = radix.find('/any/path/here', 'GET');
     expect(result.handlers).toContain(globalHandler);
     expect(result.params.wild).toBe('any/path/here');
+  });
+});
+
+describe('параметры и wildcard вместе', () => {
+  it('отдаёт и :param, и wild', () => {
+    const radix = new Radix();
+    radix.add('/users/:id/**', 'GET', [handler]);
+
+    expect(radix.find('/users/42/a/b', 'GET').params).toEqual({
+      id: '42',
+      wild: 'a/b',
+    });
+  });
+});
+
+describe('addMiddleware с "/**"', () => {
+  it('вешает миддлварь на тот же узел, что и путь без "/**"', () => {
+    const radix = new Radix();
+    radix.addMiddleware('/api/**', [handler]);
+    radix.add('/api/users', 'GET', [handler]);
+
+    expect(radix.find('/api/users', 'GET').handlers).toHaveLength(2);
+  });
+});
+
+describe('конфликт параметров', () => {
+  it('падает на втором имени параметра для того же уровня', () => {
+    const radix = new Radix();
+    radix.add('/a/:x', 'GET', [handler]);
+
+    expect(() => radix.add('/a/:y', 'GET', [handler])).toThrow(
+      'Param conflict',
+    );
   });
 });

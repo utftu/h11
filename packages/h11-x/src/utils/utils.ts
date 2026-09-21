@@ -1,4 +1,3 @@
-import type { FsApi } from 'h11';
 import { cwd } from 'node:process';
 
 export const getDefaultBasedir = () => {
@@ -23,14 +22,13 @@ export const convertStreamToString = async (stream: ReadableStream) => {
 export const checkFileOptional = async (
   dir: string,
   nameWithoutExt: string,
-  fsApi: FsApi,
 ) => {
   const exts = ['.ts', '.tsx'];
 
   for (const ext of exts) {
     const filename = `${dir}/${nameWithoutExt}${ext}`;
 
-    if (await fsApi.checkExist(filename)) {
+    if (await Bun.file(filename).exists()) {
       return filename;
     }
   }
@@ -38,15 +36,11 @@ export const checkFileOptional = async (
   return null;
 };
 
-export const checkFile = async (
-  dir: string,
-  nameWithoutExt: string,
-  fsApi: FsApi,
-) => {
-  const found = await checkFileOptional(dir, nameWithoutExt, fsApi);
+export const checkFile = async (dir: string, nameWithoutExt: string) => {
+  const found = await checkFileOptional(dir, nameWithoutExt);
   if (found) return found;
 
-  throw new Error('Unknown file pattern');
+  throw new Error(`No ${nameWithoutExt}.ts or .tsx file in ${dir}`);
 };
 
 export const getEntName = (str: string) => {

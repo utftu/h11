@@ -1,5 +1,4 @@
-import { H11, joinPath, serveFiles } from 'h11';
-import { createConnectAdapter } from 'h11/node';
+import { H11, joinPath, serveFiles, createConnectAdapter } from 'h11';
 import {
   createServer as createViteServer,
   type ViteDevServer,
@@ -17,13 +16,13 @@ import { loadEnvFile } from './env.ts';
 // reconstructs the same `joinPath(devPrefix, prefix)` from ConfigH11X.
 const defaultDevPrefix = '/_vite';
 
-export type H11XApp = {
+export type App = {
   h11: H11;
   vite?: ViteDevServer;
   config: ConfigH11X;
 };
 
-export const createH11XApp = async ({
+export const createApp = async ({
   baseDir,
   routes,
   prod = process.env.NODE_ENV === 'production',
@@ -41,7 +40,7 @@ export const createH11XApp = async ({
   editViteConfig?: EditViteConfig;
   viteConfig?: UserConfig;
   h11?: H11;
-} = {}): Promise<H11XApp> => {
+} = {}): Promise<App> => {
   const projectRoot = baseDir || process.cwd();
   const baseDirPrepared = baseDir || `${projectRoot}/.h11x`;
 

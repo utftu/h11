@@ -1,4 +1,4 @@
-import type { FsApi } from 'h11';
+import { readdir } from 'node:fs/promises';
 import { cwd } from 'node:process';
 import type { Route } from '../types.ts';
 import { checkFileOptional, getEntName } from './utils.ts';
@@ -13,45 +13,40 @@ export const getDefaultRoutesDir = () => {
 // src/routes/blog/aleksei/aleksei.ssr.tsx стал роутом "blog/aleksei", а не
 // просто "aleksei". Директории без такого файла не роут сами по себе (в них
 // может лежать что-то общее вроде _shared) — спускаемся в их поддиректории.
-const walkRoutesDir = async (
-  dir: string,
-  name: string,
-  fsApi: FsApi,
-): Promise<Route[]> => {
+const readDirs = async (dir: string) => {
+  const ents = await readdir(dir, { withFileTypes: true }).catch(() => []);
+
+  return ents.filter((ent) => ent.isDirectory()).map((ent) => ent.name);
+};
+
+const walkRoutesDir = async (dir: string, name: string): Promise<Route[]> => {
   const dirName = getEntName(dir);
   const [client, ssr, ssg] = await Promise.all([
-    checkFileOptional(dir, `${dirName}.client`, fsApi),
-    checkFileOptional(dir, `${dirName}.ssr`, fsApi),
-    checkFileOptional(dir, `${dirName}.ssg`, fsApi),
+    checkFileOptional(dir, `${dirName}.client`),
+    checkFileOptional(dir, `${dirName}.ssr`),
+    checkFileOptional(dir, `${dirName}.ssg`),
   ]);
 
   if (client || ssr || ssg) {
     return [{ dir, name }];
   }
 
-  const ents = await fsApi.readdir(dir);
+  const dirs = await readDirs(dir);
   const nested = await Promise.all(
-    ents
-      .filter((ent) => ent.directory)
-      .map((ent) =>
-        walkRoutesDir(`${dir}/${ent.name}`, `${name}/${ent.name}`, fsApi),
-      ),
+    dirs.map((entName) =>
+      walkRoutesDir(`${dir}/${entName}`, `${name}/${entName}`),
+    ),
   );
 
   return nested.flat();
 };
 
-export const getDefaultRoutes = async (fsApi: FsApi): Promise<Route[]> => {
+export const getDefaultRoutes = async (): Promise<Route[]> => {
   const rootDir = getDefaultRoutesDir();
 
-  const exists = await fsApi.checkExist(rootDir);
-  if (!exists) return [];
-
-  const ents = await fsApi.readdir(rootDir);
+  const dirs = await readDirs(rootDir);
   const routes = await Promise.all(
-    ents
-      .filter((ent) => ent.directory)
-      .map((ent) => walkRoutesDir(`${rootDir}/${ent.name}`, ent.name, fsApi)),
+    dirs.map((entName) => walkRoutesDir(`${rootDir}/${entName}`, entName)),
   );
 
   return routes.flat();

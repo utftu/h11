@@ -1,5 +1,17 @@
 import type { Handler, Method } from '../types.ts';
-import { Node } from './node.ts';
+
+export class Node {
+  segment: string;
+  handlers: Partial<Record<Method, Handler[]>> = {};
+  wilds: Partial<Record<Method, Handler[]>> = {};
+  middlewares: Handler[] = [];
+  staticChildren: Map<string, Node> = new Map();
+  paramChild?: Node;
+
+  constructor({ segment }: { segment: string }) {
+    this.segment = segment;
+  }
+}
 
 type Params = Record<string, string>;
 
@@ -27,14 +39,16 @@ export class Radix {
     for (let i = 0; i < segments.length; i++) {
       middlewares.push(...currentNode.middlewares);
 
+      // Параметр узла записывается до снапшота wildcardParams, иначе
+      // "/users/:id/**" отдал бы хендлеру только wild, потеряв id.
+      if (currentNode.segment[0] === ':') {
+        params[currentNode.segment.slice(1)] = segments[i];
+      }
+
       const wildHandlers = currentNode.wilds[method];
       if (wildHandlers) {
         wildcardGroups.push(wildHandlers);
         wildcardParams = { ...params, wild: segments.slice(i + 1).join('/') };
-      }
-
-      if (currentNode.segment[0] === ':') {
-        params[currentNode.segment.slice(1)] = segments[i];
       }
 
       if (i + 1 === segments.length) break;
@@ -82,13 +96,22 @@ export class Radix {
     for (const segment of patternSegments) {
       if (segment[0] === ':') {
         if (!currentNode.paramChild) {
-          currentNode.paramChild = new Node({ segment, parent: currentNode });
+          currentNode.paramChild = new Node({ segment });
         }
+
+        // Узел хранит одного параметрического ребёнка, поэтому два разных
+        // имени на одном уровне молча слились бы в первое.
+        if (currentNode.paramChild.segment !== segment) {
+          throw new Error(
+            `Param conflict in "${pattern}": "${currentNode.paramChild.segment}" is already used on this level`,
+          );
+        }
+
         currentNode = currentNode.paramChild;
       } else {
         let child = currentNode.staticChildren.get(segment);
         if (!child) {
-          child = new Node({ segment, parent: currentNode });
+          child = new Node({ segment });
           currentNode.staticChildren.set(segment, child);
         }
         currentNode = child;
@@ -111,8 +134,15 @@ export class Radix {
     return node;
   }
 
+  // Миддлвари узла и так работают на всё поддерево, поэтому "/api/**" — это
+  // тот же узел, что и "/api". Без этого "**" уехал бы в имя статического
+  // сегмента и миддлварь молча не подключилась бы.
   addMiddleware(pattern: string, handlers: Handler[]) {
-    const node = pattern === '/' ? this.root : this.findOrCreateNode(pattern);
+    const prefix = pattern.endsWith('/**') ? pattern.slice(0, -3) : pattern;
+    const node =
+      prefix === '' || prefix === '/'
+        ? this.root
+        : this.findOrCreateNode(prefix);
     node.middlewares.push(...handlers);
   }
 }

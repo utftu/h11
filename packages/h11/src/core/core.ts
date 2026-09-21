@@ -1,10 +1,5 @@
-import { Radix } from './radix/radix.ts';
-import type {
-  DataModule,
-  FsApi,
-  Handler,
-  Method,
-} from './types.ts';
+import { Radix } from './radix.ts';
+import type { DataModule, Handler, Method } from '../types.ts';
 import { createEventEmitter } from 'utftu';
 import {
   defaultOnError,
@@ -17,7 +12,6 @@ export const REQUEST_ID_HEADER = 'x-request-id';
 
 export class H11<TData extends Record<any, any> = {}> {
   radix = new Radix();
-  fsApi?: FsApi;
   ee = createEventEmitter<
     {
       code: {
@@ -26,8 +20,6 @@ export class H11<TData extends Record<any, any> = {}> {
       };
     } & Record<string, any>
   >();
-  data: Record<string, any> = {};
-
   onNotFound: NotFoundHandler = defaultOnNotFound;
   onError: ErrorHandler = defaultOnError;
 

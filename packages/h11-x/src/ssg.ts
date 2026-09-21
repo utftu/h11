@@ -1,4 +1,4 @@
-import { getFsApi, joinPath } from 'h11';
+import { joinPath } from 'h11';
 import { checkFile, getEntName } from './utils/utils.ts';
 import type {
   EditViteConfig,
@@ -10,8 +10,6 @@ import type {
 import { scriptKey } from './conts.ts';
 import { createAssetsHtml } from './route-config.ts';
 import { buildClient, buildServer } from './build.ts';
-
-const fsApi = await getFsApi();
 
 // Путь страницы становится файлом внутри каталога ассетов: "/blog" → blog.html,
 // "/blog/first" → blog/first.html, корень → index.html. Именно в таком виде их
@@ -43,8 +41,8 @@ export const makeSsg = async ({
 
   const routesPromises = routes.map(async ({ dir, name }) => {
     const fileName = getEntName(dir);
-    const ssgFile = await checkFile(dir, `${fileName}.ssg`, fsApi);
-    const clientFile = await checkFile(dir, `${fileName}.client`, fsApi);
+    const ssgFile = await checkFile(dir, `${fileName}.ssg`);
+    const clientFile = await checkFile(dir, `${fileName}.client`);
 
     const serverOut = await buildServer({
       entry: ssgFile,
@@ -79,7 +77,7 @@ export const makeSsg = async ({
 
       // Плейсхолдер <Script/> в разметке заменяется на те же теги, что ssr
       // вставляет в проде, — иначе страница приедет без стилей и гидрации.
-      await fsApi.writeFile(
+      await Bun.write(
         joinPath(baseDir, `assets/${file}`),
         htmlResult.replace(scriptKey, assetsHtml),
       );

@@ -1,15 +1,12 @@
-import { getFsApi, joinPath } from 'h11';
+import { joinPath } from 'h11';
 import type { Rollup } from 'vite';
 import type { ConfigH11X, RouteClientOut } from './types.ts';
 import {
-  convertStreamToString,
   createCssLinkText,
   createScriptText,
   getDefaultBasedir,
   getEntName,
 } from './utils/utils.ts';
-
-const fsApi = await getFsApi();
 
 const configFile = 'config.json';
 
@@ -43,7 +40,7 @@ export const collectClientOut = (
 export const writeConfig = async (baseDir: string, config: ConfigH11X) => {
   const configJson = JSON.stringify(config, null, 2);
 
-  await fsApi.writeFile(joinPath(baseDir, configFile), configJson);
+  await Bun.write(joinPath(baseDir, configFile), configJson);
 };
 
 export const readConfig = async (baseDir?: string): Promise<ConfigH11X> => {
@@ -51,8 +48,7 @@ export const readConfig = async (baseDir?: string): Promise<ConfigH11X> => {
 
   const configPath = joinPath(baseDirPrepared, configFile);
 
-  const configStream = fsApi.getFileStream(configPath);
-  const configJson = await convertStreamToString(configStream);
+  const configJson = await Bun.file(configPath).text();
   const config = JSON.parse(configJson);
 
   return config;

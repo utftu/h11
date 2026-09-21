@@ -1,12 +1,11 @@
 # h11
 
-Минималистичный HTTP-фреймворк на radix-роутере, с раздачей статики из коробки. Сам роутинг ни к какому рантайму не привязан, но чтобы реально обслуживать запросы, нужен провайдер из `h11/bun` или `h11/node`.
+Минималистичный HTTP-фреймворк на radix-роутере, с раздачей статики из коробки. Рантайм один — Bun; всё живёт в одной точке входа `h11`.
 
 ## Пример
 
 ```ts
-import { H11 } from 'h11';
-import { createBunProvider } from 'h11/bun';
+import { H11, createServer } from 'h11';
 
 const h11 = new H11();
 
@@ -18,11 +17,11 @@ h11.get('/files/**', ({ params }) => {
   return new Response(`остаток пути: ${params.wild}`);
 });
 
-const provider = createBunProvider({ h11 });
+const server = createServer({ h11 });
 
 Bun.serve({
   port: 3000,
-  fetch: (req, server) => provider(req, server),
+  fetch: (req, bunServer) => server(req, bunServer),
 });
 ```
 
@@ -74,50 +73,33 @@ h11.use(createReqIdModule('x-trace-id'));
 
 ## Раздача статики
 
-`serveFiles` и runtime-независимый `fsApi` — часть основного `h11`:
-
 ```ts
 import { serveFiles } from 'h11';
 
 h11.get('/assets/**', serveFiles({ dir: './public', prefix: '/assets/' }));
 ```
 
-`prefix` обрезается от начала URL перед поиском файла в `dir`; путь пользователя проходит через `joinUserPath` (защита от `..`).
+`prefix` обрезается от начала URL перед поиском файла в `dir`; путь пользователя проходит через `joinUserPath` (защита от `..`). Если файла нет, хендлер не отвечает и запрос идёт дальше по цепочке — до `onNotFound` приложения.
 
-`getFsApi()` асинхронно определяет рантайм (`Bun`/`node:process.versions.node`) и возвращает подходящую реализацию `FsApi` (`getFileStream`, `writeFile`, `checkExist`, `mkdir`, `copyFile`, `rm`, ...). `h11-x` использует эту абстракцию, чтобы работать одинаково под обоими рантаймами.
+Кроме точного совпадения ищутся `<путь>.html` и `<путь>/index.html`, поэтому `/blog` отдаёт `blog.html`, а `/` — `index.html`. Предсжатые соседи (`.br`, `.gz`, `.deflate`) выбираются по `Accept-Encoding`; сделать их можно `compressRecursive`.
 
-## Провайдеры (`h11/bun`, `h11/node`)
-
-Runtime-специфичный код — отдельные точки входа, чтобы не тянуться в основной `h11`, если провайдер не нужен (например, если `h11` используется только как роутер за уже существующим сервером):
+## Сервер и connect-мидлвари
 
 ```ts
-// Bun
-import { createBunProvider } from 'h11/bun';
+import { createServer } from 'h11';
 
-const provider = createBunProvider({ h11 });
+const server = createServer({ h11 });
 
 Bun.serve({
   port: 3000,
-  fetch: (req, server) => provider(req, server),
+  fetch: (req, bunServer) => server(req, bunServer),
 });
 ```
 
-```ts
-// Node
-import { createServer } from 'node:http';
-import { createNodeProvider } from 'h11/node';
-
-const provider = createNodeProvider({ h11 });
-
-createServer((req, res) => {
-  provider({ req, res, origin: 'http://localhost:3000' });
-}).listen(3000);
-```
-
-**Мост к connect-style middleware:** `createConnectAdapter` (в `h11/node`) оборачивает произвольный connect-middleware (`(req, res, next) => void`) в обычный `Handler` — этим пользуется [`h11-x`](../h11-x), чтобы прозрачно проксировать dev-сервер Vite:
+`createConnectAdapter` оборачивает connect-мидлварь (`(req, res, next) => void`) в обычный `Handler` — этим пользуется [`h11-x`](../h11-x), чтобы проксировать dev-сервер Vite:
 
 ```ts
-import { createConnectAdapter } from 'h11/node';
+import { createConnectAdapter } from 'h11';
 
 h11.use(
   '/_dev',
@@ -133,6 +115,20 @@ h11.use(
 ## Сборка
 
 ```bash
-bun run build   # h11.ts (bun, включает раздачу статики) + fs/providers/{bun,node}/fsapi.ts (node)
-bun run types   # tsc --project tsconfig.types.json
+bun test        # тесты пакета
+bun run build   # build:js (bun build src/h11.ts) + build:types (tsc)
+```
+
+## Раскладка
+
+```
+src/
+  h11.ts             точка входа, только ре-экспорт
+  core/              класс H11, radix-роутер, дефолтные onError/onNotFound
+  static/            раздача файлов: serveFiles, поиск файла, content-type
+  server.ts          адаптер под Bun.serve
+  connect/           мост к connect-мидлварям
+  compress.ts        предсжатие файлов
+  modules/           req-id, ограничение размера тела, proxy
+  utils/             join, copyReq, switchFunc, content-type
 ```

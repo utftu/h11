@@ -1,7 +1,8 @@
-import { fsApi } from 'h11';
+import { rm } from 'node:fs/promises';
 import { makeSsg } from './ssg.ts';
 import { makeSsr, renderSsr, createPage } from './ssr.tsx';
 import { getAssets, readConfig, writeConfig } from './route-config.ts';
+import { createApp, type App } from './app.ts';
 import type {
   ConfigH11X,
   EditViteConfig,
@@ -51,9 +52,9 @@ export const buildH11X = async ({
 }: BuildProps) => {
   const baseDirPrepared = baseDir || `${process.cwd()}/.h11x`;
 
-  await fsApi.rm(baseDirPrepared);
+  await rm(baseDirPrepared, { recursive: true, force: true });
 
-  const routesResolved = routes ?? (await getDefaultRoutes(fsApi));
+  const routesResolved = routes ?? (await getDefaultRoutes());
 
   const ssrRoutes: Route[] = [];
   const ssgRoutes: Route[] = [];
@@ -64,13 +65,9 @@ export const buildH11X = async ({
     // если name — вложенный путь вида "blog/aleksei" (см. getDefaultRoutes).
     const fileName = getEntName(dir);
 
-    const ssrFile = await checkFileOptional(dir, `${fileName}.ssr`, fsApi);
-    const ssgFile = await checkFileOptional(dir, `${fileName}.ssg`, fsApi);
-    const clientFile = await checkFileOptional(
-      dir,
-      `${fileName}.client`,
-      fsApi,
-    );
+    const ssrFile = await checkFileOptional(dir, `${fileName}.ssr`);
+    const ssgFile = await checkFileOptional(dir, `${fileName}.ssg`);
+    const clientFile = await checkFileOptional(dir, `${fileName}.client`);
 
     if (ssrFile && ssgFile) {
       throw new Error(
@@ -115,7 +112,7 @@ export const buildH11X = async ({
     editViteConfig,
   });
 
-  // config.json читает createH11XApp при каждом старте, поэтому пишем его
+  // config.json читает createApp при каждом старте, поэтому пишем его
   // всегда — даже когда роутов нет (тогда routes будет пустым).
   await writeConfig(baseDirPrepared, {
     prod,
@@ -125,7 +122,15 @@ export const buildH11X = async ({
   });
 };
 
-export { makeSsg, makeSsr, renderSsr, readConfig, createPage, getAssets };
+export {
+  makeSsg,
+  makeSsr,
+  renderSsr,
+  readConfig,
+  createPage,
+  getAssets,
+  createApp,
+};
 export type {
   ConfigH11X,
   RouteAsset,
@@ -134,5 +139,5 @@ export type {
   RouteConfig,
   RoutePage,
   RouteServer,
+  App,
 };
-export { createH11XApp, type H11XApp } from './app.ts';

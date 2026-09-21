@@ -5,7 +5,7 @@ export const SIZE_1b = 1;
 export const SIZE_1kb = 1024;
 export const SIZE_1mb = 1024 * 1024;
 
-export const createRateLimiterModule = (limit: number): Handler => {
+export const createSizeLimitModule = (limit: number): Handler => {
   return (ctx) => {
     const len = ctx.req.headers.get('content-length');
     if (len && parseInt(len) > limit) {
