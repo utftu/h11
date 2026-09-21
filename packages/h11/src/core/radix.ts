@@ -1,11 +1,34 @@
 import type { Handler, Method } from '../types.ts';
 
+// Узел дерева — это один сегмент пути. Маршрут "/users/:id" превращается в
+// цепочку: корень → "users" → ":id".
 export class Node {
+  // Сегмент, которым узел подошёл. У статического это само имя ("users"), у
+  // параметрического — имя вместе с двоеточием (":id"): по нему find и
+  // отличает одно от другого. У корня — пустая строка.
   segment: string;
+
+  // Хендлеры маршрута, который кончается ровно здесь, по методам. Узел может
+  // быть и чисто транзитным — тогда тут пусто, и вариантом маршрута он не
+  // станет, хотя спуск через него идёт.
   handlers: Partial<Record<Method, Handler[]>> = {};
+
+  // Хендлеры "/**", зарегистрированного на этом узле. Лежат отдельно от
+  // handlers, потому что ловят любой хвост пути начиная отсюда, а не
+  // конкретный маршрут, и потому что пробуются последними.
   wilds: Partial<Record<Method, Handler[]>> = {};
+
+  // Миддлвари узла. Без разбивки по методам: они работают на всё поддерево и
+  // на любой метод, включая те, под которые тут нет ни одного маршрута.
   middlewares: Handler[] = [];
+
+  // Дети с точным именем сегмента. Именно Map, а не объект: ключ приходит из
+  // url, и Map не спутает его с прототипными именами вроде "constructor".
   staticChildren: Map<string, Node> = new Map();
+
+  // Параметрический ребёнок ровно один. Два разных имени на одном уровне
+  // (/a/:x и /a/:y) запрещены в findOrCreateNode: выбирать между ними было бы
+  // не по чему, оба подходят под любой сегмент.
   paramChild?: Node;
 
   constructor({ segment }: { segment: string }) {
@@ -15,78 +38,109 @@ export class Node {
 
 type Params = Record<string, string>;
 
-export type FindResult = {
+// Один подошедший вариант маршрута: свои параметры и своя цепочка хендлеров.
+// Вариантов может быть несколько — их пробуют по очереди, пока кто-то не
+// ответит.
+export type Match = {
   params: Params;
   handlers: Handler[];
+};
+
+// Миддлвари общие для всех вариантов: они подошли по пути, а не по маршруту,
+// и выполняются один раз до вариантов. Иначе middleware, читающая тело
+// запроса, отработала бы повторно на каждом следующем кандидате.
+export type FindResult = {
+  middlewares: Handler[];
+  matches: Match[];
 };
 
 export class Radix {
   root = new Node({ segment: '' });
 
+  // Собирает ВСЕ подошедшие маршруты, а не первый попавшийся: дерево
+  // обходится в глубину, и каждый дошедший до конца пути узел становится
+  // вариантом. Порядок вариантов — это и есть приоритет, дальше exec просто
+  // идёт по списку сверху вниз.
   find(path: string, method: Method = 'GET'): FindResult {
+    // "/users/42" → ['', 'users', '42']. Первый сегмент пустой, и ему
+    // соответствует корневой узел, поэтому индекс сегмента и глубина узла
+    // совпадают.
     const segments = path.split('/');
 
-    const params: Params = {};
     const middlewares: Handler[] = [];
-    // Один элемент на каждый встреченный wildcard-узел, от корня к листу.
-    // В точках возврата порядок групп переворачивается (не порядок внутри
-    // группы!), так что exec() пробует самый глубокий (специфичный) /**
-    // первым, а более общие — только как фолбэк, если тот не ответил.
-    const wildcardGroups: Handler[][] = [];
-    let wildcardParams: Params | undefined = undefined;
-    let currentNode = this.root;
+    const matches: Match[] = [];
+    // Wildcards копятся отдельно: их черёд после всех точных и
+    // параметрических вариантов, поэтому в matches они попадают в самом
+    // конце, уже развёрнутыми — от самого глубокого к самому общему.
+    const wilds: Match[] = [];
 
-    for (let i = 0; i < segments.length; i++) {
-      middlewares.push(...currentNode.middlewares);
+    // index — какой сегмент пути соответствует этому узлу, params —
+    // параметры, накопленные по дороге сюда. Копия params делается только на
+    // параметрическом узле, поэтому ветки друг другу ничего не портят, а
+    // обычный статический спуск не аллоцирует вообще ничего.
+    const walk = (node: Node, index: number, params: Params) => {
+      // Миддлвари узла подошли по пути, а не по маршруту, поэтому копятся в
+      // общий список: какой бы вариант в итоге ни ответил, они всё равно его
+      // касаются. Узел на одном пути посещается один раз, так что и
+      // дубликатов тут не будет.
+      middlewares.push(...node.middlewares);
 
-      // Параметр узла записывается до снапшота wildcardParams, иначе
-      // "/users/:id/**" отдал бы хендлеру только wild, потеряв id.
-      if (currentNode.segment[0] === ':') {
-        params[currentNode.segment.slice(1)] = segments[i];
+      // Параметр узла записывается до сбора wildcard, иначе "/users/:id/**"
+      // отдал бы хендлеру только wild, потеряв id.
+      let paramsNext = params;
+      if (node.segment[0] === ':') {
+        paramsNext = { ...params, [node.segment.slice(1)]: segments[index] };
       }
 
-      const wildHandlers = currentNode.wilds[method];
+      // "/**" ловит весь остаток пути, поэтому вариант можно записать прямо
+      // здесь, не спускаясь дальше: что бы ни было ниже, для wildcard это
+      // просто строка в params.wild.
+      const wildHandlers = node.wilds[method];
       if (wildHandlers) {
-        wildcardGroups.push(wildHandlers);
-        wildcardParams = { ...params, wild: segments.slice(i + 1).join('/') };
+        wilds.push({
+          params: { ...paramsNext, wild: segments.slice(index + 1).join('/') },
+          handlers: wildHandlers,
+        });
       }
 
-      if (i + 1 === segments.length) break;
+      // Путь кончился — значит этот узел и есть конец маршрута. Хендлеры
+      // берутся по методу: узел может существовать только ради POST, и тогда
+      // для GET он вариантом не станет, а ход уйдёт следующей ветке.
+      if (index + 1 === segments.length) {
+        const handlers = node.handlers[method];
+        if (handlers) {
+          matches.push({ params: paramsNext, handlers });
+        }
+        return;
+      }
 
-      const nextSegment = segments[i + 1];
+      const nextSegment = segments[index + 1];
 
-      const staticChild = currentNode.staticChildren.get(nextSegment);
+      // Обе ветки обходятся всегда, и это главное отличие от прежнего
+      // поиска: раньше найденный статический ребёнок отменял параметрическую
+      // ветку целиком. Статический идёт первым — отсюда и приоритет статики
+      // над параметром в итоговом списке.
+      const staticChild = node.staticChildren.get(nextSegment);
       if (staticChild) {
-        currentNode = staticChild;
-        continue;
+        walk(staticChild, index + 1, paramsNext);
       }
 
-      if (currentNode.paramChild && nextSegment !== '') {
-        currentNode = currentNode.paramChild;
-        continue;
+      // Пустой сегмент (двойной слэш или хвостовой "/") параметром быть не
+      // должен — ":id" в "/users//edit" не имеет значения.
+      if (node.paramChild && nextSegment !== '') {
+        walk(node.paramChild, index + 1, paramsNext);
       }
+    };
 
-      if (wildcardGroups.length > 0) {
-        return {
-          params: wildcardParams!,
-          handlers: [...middlewares, ...wildcardGroups.reverse().flat()],
-        };
-      }
-      return { params, handlers: [] };
+    walk(this.root, 0, {});
+
+    // Разворот: wilds заполнялся сверху вниз, а пробовать их надо наоборот —
+    // "/h11x/**" раньше, чем "/**", иначе общий перехватил бы всё.
+    for (let i = wilds.length - 1; i >= 0; i--) {
+      matches.push(wilds[i]);
     }
 
-    const routeHandlers = currentNode.handlers[method];
-    if (routeHandlers) {
-      return { params, handlers: [...middlewares, ...routeHandlers] };
-    }
-
-    if (wildcardGroups.length > 0) {
-      return {
-        params: wildcardParams!,
-        handlers: [...middlewares, ...wildcardGroups.reverse().flat()],
-      };
-    }
-    return { params, handlers: [...middlewares] };
+    return { middlewares, matches };
   }
 
   private findOrCreateNode(pattern: string): Node {
@@ -121,16 +175,19 @@ export class Radix {
     return currentNode;
   }
 
+  // Повторная регистрация дописывает хендлеры в конец, а не затирает
+  // предыдущие: два get на один путь — это цепочка, как и всё остальное в
+  // роутере.
   add(pattern: string, method: Method = 'GET', handlers: Handler[]) {
     if (pattern.endsWith('/**')) {
       const prefix = pattern.slice(0, -3);
       const node = prefix ? this.findOrCreateNode(prefix) : this.root;
-      node.wilds[method] = handlers;
+      node.wilds[method] = [...(node.wilds[method] ?? []), ...handlers];
       return node;
     }
 
     const node = this.findOrCreateNode(pattern);
-    node.handlers[method] = handlers;
+    node.handlers[method] = [...(node.handlers[method] ?? []), ...handlers];
     return node;
   }
 

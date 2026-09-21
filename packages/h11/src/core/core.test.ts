@@ -60,8 +60,9 @@ describe('H11', () => {
 
     it('извлекает несколько параметров', async () => {
       const app = new H11();
-      app.get('/a/:x/b/:y', ({ params }) =>
-        new Response(`${params.x}-${params.y}`)
+      app.get(
+        '/a/:x/b/:y',
+        ({ params }) => new Response(`${params.x}-${params.y}`),
       );
 
       const res = await app.exec({ req: makeReq('/a/foo/b/bar'), ...ctx() });
@@ -126,7 +127,7 @@ describe('H11', () => {
         ({ data }) => {
           (data as any).value = 'hello';
         },
-        ({ data }) => new Response((data as any).value)
+        ({ data }) => new Response((data as any).value),
       );
 
       const res = await app.exec({ req: makeReq('/d'), ...ctx() });
@@ -182,5 +183,68 @@ describe('H11', () => {
       expect(res.status).toBe(418);
       expect(await res.text()).toBe('thrown');
     });
+  });
+});
+
+describe('перебор вариантов', () => {
+  const exec = (h11: H11, path: string, method = 'GET') =>
+    h11.exec({
+      req: new Request(`http://x${path}`, { method }),
+      data: {},
+      providers: {},
+    });
+
+  it('статика выигрывает у параметра', async () => {
+    const h11 = new H11();
+    h11.get('/users/new', () => new Response('static'));
+    h11.get('/users/:id', ({ params }) => new Response(`param ${params.id}`));
+
+    expect(await (await exec(h11, '/users/new')).text()).toBe('static');
+  });
+
+  it('статика промолчала — ход переходит параметру', async () => {
+    const h11 = new H11();
+    h11.get('/users/new', () => undefined);
+    h11.get('/users/:id', ({ params }) => new Response(`param ${params.id}`));
+
+    expect(await (await exec(h11, '/users/new')).text()).toBe('param new');
+  });
+
+  it('точный путь есть только под другим методом — работает параметр', async () => {
+    const h11 = new H11();
+    h11.post('/users/new', () => new Response('post'));
+    h11.get('/users/:id', ({ params }) => new Response(`param ${params.id}`));
+
+    expect(await (await exec(h11, '/users/new')).text()).toBe('param new');
+  });
+
+  it('параметр промолчал — ход переходит wildcard', async () => {
+    const h11 = new H11();
+    h11.get('/users/:id', () => undefined);
+    h11.get('/users/**', ({ params }) => new Response(`wild ${params.wild}`));
+
+    expect(await (await exec(h11, '/users/42')).text()).toBe('wild 42');
+  });
+
+  it('никто не ответил — onNotFound', async () => {
+    const h11 = new H11();
+    h11.get('/users/:id', () => undefined);
+
+    expect((await exec(h11, '/users/42')).status).toBe(404);
+  });
+
+  it('миддлварь выполняется один раз на все варианты', async () => {
+    const h11 = new H11();
+    let calls = 0;
+
+    h11.use('/users', () => {
+      calls++;
+      return undefined;
+    });
+    h11.get('/users/new', () => undefined);
+    h11.get('/users/:id', () => new Response('param'));
+
+    await exec(h11, '/users/new');
+    expect(calls).toBe(1);
   });
 });

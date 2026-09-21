@@ -23,7 +23,11 @@ export class H11<TData extends Record<any, any> = {}> {
   onNotFound: NotFoundHandler = defaultOnNotFound;
   onError: ErrorHandler = defaultOnError;
 
-  private addRoute(pattern: string, method: Method, handlers: Handler<TData>[]) {
+  private addRoute(
+    pattern: string,
+    method: Method,
+    handlers: Handler<TData>[],
+  ) {
     this.radix.add(pattern, method, handlers as Handler[]);
   }
 
@@ -91,24 +95,55 @@ export class H11<TData extends Record<any, any> = {}> {
     providers: Record<string, any>;
   }): Promise<Response> {
     const url = new URL(req.url);
-    const { params, handlers } = this.radix.find(url.pathname, req.method as Method);
+    const { middlewares, matches } = this.radix.find(
+      url.pathname,
+      req.method as Method,
+    );
     const reqId = req.headers.get(REQUEST_ID_HEADER) ?? crypto.randomUUID();
 
+    // Параметры тут — от самого точного варианта, того, что пойдёт первым.
+    // Своего набора у миддлварей нет: они подошли по пути, а не по маршруту,
+    // и на момент их выполнения ещё неизвестно, кто в итоге ответит.
     const props = {
       req,
-      params,
+      params: matches[0]?.params ?? {},
       data,
       providers,
       h11: this,
       reqId,
     };
+
     try {
-      for (const handler of handlers) {
-        const response = await handler(props);
+      // Миддлвари проходят ровно один раз на весь запрос, до вариантов.
+      // Если гонять их внутри каждого варианта, миддлварь, прочитавшая тело
+      // запроса, на втором круге получила бы уже вычерпанный поток.
+      // Вернула Response — на этом всё, до маршрутов дело не доходит.
+      for (const middleware of middlewares) {
+        const response = await middleware(props);
         if (response) {
           return response;
         }
       }
+
+      // Варианты уже отсортированы по приоритету: точный путь,
+      // параметрический, затем "/**" от глубокого к общему. Вариант, все
+      // хендлеры которого вернули undefined, считается отказавшимся, и ход
+      // переходит следующему — так статика может «пропустить» запрос
+      // параметрическому маршруту, а тот дальше wildcard'у.
+      for (const match of matches) {
+        // У каждого варианта свои параметры: для "/users/new" точный путь не
+        // даёт ничего, ":id" даёт {id: 'new'}, "/**" — {wild: 'new'}.
+        const matchProps = { ...props, params: match.params };
+
+        for (const handler of match.handlers) {
+          const response = await handler(matchProps);
+          if (response) {
+            return response;
+          }
+        }
+      }
+
+      // Ни один вариант не ответил — либо их и не было, либо все отказались.
       return this.onNotFound(props);
     } catch (error) {
       if (error instanceof Response) {
