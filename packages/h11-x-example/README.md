@@ -1,6 +1,6 @@
 # h11-x-example
 
-Рабочий пример на [`h11-x`](../h11-x): один SSR-роут (`/about`) с гидрацией на клиенте.
+Рабочий пример на [`h11-x`](../h11-x): SSR-роут (`/about`) с гидрацией на клиенте и ssg-роут (`/blog`), отрендеренный на сборке.
 
 ## Запуск
 
@@ -25,7 +25,13 @@ src/
   routes/about/
     about.tsx                   # regan-компонент
     about.ssr.tsx                # createPage(About)
-    about.client.tsx              # hydratePage(About)
+    about.client.tsx              # hydratePage(About), импортирует about.css
+    about.css                     # стили страницы — в проде приезжают <link rel="stylesheet">
+    logo.svg                      # ассет из css, проверяет пути внутри собранного css
+  routes/blog/
+    blog.tsx                      # regan-компонент
+    blog.ssg.tsx                  # getPages() — страницы, рендерятся на сборке
+    blog.client.tsx               # hydratePage(Blog)
 ```
 
 ## `.env`

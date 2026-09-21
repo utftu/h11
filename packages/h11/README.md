@@ -65,7 +65,8 @@ h11.use(createReqIdModule('x-trace-id'));
 
 - `joinPath(a, b)` — склейка путей без дублирования слэшей.
 - `joinUserPath(base, userPath)` — то же самое, но для пользовательского ввода: отклоняет `..` и абсолютные пути (защита от path traversal), возвращает `''` при попытке выйти за пределы `base`.
-- `getContentType(ext)` / `getContentTypeHeaders(ext)` / `getContentTypeConfig(ext)` — по расширению (`js`, `html`, `json`, `css`, `svg`, `png`, `ico`); `Config` сразу возвращает `{ headers }` для `new Response(body, config)`.
+- `getMime(path)` / `getMimeHeaders(path)` — mime по пути файла; голое расширение тоже путь (`getMime('.html')`). На незнакомом расширении — `undefined` и пустой объект соответственно.
+- `getInit(mime?, code?, headers?)` или `getInit({mime, code, headers})` — `ResponseInit` для `new Response(body, init)`: `mime` это ключ таблицы (`'html'`, `'json'`, `'css'`…, проверяется компилятором), `code` — статус, `headers` — свои заголовки, к которым допишется `content-type`. Короткая форма для `getInit('json')` и `getInit('txt', 404)`, объектная — когда заполнено всё.
 - `copyReq(req, newBody?)` — клонирует `Request`, опционально подменяя тело (например при чтении и повторной раздаче потока).
 - `switchFunc(conditions, req)` — перебирает `{ check, handler }[]`, выполняет `handler` первого условия, чей `check(req)` вернул `true`.
 - `parseCookies(req)` / `getCookie(req, name)` — читают заголовок `Cookie`.

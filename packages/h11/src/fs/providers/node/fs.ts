@@ -7,6 +7,7 @@ import {
   writeFile,
   access,
   readdir,
+  stat,
 } from 'node:fs/promises';
 import { dirname } from 'node:path';
 import { Readable } from 'node:stream';
@@ -56,6 +57,15 @@ export const fsApiNode: FsApi = {
     } catch {
       return false;
     }
+  },
+  checkFile: async (path: string) => {
+    const ent = await stat(path).catch(() => undefined);
+
+    if (ent === undefined) {
+      return false;
+    }
+
+    return ent.isFile();
   },
   mkdir: mkdirNode,
   copyFile,

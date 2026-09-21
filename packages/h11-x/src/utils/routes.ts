@@ -8,7 +8,7 @@ export const getDefaultRoutesDir = () => {
 };
 
 // Роутом считается директория, где есть файл по конвенции
-// <имя-папки>.client.{ts,tsx} или <имя-папки>.ssr.{ts,tsx} — имя роута при
+// <имя-папки>.client.{ts,tsx}, .ssr.{ts,tsx} или .ssg.{ts,tsx} — имя роута при
 // этом путь от src/routes через '/', а не только имя листовой папки, чтобы
 // src/routes/blog/aleksei/aleksei.ssr.tsx стал роутом "blog/aleksei", а не
 // просто "aleksei". Директории без такого файла не роут сами по себе (в них
@@ -16,15 +16,16 @@ export const getDefaultRoutesDir = () => {
 const walkRoutesDir = async (
   dir: string,
   name: string,
-  fsApi: FsApi
+  fsApi: FsApi,
 ): Promise<Route[]> => {
   const dirName = getEntName(dir);
-  const [client, ssr] = await Promise.all([
+  const [client, ssr, ssg] = await Promise.all([
     checkFileOptional(dir, `${dirName}.client`, fsApi),
     checkFileOptional(dir, `${dirName}.ssr`, fsApi),
+    checkFileOptional(dir, `${dirName}.ssg`, fsApi),
   ]);
 
-  if (client || ssr) {
+  if (client || ssr || ssg) {
     return [{ dir, name }];
   }
 
@@ -33,8 +34,8 @@ const walkRoutesDir = async (
     ents
       .filter((ent) => ent.directory)
       .map((ent) =>
-        walkRoutesDir(`${dir}/${ent.name}`, `${name}/${ent.name}`, fsApi)
-      )
+        walkRoutesDir(`${dir}/${ent.name}`, `${name}/${ent.name}`, fsApi),
+      ),
   );
 
   return nested.flat();
@@ -50,7 +51,7 @@ export const getDefaultRoutes = async (fsApi: FsApi): Promise<Route[]> => {
   const routes = await Promise.all(
     ents
       .filter((ent) => ent.directory)
-      .map((ent) => walkRoutesDir(`${rootDir}/${ent.name}`, ent.name, fsApi))
+      .map((ent) => walkRoutesDir(`${rootDir}/${ent.name}`, ent.name, fsApi)),
   );
 
   return routes.flat();

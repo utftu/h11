@@ -1,60 +1,37 @@
-import { defineConfig, build as buildVite, type ViteDevServer } from 'vite';
+import { type ViteDevServer } from 'vite';
 import { getFsApi, joinPath } from 'h11';
-import {
-  checkFile,
-  convertStreamToString,
-  createScriptText,
-  getDefaultBasedir,
-  getEntName,
-} from './utils/utils.ts';
-import type { EditViteConfig, Route } from './types.ts';
+import { checkFile, createScriptText, getEntName } from './utils/utils.ts';
+import type {
+  ConfigH11X,
+  EditViteConfig,
+  Route,
+  RouteConfig,
+} from './types.ts';
 import { scriptKey } from './conts.ts';
-import { defu } from 'defu';
-import { viteConfigBaseClient, viteConfigBaseServer } from './config.ts';
 import { stringify, type FC } from 'regan';
 import { getPublicEnvs } from './env.ts';
+import { createAssetsHtml } from './route-config.ts';
+import { buildClient, buildServer } from './build.ts';
 
 const fsApi = await getFsApi();
 
-export type ConfigSsr = {
-  prod: boolean;
-  prefix: string;
-  devPrefix: string;
-  routes: Record<
-    string,
-    {
-      client: string;
-      clientRaw: string;
-      clientUrl: string;
-      ssrFile: string;
-      ssrFileRaw: string;
-    }
-  >;
-};
-
+// Собирает ssr-роуты и возвращает свою часть config.json. Сам ничего не пишет:
+// конфиг целиком, вместе с ssg, собирает и записывает buildH11X.
 export const makeSsr = async ({
   routes,
   baseDir,
-  prod,
   prefix,
-  devPrefix,
   editViteConfig,
 }: {
   routes: Route[];
-  baseDir?: string;
-  prod: boolean;
+  baseDir: string;
   prefix: string;
-  devPrefix: string;
   editViteConfig: EditViteConfig;
-}) => {
-  const baseDirPrepared = baseDir || `${process.cwd()}/.h11x`;
-  const assetsStore: ConfigSsr = {
-    prod,
-    prefix,
-    devPrefix,
-    routes: {},
-  };
+}): Promise<Record<string, RouteConfig>> => {
+  const store: Record<string, RouteConfig> = {};
 
+  // Роуты друг от друга не зависят, поэтому собираются параллельно, а в общий
+  // store каждый кладёт свою запись под своим именем.
   const routesPromises = routes.map(async ({ dir, name }) => {
     // Файлы внутри dir именуются по basename директории, а не по name
     // (name может быть вложенным путём вида "blog/aleksei").
@@ -62,99 +39,82 @@ export const makeSsr = async ({
     const ssrFile = await checkFile(dir, `${fileName}.ssr`, fsApi);
     const clientFile = await checkFile(dir, `${fileName}.client`, fsApi);
 
-    const configServer = defineConfig({
-      build: {
-        outDir: joinPath(baseDirPrepared, 'ssr'),
-        lib: {
-          entry: ssrFile,
-          formats: ['es'],
-          fileName: name,
-        },
-      },
-    });
-    let configServerFinal = defu(configServer, viteConfigBaseServer);
-    configServerFinal = editViteConfig('ssr_server', configServerFinal);
-
-    await buildVite(configServerFinal);
-
-    let configClient = defineConfig({
-      build: {
-        rollupOptions: {
-          input: clientFile,
-        },
-        outDir: baseDirPrepared,
-      },
+    const serverOut = await buildServer({
+      entry: ssrFile,
+      outDir: joinPath(baseDir, 'ssr'),
+      name,
+      editViteConfig,
     });
 
-    configClient = defu(configClient, viteConfigBaseClient);
-    configClient = editViteConfig('ssr_client', configClient);
+    const out = await buildClient({
+      entry: clientFile,
+      baseDir,
+      prefix,
+      editViteConfig,
+    });
 
-    const clientFileResult = (await buildVite(configClient)) as any;
-
-    const filename = clientFileResult.output[0].fileName as string;
-
-    assetsStore.routes[name] = {
-      client: joinPath(baseDirPrepared, clientFileResult.output[0].fileName),
-      clientRaw: clientFile,
-      clientUrl: filename.split('/').slice(1).join('/'),
-      ssrFile: joinPath(baseDirPrepared, `ssr/${name}.js`),
-      ssrFileRaw: ssrFile,
+    store[name] = {
+      mode: 'ssr',
+      client: { src: clientFile, out },
+      server: { src: ssrFile, out: serverOut },
     };
   });
 
   await Promise.all(routesPromises);
 
-  const assetsJson = JSON.stringify(assetsStore, null, 2);
-  await fsApi.writeFile(joinPath(baseDirPrepared, 'ssr/config.json'), assetsJson);
+  return store;
 };
 
-export const readConfig = async (baseDir?: string): Promise<ConfigSsr> => {
-  const baseDirPrepared = baseDir ?? getDefaultBasedir();
-
-  const configPath = joinPath(baseDirPrepared, 'ssr/config.json');
-
-  const configStream = fsApi.getFileStream(configPath);
-  const configJson = await convertStreamToString(configStream);
-  const config = JSON.parse(configJson);
-
-  return config;
-};
-
+// Готовит рендер одного роута. Асинхронная часть — загрузка серверного модуля
+// — делается один раз, поэтому наружу отдаётся функция: её зовут на каждый
+// запрос, и она уже синхронная.
 export const renderSsr = async <TProps extends Record<any, any> = any>({
   app,
   name,
   props = {} as any,
 }: {
-  app: { vite?: ViteDevServer; ssrConfig: ConfigSsr };
+  app: { vite?: ViteDevServer; config: ConfigH11X };
   name: string;
   props?: TProps;
 }) => {
-  const { vite, ssrConfig: config } = app;
+  const { vite, config } = app;
   const route = config.routes[name];
 
+  // У ssg-роута server.out экспортирует список страниц, а не страницу —
+  // рендерить его на запрос нечем, да и незачем: html уже лежит на диске.
+  if (route.mode === 'ssg') {
+    throw new Error(
+      `Route ${name} is ssg — its pages are built on disk and served as static files`,
+    );
+  }
+
   if (config.prod) {
-    const { page } = await import(/* @vite-ignore */ route.ssrFile);
+    // Прод: берём собранный модуль и готовые теги ассетов из config.json.
+    const { page } = await import(/* @vite-ignore */ route.server.out);
+    const assetsHtml = createAssetsHtml(config.prefix, route.client.out);
 
     return () => {
       const html = page(props);
 
-      const path = joinPath(config.prefix, route.clientUrl);
-
-      const script = createScriptText(path);
-
-      const htmlWithScript = html.replace(scriptKey, script);
+      const htmlWithScript = html.replace(scriptKey, assetsHtml);
       return htmlWithScript;
     };
   } else {
-    const { page } = await vite!.ssrLoadModule(route.ssrFileRaw);
+    // Dev: модуль исполняет vite прямо из исходника, поэтому страница видит
+    // свежий код без пересборки.
+    const { page } = await vite!.ssrLoadModule(route.server.src);
     return () => {
       const html = page(props);
 
+      // В деве файлы отдаёт сам vite со своего префикса, а не serveFiles,
+      // поэтому путь строится от devPrefix и ведёт к исходнику, не к сборке.
       const prefixPath = joinPath(config.devPrefix, config.prefix);
 
       const viteClient = joinPath(prefixPath, '/@vite/client');
-      const jsClient = joinPath(prefixPath, route.clientRaw);
+      const jsClient = joinPath(prefixPath, route.client.src);
 
+      // Ссылок на css тут нет намеренно: в деве стили подключает сам
+      // клиентский модуль через import, а vite раздаёт их с HMR.
       const script1 = createScriptText(viteClient);
       const script2 = createScriptText(jsClient);
 
@@ -166,7 +126,12 @@ export const renderSsr = async <TProps extends Record<any, any> = any>({
   }
 };
 
-export const createPage = <TProps extends Record<string, any> = Record<string, any>>(
+// Оборачивает компонент в функцию рендера: на входе props, на выходе строка
+// html. Публичные переменные окружения уезжают в разметку вместе с props,
+// чтобы клиент прочитал их при гидрации.
+export const createPage = <
+  TProps extends Record<string, any> = Record<string, any>,
+>(
   Component: FC<any>,
 ) => {
   return (props: TProps = {} as TProps) => {

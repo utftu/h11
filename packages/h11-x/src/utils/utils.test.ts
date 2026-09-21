@@ -3,6 +3,7 @@ import type { FsApi } from 'h11';
 import {
   checkFile,
   convertStreamToString,
+  createCssLinkText,
   createScriptText,
   getEntName,
   getEntPath,
@@ -39,6 +40,14 @@ describe('createScriptText', () => {
   });
 });
 
+describe('createLinkText', () => {
+  it('оборачивает href в stylesheet-ссылку', () => {
+    expect(createCssLinkText('/h11x/main.css')).toBe(
+      '<link rel="stylesheet" href="/h11x/main.css">',
+    );
+  });
+});
+
 describe('convertStreamToString', () => {
   it('склеивает чанки потока в строку', async () => {
     const stream = new ReadableStream<Uint8Array>({
@@ -55,7 +64,10 @@ describe('convertStreamToString', () => {
 
 describe('checkFile', () => {
   it('возвращает первый существующий вариант расширения (.ts перед .tsx)', async () => {
-    const fsApi = fakeFsApi(['/routes/about/about.ts', '/routes/about/about.tsx']);
+    const fsApi = fakeFsApi([
+      '/routes/about/about.ts',
+      '/routes/about/about.tsx',
+    ]);
 
     const result = await checkFile('/routes/about', 'about', fsApi);
     expect(result).toBe('/routes/about/about.ts');

@@ -1,112 +1,101 @@
-import { defineConfig, build as buildVite } from 'vite';
 import { getFsApi, joinPath } from 'h11';
-import { checkFile, createScriptText } from './utils/utils.ts';
-import type { GetHtmlSsg, Route } from './types.ts';
-import { reganVite } from 'regan-vite';
-import { relative } from 'node:path';
-import defu from 'defu';
-import { viteConfigBaseClient, viteConfigBaseServer } from './config.ts';
+import { checkFile, getEntName } from './utils/utils.ts';
+import type {
+  EditViteConfig,
+  Route,
+  RouteConfig,
+  RoutePage,
+  SsgPages,
+} from './types.ts';
 import { scriptKey } from './conts.ts';
-
-export type Page = {
-  pathname: string;
-  getHtml: GetHtmlSsg;
-};
-
-type GetPages = () => Promise<Page[]>;
+import { createAssetsHtml } from './route-config.ts';
+import { buildClient, buildServer } from './build.ts';
 
 const fsApi = await getFsApi();
 
+// Путь страницы становится файлом внутри каталога ассетов: "/blog" → blog.html,
+// "/blog/first" → blog/first.html, корень → index.html. Именно в таком виде их
+// потом находит раздача статики: /blog отдаёт blog.html, / отдаёт index.html.
+const getPageFile = (pathname: string) => {
+  const cleaned = pathname.split('/').filter(Boolean).join('/');
+
+  if (cleaned === '') {
+    return 'index.html';
+  }
+
+  return `${cleaned}.html`;
+};
+
+// Собирает ssg-роуты: печёт их страницы на диск и возвращает свою часть
+// config.json. Как и makeSsr, сам конфиг не пишет.
 export const makeSsg = async ({
   routes,
-  prod,
   baseDir,
   prefix,
-  devPrefix,
+  editViteConfig,
 }: {
   routes: Route[];
-  prod: boolean;
-  baseDir?: string;
+  baseDir: string;
   prefix: string;
-  devPrefix: string;
-}) => {
-  const baseDirPrepared = baseDir || process.cwd();
+  editViteConfig: EditViteConfig;
+}): Promise<Record<string, RouteConfig>> => {
+  const store: Record<string, RouteConfig> = {};
 
   const routesPromises = routes.map(async ({ dir, name }) => {
-    const ssgFile = await checkFile(dir, `${name}.ssg`, fsApi);
-    const clientFile = await checkFile(dir, `${name}.client`, fsApi);
+    const fileName = getEntName(dir);
+    const ssgFile = await checkFile(dir, `${fileName}.ssg`, fsApi);
+    const clientFile = await checkFile(dir, `${fileName}.client`, fsApi);
 
-    const serverConfig = defineConfig({
-      build: {
-        outDir: joinPath(baseDirPrepared, 'ssg'),
-        lib: {
-          entry: ssgFile,
-          formats: ['es'],
-          fileName: name,
-        },
-      },
-    });
-    const serverConfigFinal = defu(serverConfig, viteConfigBaseServer);
-
-    await buildVite(serverConfigFinal);
-
-    const configClient = defineConfig({
-      build: {
-        rollupOptions: {
-          input: clientFile,
-        },
-        outDir: baseDirPrepared,
-      },
+    const serverOut = await buildServer({
+      entry: ssgFile,
+      outDir: joinPath(baseDir, 'ssg'),
+      name,
+      editViteConfig,
     });
 
-    const configClientFinal = defu(configClient, viteConfigBaseClient);
+    const out = await buildClient({
+      entry: clientFile,
+      baseDir,
+      prefix,
+      editViteConfig,
+    });
 
-    // client
-    const result = await buildVite(configClientFinal);
+    // Страницы пекутся один раз, на сборке, поэтому теги сюда уезжают
+    // прод-овые: dev-режима у ssg нет, HMR на таких страницах не будет.
+    const assetsHtml = createAssetsHtml(prefix, out);
 
-    if (!('output' in result)) {
-      throw new Error('No output in build');
-    }
-    const buildEnt = result.output[0];
-
-    const clientPreparedFile = relative(
-      joinPath(baseDirPrepared, 'assets'),
-      `${baseDirPrepared}/${buildEnt.fileName}`
-    );
-
-    const jsContent = joinPath(baseDirPrepared, `ssg/${name}.js`);
-    const { getPages } = (await import(/* @vite-ignore */ jsContent)) as {
-      getPages: GetPages;
+    // Импортируем только что собранный модуль роута и забираем его список
+    // страниц. await стоит и на списке, и на html каждой страницы, поэтому
+    // промис в любом из двух мест работает сам собой, без отдельной ветки.
+    const { pages } = (await import(/* @vite-ignore */ serverOut)) as {
+      pages: SsgPages;
     };
 
-    const pages = await getPages();
+    const pagesResult: RoutePage[] = [];
 
-    for (const { pathname, getHtml } of pages) {
-      const html = await getHtml({ pathname });
+    for (const { pathname, html } of await pages) {
+      const htmlResult = await html;
+      const file = getPageFile(pathname);
 
-      let script: string;
-      if (prod) {
-        const path = joinPath(prefix, clientPreparedFile);
-
-        script = createScriptText(path);
-      } else {
-        const prefixPath = joinPath(devPrefix, prefix);
-        const viteClient = joinPath(prefixPath, '/@vite/client');
-        const jsClient = joinPath(prefixPath, clientFile);
-
-        const script1 = createScriptText(viteClient);
-        const script2 = createScriptText(jsClient);
-
-        script = script1 + script2;
-      }
-      const htmlWithScript = html.replace(scriptKey, script);
-
+      // Плейсхолдер <Script/> в разметке заменяется на те же теги, что ssr
+      // вставляет в проде, — иначе страница приедет без стилей и гидрации.
       await fsApi.writeFile(
-        joinPath(baseDirPrepared, `assets/${pathname}.html`),
-        htmlWithScript
+        joinPath(baseDir, `assets/${file}`),
+        htmlResult.replace(scriptKey, assetsHtml),
       );
+
+      pagesResult.push({ pathname, file });
     }
+
+    store[name] = {
+      mode: 'ssg',
+      client: { src: clientFile, out },
+      server: { src: ssgFile, out: serverOut },
+      pages: pagesResult,
+    };
   });
 
   await Promise.all(routesPromises);
+
+  return store;
 };

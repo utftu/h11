@@ -23,7 +23,7 @@ export const convertStreamToString = async (stream: ReadableStream) => {
 export const checkFileOptional = async (
   dir: string,
   nameWithoutExt: string,
-  fsApi: FsApi
+  fsApi: FsApi,
 ) => {
   const exts = ['.ts', '.tsx'];
 
@@ -41,7 +41,7 @@ export const checkFileOptional = async (
 export const checkFile = async (
   dir: string,
   nameWithoutExt: string,
-  fsApi: FsApi
+  fsApi: FsApi,
 ) => {
   const found = await checkFileOptional(dir, nameWithoutExt, fsApi);
   if (found) return found;
@@ -61,4 +61,8 @@ export const getEntPath = (pathname: string, dir: string) => {
 
 export const createScriptText = (src: string) => {
   return `<script type="module" defer src="${src}"></script>`;
+};
+
+export const createCssLinkText = (href: string) => {
+  return `<link rel="stylesheet" href="${href}">`;
 };

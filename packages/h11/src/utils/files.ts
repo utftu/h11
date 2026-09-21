@@ -1,4 +1,5 @@
 import { fsApi } from '../fs/api.ts';
+import { getMime, getMimeHeaders } from './content-type.ts';
 
 type FileWithExt = {
   filepath: string;
@@ -8,25 +9,6 @@ type FileWithExt = {
 type FileEnt = {
   filepath: string;
   headers: Record<string, string>;
-};
-
-const exts = {
-  js: 'text/javascript',
-  html: 'text/html; charset=utf-8',
-};
-
-const getContentType = (filepath: string) => {
-  const ext = filepath.split('.').at(-1);
-
-  if (!ext) {
-    return;
-  }
-
-  if (ext in exts) {
-    return exts[ext as keyof typeof exts];
-  }
-
-  return;
 };
 
 const formatsEnt = [
@@ -58,7 +40,9 @@ const findFilesCompressed = async (
 ): Promise<FileWithExt | undefined> => {
   const files = gitFiles(filepath, formats);
 
-  const filesChecks = files.map(({ filepath }) => fsApi.checkExist(filepath));
+  // Именно checkFile, а не checkExist: каталог с тем же именем, что у
+  // страницы (assets/blog и assets/blog.html), не должен уезжать в ответ.
+  const filesChecks = files.map(({ filepath }) => fsApi.checkFile(filepath));
 
   for (let i = 0; i < filesChecks.length; i++) {
     const fileCheck = filesChecks[i];
@@ -78,15 +62,11 @@ export const getFileEnt = async (
   filepath: string,
   formats: string[],
 ): Promise<FileEnt | undefined> => {
-  const headers: Record<string, string> = {};
   const fileEnt = await findFilesCompressed(filepath, formats);
   if (fileEnt) {
+    const headers: Record<string, string> = getMimeHeaders(filepath);
     if (fileEnt.compressName) {
       headers[contentEncodingName] = fileEnt.compressName;
-    }
-    const contentType = getContentType(filepath);
-    if (contentType) {
-      headers[contentTypeName] = contentType;
     }
     return {
       filepath: fileEnt.filepath,
@@ -99,7 +79,17 @@ export const getFileEnt = async (
     return {
       filepath: filenameHtml.filepath,
       headers: {
-        [contentTypeName]: exts.html,
+        [contentTypeName]: getMime('.html'),
+      },
+    };
+  }
+
+  const filenameIndex = await findFilesCompressed(`${filepath}/index.html`, []);
+  if (filenameIndex) {
+    return {
+      filepath: filenameIndex.filepath,
+      headers: {
+        [contentTypeName]: getMime('.html'),
       },
     };
   }

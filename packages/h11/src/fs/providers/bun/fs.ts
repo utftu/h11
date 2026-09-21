@@ -1,6 +1,6 @@
 import { file as fileBun, write } from 'bun';
 import type { FsApi } from '../../../types.ts';
-import { mkdir, copyFile, rm, readdir, access } from 'node:fs/promises';
+import { mkdir, copyFile, rm, readdir, access, stat } from 'node:fs/promises';
 import { dirname } from 'node:path';
 
 const checkExistBun = async (path: string) => {
@@ -10,6 +10,16 @@ const checkExistBun = async (path: string) => {
   } catch {
     return false;
   }
+};
+
+const checkFileBun = async (path: string) => {
+  const ent = await stat(path).catch(() => undefined);
+
+  if (ent === undefined) {
+    return false;
+  }
+
+  return ent.isFile();
 };
 
 const readdirBun = async (path: string) => {
@@ -48,6 +58,7 @@ export const fsApiBun: FsApi = {
     await write(path, text);
   },
   checkExist: checkExistBun,
+  checkFile: checkFileBun,
   mkdir: mkdirBun,
   copyFile: copyFilesBun,
   rm: rmBun,

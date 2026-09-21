@@ -1,7 +1,18 @@
 import { fsApi } from 'h11';
 import { makeSsg } from './ssg.ts';
-import { makeSsr, renderSsr, readConfig, createPage } from './ssr.tsx';
-import type { EditViteConfig, Route } from './types.ts';
+import { makeSsr, renderSsr, createPage } from './ssr.tsx';
+import { getAssets, readConfig, writeConfig } from './route-config.ts';
+import type {
+  ConfigH11X,
+  EditViteConfig,
+  Route,
+  RouteAsset,
+  RouteClient,
+  RouteClientOut,
+  RouteConfig,
+  RoutePage,
+  RouteServer,
+} from './types.ts';
 import { checkFileOptional, getEntName } from './utils/utils.ts';
 import { getDefaultRoutes } from './utils/routes.ts';
 import type { UserConfig } from 'vite';
@@ -45,6 +56,7 @@ export const buildH11X = async ({
   const routesResolved = routes ?? (await getDefaultRoutes(fsApi));
 
   const ssrRoutes: Route[] = [];
+  const ssgRoutes: Route[] = [];
 
   for (const route of routesResolved) {
     const { dir, name } = makeRouteUniversal(route);
@@ -53,40 +65,74 @@ export const buildH11X = async ({
     const fileName = getEntName(dir);
 
     const ssrFile = await checkFileOptional(dir, `${fileName}.ssr`, fsApi);
+    const ssgFile = await checkFileOptional(dir, `${fileName}.ssg`, fsApi);
     const clientFile = await checkFileOptional(
       dir,
       `${fileName}.client`,
-      fsApi
+      fsApi,
     );
 
-    if (!ssrFile && !clientFile) {
-      throw new Error(`No .client or .ssr file for route ${dir}`);
+    if (ssrFile && ssgFile) {
+      throw new Error(
+        `Route ${dir} has both .ssr and .ssg files — pick one mode`,
+      );
     }
 
-    // SSR-роут гидрируется на клиенте, поэтому makeSsr требует оба файла —
-    // без .client там некому подхватить разметку в браузере.
-    if (ssrFile && !clientFile) {
+    if (!ssrFile && !ssgFile && !clientFile) {
+      throw new Error(`No .client, .ssr or .ssg file for route ${dir}`);
+    }
+
+    // Страница гидрируется на клиенте, поэтому сборке нужны оба файла — без
+    // .client некому подхватить разметку в браузере.
+    if ((ssrFile || ssgFile) && !clientFile) {
       throw new Error(
-        `Route ${dir} has .ssr but no .client file — SSR routes need both`
+        `Route ${dir} has .ssr or .ssg but no .client file — both are needed`,
       );
     }
 
     if (ssrFile) {
       ssrRoutes.push({ dir, name });
     }
+
+    if (ssgFile) {
+      ssgRoutes.push({ dir, name });
+    }
   }
 
-  // makeSsr пишет .h11x/ssr/config.json — createH11XApp всегда читает его,
-  // поэтому запускаем его даже без роутов (тогда config будет с routes: {}).
-  await makeSsr({
+  const ssrStore = await makeSsr({
     routes: ssrRoutes,
-    baseDir,
+    baseDir: baseDirPrepared,
+    prefix,
+    editViteConfig,
+  });
+
+  // ssg-страницы ссылаются на собранные ассеты, поэтому идут после ssr: обе
+  // сборки пишут в один каталог, и порядок делает вывод предсказуемым.
+  const ssgStore = await makeSsg({
+    routes: ssgRoutes,
+    baseDir: baseDirPrepared,
+    prefix,
+    editViteConfig,
+  });
+
+  // config.json читает createH11XApp при каждом старте, поэтому пишем его
+  // всегда — даже когда роутов нет (тогда routes будет пустым).
+  await writeConfig(baseDirPrepared, {
     prod,
     prefix,
     devPrefix,
-    editViteConfig,
+    routes: { ...ssrStore, ...ssgStore },
   });
 };
 
-export { makeSsg, makeSsr, renderSsr, readConfig, createPage };
+export { makeSsg, makeSsr, renderSsr, readConfig, createPage, getAssets };
+export type {
+  ConfigH11X,
+  RouteAsset,
+  RouteClient,
+  RouteClientOut,
+  RouteConfig,
+  RoutePage,
+  RouteServer,
+};
 export { createH11XApp, type H11XApp } from './app.ts';

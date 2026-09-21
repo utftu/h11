@@ -5,9 +5,11 @@ import { joinUserPath, joinPath } from './utils/join.ts';
 import { copyReq } from './utils/req.ts';
 import { type SwitchParam, switchFunc } from './utils/switch.ts';
 import {
-  getContentType,
-  getContentTypeHeaders,
-  getContentTypeConfig,
+  getMime,
+  getMimeHeaders,
+  getInit,
+  type Mime,
+  type InitProps,
 } from './utils/content-type.ts';
 import {
   parseCookies,
@@ -35,9 +37,11 @@ export {
   copyReq,
   switchFunc,
   type SwitchParam,
-  getContentType,
-  getContentTypeHeaders,
-  getContentTypeConfig,
+  getMime,
+  getMimeHeaders,
+  getInit,
+  type Mime,
+  type InitProps,
   parseCookies,
   getCookie,
   serializeCookie,

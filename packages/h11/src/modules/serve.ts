@@ -3,6 +3,19 @@ import type { Handler } from '../types.ts';
 import { fsApi } from '../fs/api.ts';
 import { getFileEnt } from '../utils/files.ts';
 
+// joinUserPath отбрасывает пути, начинающиеся со слэша — это защита от
+// абсолютных путей в пользовательском вводе. Здесь слэш остаётся от самого
+// url, а не от пользователя, поэтому один ведущий слэш снимаем сами.
+export const cutPrefix = (pathname: string, prefix: string) => {
+  const rest = pathname.slice(prefix.length);
+
+  if (rest.startsWith('/')) {
+    return rest.slice(1);
+  }
+
+  return rest;
+};
+
 export const serveFiles = ({
   dir,
   prefix = '',
@@ -13,7 +26,7 @@ export const serveFiles = ({
   const handler: Handler = async ({ req, h11 }) => {
     const url = new URL(req.url);
 
-    const resultPathname = url.pathname.slice(prefix.length);
+    const resultPathname = cutPrefix(url.pathname, prefix);
     const filePath = joinUserPath(dir, resultPathname);
 
     const fileEnt = await getFileEnt(

@@ -19,7 +19,7 @@ routes/about/
 
 ```ts
 // server.ts
-import { getContentTypeConfig } from 'h11';
+import { getInit } from 'h11';
 import { createBunProvider } from 'h11/bun';
 import { getAbsolutePath } from 'utftu';
 import { createH11XApp, renderSsr } from 'h11-x';
@@ -32,7 +32,7 @@ const app = await createH11XApp({
 
 app.h11.get('/about', async () => {
   const renderHtml = await renderSsr({ app, name: 'about', props: {} });
-  return new Response(renderHtml(), getContentTypeConfig('html'));
+  return new Response(renderHtml(), getInit('html'));
 });
 
 const bunProvider = createBunProvider({ h11: app.h11 });
@@ -41,7 +41,7 @@ Bun.serve({ port: 3000, fetch: (req, server) => bunProvider(req, server) });
 
 `createH11XApp` берёт на себя: поднятие vite dev-сервера (в dev), сборку SSR/клиентских бандлов, dev-proxy к vite, раздачу собранной статики. Регистрация конкретных роутов и сам рендер — на вызывающей стороне, никакой магии.
 
-Возвращает `{ h11, vite?, ssrConfig }` — `h11` для регистрации своих роутов, `vite`/`ssrConfig` нужны только если рендеришь вручную через `renderSsr`.
+Возвращает `{ h11, vite?, config }` — `h11` для регистрации своих роутов, `vite`/`config` нужны только если рендеришь вручную через `renderSsr`.
 
 ### Опции `createH11XApp`
 
@@ -98,9 +98,25 @@ hydratePage(About);
 Если `createH11XApp`/`createPage` не подходят под задачу, доступны более примитивные функции:
 
 - `buildH11X({ baseDir, routes, prod, prefix, devPrefix, editViteConfig })` — только сборка (без создания `H11`/vite dev-сервера).
-- `readConfig(baseDir?)` — читает `ssr/config.json`, записанный сборкой.
-- `renderSsr({ app, name, props })` — рендерит конкретный роут по имени (то, чем пользуется пример выше).
-- `makeSsg(...)` — статическая генерация страниц (аналог SSR, но пишет готовый HTML на диск при сборке, а не рендерит на каждый запрос).
+- `readConfig(baseDir?)` — читает `.h11x/config.json`, записанный сборкой: `{ prod, prefix, devPrefix, routes }`, где каждый роут — `{ mode: 'ssr' | 'ssg', client: { src, out }, server: { src, out } }`, а у ssg ещё и `pages: [{ pathname, file }]`. `src` — исходник, `out` — результат сборки: у клиента объект со списками (`js`, `chunks`, `css`, `assets`), у сервера один собранный модуль.
+- `makeSsr(...)` / `makeSsg(...)` — сборка роутов одного режима; обе возвращают свою часть `routes` и ничего не пишут, конфиг собирает и записывает `buildH11X`.
+- `renderSsr({ app, name, props })` — рендерит конкретный роут по имени (то, чем пользуется пример выше). В проде вставляет на место `<Script/>` все CSS-файлы роута (`<link rel="stylesheet">`) и его entry-скрипты.
+- `getAssets(app, name)` — весь выход vite-сборки роута с готовыми URL: `{ js, chunks, css, assets: [{ src, url }] }`. `src` — исходное имя файла до хеширования, по нему страница находит нужный ассет, если хочет сама вставить `<link rel="preload">`. Сам h11-x preload-теги не вставляет: какой файл важен для первого экрана, знает только приложение.
+
+Роут в режиме ssg (`<имя>.ssg.{ts,tsx}` рядом с `<имя>.client.{ts,tsx}`) рендерится один раз на сборке: HTML ложится в `.h11x/assets`, а отдаёт его обычная раздача статики — `/blog` находит `assets/blog.html` сам, регистрировать такой роут в `H11` не нужно. `renderSsr` на ssg-роуте бросает ошибку: рендерить там нечего.
+
+Такой файл экспортирует `pages` — список страниц с готовой разметкой:
+
+```tsx
+const page = createPage(Blog);
+
+export const pages = [
+  {pathname: '/blog', html: page({})},
+  {pathname: '/blog/first', html: page({slug: 'first'})},
+];
+```
+
+`html` может быть промисом, и сам `pages` тоже (`export const pages = loadPosts()` или top-level `await`) — сборка дождётся и того, и другого.
 
 ## Сборка
 
