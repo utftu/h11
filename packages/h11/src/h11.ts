@@ -7,7 +7,13 @@ import {
   type NotFoundHandler,
 } from './core/errors.ts';
 import { createReqIdModule, type ReqIdData } from './modules/req-id.ts';
-import { createSizeLimitModule, SIZE_1mb } from './modules/size-limit.ts';
+import {
+  createSizeLimitModule,
+  BodyTooLargeError,
+  SIZE_1b,
+  SIZE_1kb,
+  SIZE_1mb,
+} from './modules/size-limit.ts';
 import { proxyReq } from './modules/proxy.ts';
 import type {
   Handler,
@@ -53,6 +59,9 @@ export {
   createReqIdModule,
   type ReqIdData,
   createSizeLimitModule,
+  BodyTooLargeError,
+  SIZE_1b,
+  SIZE_1kb,
   SIZE_1mb,
   proxyReq,
   type Handler,

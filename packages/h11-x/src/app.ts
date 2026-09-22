@@ -18,6 +18,7 @@ export type App = {
 };
 
 export const createApp = async ({
+  root = process.cwd(),
   baseDir,
   routes,
   prod = process.env.NODE_ENV === 'production',
@@ -27,6 +28,7 @@ export const createApp = async ({
   viteConfig,
   h11,
 }: {
+  root?: string;
   baseDir?: string;
   routes?: (string | Route)[];
   prod?: boolean;
@@ -36,10 +38,12 @@ export const createApp = async ({
   viteConfig?: UserConfig;
   h11?: H11;
 } = {}): Promise<App> => {
-  const projectRoot = baseDir || process.cwd();
-  const baseDirPrepared = baseDir || `${projectRoot}/.h11x`;
+  // root — корень проекта, baseDir — каталог сборки. Раньше это был один
+  // параметр, и .env искался внутри .h11x, который сборка сносит на каждом
+  // старте: файл не читался никогда.
+  const baseDirPrepared = baseDir || `${root}/.h11x`;
 
-  await loadEnvFile(`${projectRoot}/.env`);
+  await loadEnvFile(`${root}/.env`);
   const devPrefixFull = joinPath(devPrefix, prefix);
 
   let vite: ViteDevServer | undefined;

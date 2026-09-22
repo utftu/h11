@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'bun:test';
-import { createSizeLimitModule, SIZE_1mb } from './size-limit.ts';
+import {
+  BodyTooLargeError,
+  createSizeLimitModule,
+  SIZE_1mb,
+} from './size-limit.ts';
+import { H11 } from '../core/core.ts';
 
 const makeCtx = (headers: Record<string, string> = {}, body?: BodyInit) => ({
   req: new Request('http://localhost/', {
@@ -70,5 +75,71 @@ describe('createSizeLimitModule', () => {
 
     const text = await ctx.req.text();
     expect(text).toBe('hello');
+  });
+});
+
+describe('граница лимита', () => {
+  // content-length у Request в памяти не проставляется сам, а в боевом
+  // запросе он есть — поэтому в тестах ставим руками.
+  const exec = (h11: H11, body: string) =>
+    h11.exec({
+      req: new Request('http://x/upload', {
+        method: 'POST',
+        body,
+        headers: { 'content-length': String(body.length) },
+      }),
+      data: {},
+      providers: {},
+    });
+
+  const makeApp = (limit: number) => {
+    const h11 = new H11();
+    h11.use(createSizeLimitModule(limit));
+    h11.post('/upload', async ({ req }) => new Response(await req.text()));
+
+    return h11;
+  };
+
+  it('тело ровно в лимит проходит', async () => {
+    const res = await exec(makeApp(5), '12345');
+
+    expect(res.status).toBe(200);
+    expect(await res.text()).toBe('12345');
+  });
+
+  it('на байт больше — 413 по content-length', async () => {
+    const res = await exec(makeApp(5), '123456');
+
+    expect(res.status).toBe(413);
+  });
+
+  it('превышение в потоке рвёт чтение тела BodyTooLargeError', async () => {
+    const h11 = new H11();
+    h11.use(createSizeLimitModule(5));
+
+    let caught: unknown;
+    h11.post('/upload', async ({ req }) => {
+      caught = await req.text().catch((error) => error);
+      return new Response('ok');
+    });
+
+    // Без content-length: тело уезжает потоком, и превышение видно только
+    // при чтении.
+    await h11.exec({
+      req: new Request('http://x/upload', {
+        method: 'POST',
+        body: new ReadableStream({
+          start(controller) {
+            controller.enqueue(new TextEncoder().encode('123456789'));
+            controller.close();
+          },
+        }),
+      }),
+      data: {},
+      providers: {},
+    });
+
+    expect(caught).toBeInstanceOf(BodyTooLargeError);
+    expect((caught as BodyTooLargeError).limit).toBe(5);
   });
 });

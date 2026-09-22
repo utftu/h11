@@ -20,6 +20,7 @@ import type {
   SsgPage,
   SsgPages,
   EditViteConfig,
+  EditViteConfigProps,
 } from './types.ts';
 
 export {
@@ -49,4 +50,5 @@ export type {
   SsgPage,
   SsgPages,
   EditViteConfig,
+  EditViteConfigProps,
 };

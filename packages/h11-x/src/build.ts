@@ -23,11 +23,20 @@ type BuildProps = {
   editViteConfig?: EditViteConfig;
 };
 
+// Серверный модуль исполняем мы сами через import, поэтому тащить в него
+// зависимости из node_modules не надо: внешним считается всё, кроме
+// относительных путей и абсолютных путей проекта. Заодно h11-x и regan не
+// попадают в бандл вторым экземпляром — иначе плейсхолдеры и реактивность
+// оказались бы из другой копии пакета.
+const checkExternal = (id: string) => {
+  return !id.startsWith('.') && !id.startsWith('/');
+};
+
 const viteConfigBaseServer = defineConfig({
   plugins: [reganVite()],
   build: {
     rollupOptions: {
-      external: ['h11-x', 'strangelove', 'regan'],
+      external: checkExternal,
     },
     emptyOutDir: false,
   },
@@ -47,12 +56,14 @@ const viteConfigBaseClient = defineConfig({
 export const buildServer = async ({
   entry,
   outDir,
-  name,
+  mode,
+  route,
   editViteConfig,
 }: {
   entry: string;
   outDir: string;
-  name: string;
+  mode: 'ssr' | 'ssg';
+  route: Route;
   editViteConfig: EditViteConfig;
 }) => {
   const config = defineConfig({
@@ -61,17 +72,17 @@ export const buildServer = async ({
       lib: {
         entry,
         formats: ['es'],
-        fileName: name,
+        fileName: route.name,
       },
     },
   });
 
   let configFinal = defu(config, viteConfigBaseServer);
-  configFinal = editViteConfig('ssr_server', configFinal);
+  configFinal = editViteConfig({ mode, target: 'server', route }, configFinal);
 
   await buildVite(configFinal);
 
-  return joinPath(outDir, `${name}.js`);
+  return joinPath(outDir, `${route.name}.js`);
 };
 
 // Клиентская сборка роута. Каталог сборки — тот же, что отдаёт serveFiles,
@@ -80,11 +91,15 @@ export const buildServer = async ({
 // импортов. Возвращается разбор всего, что выдала сборка.
 export const buildClient = async ({
   entry,
+  mode,
+  route,
   baseDir,
   prefix,
   editViteConfig,
 }: {
   entry: string;
+  mode: 'ssr' | 'ssg';
+  route: Route;
   baseDir: string;
   prefix: string;
   editViteConfig: EditViteConfig;
@@ -101,11 +116,11 @@ export const buildClient = async ({
   });
 
   let configFinal = defu(config, viteConfigBaseClient);
-  configFinal = editViteConfig('ssr_client', configFinal);
+  configFinal = editViteConfig({ mode, target: 'client', route }, configFinal);
 
   const result = (await buildVite(configFinal)) as Rollup.RollupOutput;
 
-  return collectClientOut(result.output);
+  return collectClientOut(result.output, route.dir);
 };
 
 export const makeRouteUniversal = (route: string | Route) => {
@@ -184,6 +199,7 @@ export const buildH11X = async ({
   const ssrStore = await makeSsr({
     routes: ssrRoutes,
     baseDir: baseDirPrepared,
+    prod,
     prefix,
     editViteConfig,
   });

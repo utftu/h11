@@ -14,8 +14,17 @@ export type SsgPage = {
 
 export type SsgPages = SsgPage[] | Promise<SsgPage[]>;
 
+// Хук правки vite-конфига. Оси независимые: режим роута (ssr или ssg) и что
+// сейчас собирается (серверный модуль или клиентский бандл). Роут передаётся
+// целиком, чтобы можно было настроить конкретный, а не все сразу.
+export type EditViteConfigProps = {
+  mode: 'ssr' | 'ssg';
+  target: 'server' | 'client';
+  route: Route;
+};
+
 export type EditViteConfig = (
-  stage: 'ssr_server' | 'ssr_client',
+  props: EditViteConfigProps,
   config: UserConfig,
 ) => UserConfig;
 

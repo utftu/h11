@@ -34,8 +34,12 @@ export const getStorageHtml = (localWindow?: Window) => {
   return data;
 };
 
+// Пропсы берутся из того же data, что записал сервер: без них клиент
+// отрендерил бы другое дерево, и гидрация разъехалась бы с разметкой.
 export const hydratePage = (Component: FC<any>) => {
-  hydrate(document, <Component />, { data: getStorageHtml() });
+  const data = getStorageHtml();
+
+  hydrate(document, <Component {...data.props} />, { data });
 };
 
 export const Script: FC = () => {

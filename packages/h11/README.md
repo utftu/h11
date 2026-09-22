@@ -83,6 +83,12 @@ h11.use(createReqIdModule('x-trace-id'));
 - `parseCookies(req)` / `getCookie(req, name)` — читают заголовок `Cookie`.
 - `setCookie(res, name, value, options?)` / `deleteCookie(res, name, options?)` — пишут `Set-Cookie` в `res.headers` (через `append`, не перезатирая предыдущие).
 
+## Модули
+
+- `createReqIdModule()` — кладёт id запроса в `data.reqId` (в `ctx.reqId` он есть и без модуля).
+- `createSizeLimitModule(limit)` — ограничивает размер тела запроса. Лимит включительно: тело ровно в `limit` байт проходит. Если размер виден в `content-length` — сразу `413`; если превышение вскрылось уже посреди потока, чтение тела падает с `BodyTooLargeError` (экспортируется), и её ловит `onError`, где приложение решает, чем ответить. Размеры под рукой: `SIZE_1b`, `SIZE_1kb`, `SIZE_1mb`.
+- `proxyReq(req, url)` — пересобирает запрос на другой адрес, сохраняя метод, заголовки и тело.
+
 ## Раздача статики
 
 ```ts

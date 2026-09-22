@@ -1,3 +1,4 @@
+import { relative, resolve } from 'node:path';
 import { joinPath } from 'h11';
 import type { Rollup } from 'vite';
 import type { ConfigH11X, RouteClientOut } from './types.ts';
@@ -5,13 +6,16 @@ import {
   createCssLinkText,
   createScriptText,
   getDefaultBasedir,
-  getEntName,
 } from './utils.ts';
 
 const configFile = 'config.json';
 
+// routeDir нужен, чтобы имя ассета было путём от папки роута ("logo.svg",
+// "icons/logo.svg"), а не просто basename: два logo.svg из разных папок
+// иначе были бы в выдаче неразличимы, хотя искать по имени и предлагается.
 export const collectClientOut = (
   output: (Rollup.OutputChunk | Rollup.OutputAsset)[],
+  routeDir: string,
 ): RouteClientOut => {
   const out: RouteClientOut = { js: [], chunks: [], css: [], assets: [] };
 
@@ -30,8 +34,15 @@ export const collectClientOut = (
       continue;
     }
 
-    const src = ent.originalFileNames?.[0] ?? ent.names?.[0] ?? ent.fileName;
-    out.assets.push({ src: getEntName(src), file: ent.fileName });
+    // originalFileNames приходят относительно корня vite, то есть рабочего
+    // каталога процесса.
+    const original = ent.originalFileNames?.[0] ?? ent.names?.[0];
+    const src =
+      original === undefined
+        ? ent.fileName
+        : relative(routeDir, resolve(process.cwd(), original));
+
+    out.assets.push({ src, file: ent.fileName });
   }
 
   return out;

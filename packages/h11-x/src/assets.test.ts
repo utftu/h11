@@ -8,14 +8,19 @@ const chunk = (fileName: string, isEntry: boolean) =>
 const asset = (fileName: string, src?: string) =>
   ({ type: 'asset', fileName, originalFileNames: src ? [src] : [] }) as any;
 
+const routeDir = `${process.cwd()}/src/routes/about`;
+
 describe('collectClientOut', () => {
   it('разносит выход сборки по типам', () => {
-    const out = collectClientOut([
-      chunk('about.client-abc.js', true),
-      chunk('vendor-def.js', false),
-      asset('about-ghi.css'),
-      asset('logo-jkl.svg', 'src/routes/about/logo.svg'),
-    ]);
+    const out = collectClientOut(
+      [
+        chunk('about.client-abc.js', true),
+        chunk('vendor-def.js', false),
+        asset('about-ghi.css'),
+        asset('logo-jkl.svg', 'src/routes/about/logo.svg'),
+      ],
+      routeDir,
+    );
 
     expect(out.js).toEqual(['about.client-abc.js']);
     expect(out.chunks).toEqual(['vendor-def.js']);
@@ -24,16 +29,27 @@ describe('collectClientOut', () => {
   });
 
   it('несколько entry-чанков не теряются', () => {
-    const out = collectClientOut([
-      chunk('one-a.js', true),
-      chunk('two-b.js', true),
-    ]);
+    const out = collectClientOut(
+      [chunk('one-a.js', true), chunk('two-b.js', true)],
+      routeDir,
+    );
 
     expect(out.js).toEqual(['one-a.js', 'two-b.js']);
   });
 
+  it('вложенный ассет сохраняет путь от папки роута', () => {
+    const out = collectClientOut(
+      [asset('logo-pqr.svg', 'src/routes/about/icons/logo.svg')],
+      routeDir,
+    );
+
+    expect(out.assets).toEqual([
+      { src: 'icons/logo.svg', file: 'logo-pqr.svg' },
+    ]);
+  });
+
   it('у ассета без исходного имени остаётся собранное', () => {
-    const out = collectClientOut([asset('font-mno.woff2')]);
+    const out = collectClientOut([asset('font-mno.woff2')], routeDir);
 
     expect(out.assets).toEqual([
       { src: 'font-mno.woff2', file: 'font-mno.woff2' },

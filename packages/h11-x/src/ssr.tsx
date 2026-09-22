@@ -18,11 +18,13 @@ import { buildClient, buildServer } from './build.ts';
 export const makeSsr = async ({
   routes,
   baseDir,
+  prod,
   prefix,
   editViteConfig,
 }: {
   routes: Route[];
   baseDir: string;
+  prod: boolean;
   prefix: string;
   editViteConfig: EditViteConfig;
 }): Promise<Record<string, RouteConfig>> => {
@@ -30,22 +32,43 @@ export const makeSsr = async ({
 
   // Роуты друг от друга не зависят, поэтому собираются параллельно, а в общий
   // store каждый кладёт свою запись под своим именем.
-  const routesPromises = routes.map(async ({ dir, name }) => {
+  const routesPromises = routes.map(async (route) => {
+    const { dir, name } = route;
     // Файлы внутри dir именуются по basename директории, а не по name
     // (name может быть вложенным путём вида "blog/aleksei").
     const fileName = getEntName(dir);
     const ssrFile = await checkFile(dir, `${fileName}.ssr`);
     const clientFile = await checkFile(dir, `${fileName}.client`);
 
+    // В деве ssr-роут не собирается вовсе: renderSsr берёт серверный модуль
+    // из исходника через vite, а клиентский скрипт отдаётся тем же vite по
+    // devPrefix. Собирать бандлы, которые никто не откроет, — это секунды на
+    // каждом рестарте. Цена: out в конфиге пустой, то есть getAssets в деве
+    // ничего не вернёт.
+    if (!prod) {
+      store[name] = {
+        mode: 'ssr',
+        client: {
+          src: clientFile,
+          out: { js: [], chunks: [], css: [], assets: [] },
+        },
+        server: { src: ssrFile, out: '' },
+      };
+      return;
+    }
+
     const serverOut = await buildServer({
       entry: ssrFile,
       outDir: joinPath(baseDir, 'ssr'),
-      name,
+      mode: 'ssr',
+      route,
       editViteConfig,
     });
 
     const out = await buildClient({
       entry: clientFile,
+      mode: 'ssr',
+      route,
       baseDir,
       prefix,
       editViteConfig,
@@ -136,13 +159,15 @@ export const renderSsr = async <TProps extends Record<any, any> = any>({
 // Оборачивает компонент в функцию рендера: на входе props, на выходе строка
 // html. Публичные переменные окружения уезжают в разметку вместе с props,
 // чтобы клиент прочитал их при гидрации.
+// Пропсы уходят двумя путями сразу: в сам компонент — чтобы сервер отрендерил
+// с ними, и в data — чтобы клиент при гидрации собрал ровно то же дерево.
 export const createPage = <
   TProps extends Record<string, any> = Record<string, any>,
 >(
-  Component: FC<any>,
+  Component: FC<TProps>,
 ) => {
   return (props: TProps = {} as TProps) => {
-    return stringify(<Component />, {
+    return stringify(<Component {...props} />, {
       data: { envs: getPublicEnvs(), props },
     });
   };

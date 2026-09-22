@@ -39,7 +39,8 @@ export const makeSsg = async ({
 }): Promise<Record<string, RouteConfig>> => {
   const store: Record<string, RouteConfig> = {};
 
-  const routesPromises = routes.map(async ({ dir, name }) => {
+  const routesPromises = routes.map(async (route) => {
+    const { dir, name } = route;
     const fileName = getEntName(dir);
     const ssgFile = await checkFile(dir, `${fileName}.ssg`);
     const clientFile = await checkFile(dir, `${fileName}.client`);
@@ -47,12 +48,15 @@ export const makeSsg = async ({
     const serverOut = await buildServer({
       entry: ssgFile,
       outDir: joinPath(baseDir, 'ssg'),
-      name,
+      mode: 'ssg',
+      route,
       editViteConfig,
     });
 
     const out = await buildClient({
       entry: clientFile,
+      mode: 'ssg',
+      route,
       baseDir,
       prefix,
       editViteConfig,

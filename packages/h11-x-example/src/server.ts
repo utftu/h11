@@ -2,8 +2,9 @@ import { getInit, createServer } from 'h11';
 import { getAbsolutePath } from 'utftu';
 import { createApp, renderSsr } from 'h11-x';
 
+// root не передан, значит берётся cwd — запускать пример надо из его
+// каталога. Оттуда же читается .env и туда кладётся .h11x.
 const app = await createApp({
-  baseDir: getAbsolutePath('../.h11x', import.meta),
   routes: [
     getAbsolutePath('./routes/about', import.meta),
     getAbsolutePath('./routes/blog', import.meta),
