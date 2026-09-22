@@ -2,13 +2,13 @@ import { describe, expect, it } from 'bun:test';
 import { mkdir, rm, writeFile } from 'node:fs/promises';
 import { createServer } from 'h11';
 import { createApp } from './app.ts';
-import { renderSsr } from './ssr.tsx';
+import { renderSsr } from '../ssr.tsx';
 
 // Настоящий проект на диске: vite собирает его так же, как у пользователя,
 // поэтому тест ловит и раскладку файлов, и пути в разметке. Лежит внутри
 // пакета, а не в /tmp: снаружи воркспейса не разрешается импорт h11-x.
 const makeProject = async () => {
-  const root = `${import.meta.dir}/../.test-project-${process.pid}`;
+  const root = `${import.meta.dir}/../../.test-project-${process.pid}`;
   const about = `${root}/src/routes/about`;
   const blog = `${root}/src/routes/blog`;
 

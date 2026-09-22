@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'bun:test';
 import { createServer } from './server.ts';
-import { H11 } from './core/core.ts';
+import { H11 } from '../core/core.ts';
 
 describe('createServer', () => {
   it('отдаёт ответ приложения на живом Bun.serve', async () => {

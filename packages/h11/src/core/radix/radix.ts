@@ -1,4 +1,4 @@
-import type { Handler, Method } from '../types.ts';
+import type { Handler, Method } from '../../types.ts';
 
 // Узел дерева — это один сегмент пути. Маршрут "/users/:id" превращается в
 // цепочку: корень → "users" → ":id".

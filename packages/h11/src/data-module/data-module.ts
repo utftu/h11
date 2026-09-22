@@ -1,4 +1,4 @@
-import type { Handler } from './types.ts';
+import type { Handler } from '../types.ts';
 
 // Миддлварь, которая дописывает свои поля в ctx.data: auth кладёт user,
 // трейсинг — свой id. Маркер __adds живёт только в типах — в рантайме его

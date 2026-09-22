@@ -1,4 +1,4 @@
-import type { HandlerReturn } from '../types.ts';
+import type { HandlerReturn } from '../../types.ts';
 
 export type SwitchParam = {
   check: (req: Request) => boolean | Promise<boolean>;

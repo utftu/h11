@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'bun:test';
 import { collectClientOut, createAssetsHtml, getAssets } from './assets.ts';
-import type { ConfigH11X } from './types.ts';
+import type { ConfigH11X } from '../types.ts';
 
 const chunk = (fileName: string, isEntry: boolean) =>
   ({ type: 'chunk', fileName, isEntry }) as any;

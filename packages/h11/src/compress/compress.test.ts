@@ -3,7 +3,7 @@ import { mkdir, mkdtemp, readdir, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { gunzipSync } from 'node:zlib';
 import { compressRecursive } from './compress.ts';
-import { getFileEnt } from './static/static.ts';
+import { getFileEnt } from '../static/static.ts';
 
 const text = 'console.log("привет");'.repeat(50);
 

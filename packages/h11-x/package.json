@@ -29,8 +29,7 @@
   "dependencies": {
     "defu": "^6.1.4",
     "h11": "*",
-    "regan": "^0.0.16",
-    "regan-vite": "^1.0.1",
-    "vite": ">=7"
+    "regan": "^0.0.17",
+    "vite": ">=8"
   }
 }

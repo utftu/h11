@@ -3,7 +3,7 @@ import { convertReqToNodeReq } from './req.ts';
 import { Readable } from 'node:stream';
 import { convertNodeResToRes, createNodeRes } from './res.ts';
 import { createControlledPromise } from 'utftu';
-import { copyReq } from '../utils/req.ts';
+import { copyReq } from '../utils/req/req.ts';
 import type { Handler } from '../types.ts';
 
 const deletePrefix = (url: string, prefix: string) => {

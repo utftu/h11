@@ -4,12 +4,12 @@ import {
   type ViteDevServer,
   type UserConfig,
 } from 'vite';
-import { buildH11X, defaultPrefix, defaultDevPrefix } from './build.ts';
-import { reganVite } from 'regan-vite';
-import { readConfig } from './assets.ts';
-import type { ConfigH11X } from './types.ts';
-import type { EditViteConfig, Route } from './types.ts';
-import { loadEnvFile } from './env.ts';
+import { buildH11X, defaultPrefix, defaultDevPrefix } from '../build/build.ts';
+import { reganVite } from 'regan/vite';
+import { readConfig } from '../assets/assets.ts';
+import type { ConfigH11X } from '../types.ts';
+import type { EditViteConfig, Route } from '../types.ts';
+import { loadEnvFile } from '../env/env.ts';
 
 export type App = {
   h11: H11;

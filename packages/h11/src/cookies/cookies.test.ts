@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'bun:test';
 import { H11 } from '../core/core.ts';
-import { createServer } from '../server.ts';
+import { createServer } from '../server/server.ts';
 import {
   deleteCookie,
   getCookie,

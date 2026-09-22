@@ -1,6 +1,6 @@
-import { Radix } from './radix.ts';
+import { Radix } from './radix/radix.ts';
 import type { Handler, Method } from '../types.ts';
-import type { DataModule } from '../data-module.ts';
+import type { DataModule } from '../data-module/data-module.ts';
 import { createEventEmitter } from 'utftu';
 import {
   defaultOnError,

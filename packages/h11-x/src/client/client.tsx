@@ -1,4 +1,4 @@
-import { scriptKey } from './consts.ts';
+import { scriptKey } from '../consts.ts';
 import { Fragment, h, hydrate, type Child, type FC } from 'regan';
 
 const storage_id = 'h11x_storage_id';

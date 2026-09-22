@@ -7,9 +7,9 @@
   "dependencies": {
     "h11": "*",
     "h11-x": "*",
-    "regan": "^0.0.16",
-    "strangelove": "^2.1.4",
+    "regan": "^0.0.17",
+    "strangelove": "^2.1.5",
     "utftu": "*",
-    "vite": "^7.1.10"
+    "vite": "^8.3.0"
   }
 }

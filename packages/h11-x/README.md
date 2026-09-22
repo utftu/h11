@@ -150,15 +150,19 @@ bun run types
 
 ## Раскладка
 
+Каждая сущность — папка со своим файлом и тестом рядом.
+
 ```
 src/
   h11-x.ts          серверная точка входа, только ре-экспорт
   h11-x.client.ts   браузерная точка входа, только ре-экспорт
-  app.ts            createApp
-  build.ts          buildH11X, обнаружение роутов, vite-сборки
   ssr.tsx           ssr целиком: makeSsr, renderSsr, createPage
-  ssg.ts            ssg целиком: makeSsg и раскладка страниц по файлам
-  assets.ts         разбор выхода vite, config.json, getAssets, теги
-  client.tsx        Template, Head, Body, гидрация
-  routes.ts  utils.ts  types.ts  env.ts  consts.ts
+  types.ts  consts.ts
+  app/              createApp
+  build/            buildH11X, vite-сборки, обнаружение режимов роутов
+  ssg/              ssg целиком: makeSsg и раскладка страниц по файлам
+  assets/           разбор выхода vite, config.json, getAssets, теги
+  client/           Template, Head, Body, гидрация
+  routes/           обнаружение роутов по конвенции
+  env/  utils/
 ```

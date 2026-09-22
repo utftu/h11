@@ -1,6 +1,6 @@
 import { readdir } from 'node:fs/promises';
-import type { Route } from './types.ts';
-import { checkFileOptional, getEntName } from './utils.ts';
+import type { Route } from '../types.ts';
+import { checkFileOptional, getEntName } from '../utils/utils.ts';
 
 // Роутом считается директория, где есть файл по конвенции
 // <имя-папки>.client.{ts,tsx}, .ssr.{ts,tsx} или .ssg.{ts,tsx} — имя роута при

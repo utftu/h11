@@ -4,7 +4,7 @@ import {
   createSizeLimitModule,
   SIZE_1mb,
 } from './size-limit.ts';
-import { H11 } from '../core/core.ts';
+import { H11 } from '../../core/core.ts';
 
 const makeCtx = (headers: Record<string, string> = {}, body?: BodyInit) => ({
   req: new Request('http://localhost/', {

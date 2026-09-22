@@ -1,12 +1,12 @@
 import { relative, resolve } from 'node:path';
 import { joinPath } from 'h11';
 import type { Rollup } from 'vite';
-import type { ConfigH11X, RouteClientOut } from './types.ts';
+import type { ConfigH11X, RouteClientOut } from '../types.ts';
 import {
   createCssLinkText,
   createScriptText,
   getDefaultBasedir,
-} from './utils.ts';
+} from '../utils/utils.ts';
 
 const configFile = 'config.json';
 

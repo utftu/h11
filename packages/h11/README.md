@@ -153,14 +153,20 @@ bun run build   # build:js (bun build src/h11.ts) + build:types (tsc)
 
 ## Раскладка
 
+Каждая сущность — папка со своим файлом и тестом рядом.
+
 ```
 src/
   h11.ts             точка входа, только ре-экспорт
-  core/              класс H11, radix-роутер, дефолтные onError/onNotFound
+  types.ts
+  core/              класс H11, дефолтные onError/onNotFound
+    radix/           radix-роутер
   static/            раздача файлов: serveFiles, поиск файла, content-type
-  server.ts          адаптер под Bun.serve
+  server/            адаптер под Bun.serve
   connect/           мост к connect-мидлварям
-  compress.ts        предсжатие файлов
-  modules/           req-id, ограничение размера тела, proxy
-  utils/             join, copyReq, switchFunc, content-type
+  compress/          предсжатие файлов
+  cookies/
+  data-module/       модули, расширяющие форму ctx.data
+  modules/           size-limit, proxy
+  utils/             join, req, switch, content-type
 ```

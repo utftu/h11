@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'bun:test';
 import { createDataModule } from './data-module.ts';
-import { H11 } from './core/core.ts';
+import { H11 } from '../core/core.ts';
 
 type User = { id: string; name: string };
 

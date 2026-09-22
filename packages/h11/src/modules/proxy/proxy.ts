@@ -1,4 +1,4 @@
-import type { Handler } from '../types.ts';
+import type { Handler } from '../../types.ts';
 
 export const proxyReq =
   (targetOrigin: string): Handler =>

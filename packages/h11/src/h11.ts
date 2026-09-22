@@ -1,5 +1,5 @@
 import { H11, REQUEST_ID_HEADER } from './core/core.ts';
-import { Radix, Node, type FindResult } from './core/radix.ts';
+import { Radix, Node, type FindResult } from './core/radix/radix.ts';
 import {
   defaultOnError,
   defaultOnNotFound,
@@ -12,8 +12,8 @@ import {
   SIZE_1b,
   SIZE_1kb,
   SIZE_1mb,
-} from './modules/size-limit.ts';
-import { proxyReq } from './modules/proxy.ts';
+} from './modules/size-limit/size-limit.ts';
+import { proxyReq } from './modules/proxy/proxy.ts';
 import type {
   Handler,
   HandlerResponse,
@@ -21,17 +21,17 @@ import type {
   Context,
   Method,
 } from './types.ts';
-import { createDataModule, type DataModule } from './data-module.ts';
-import { joinUserPath, joinPath } from './utils/join.ts';
-import { copyReq } from './utils/req.ts';
-import { type SwitchParam, switchFunc } from './utils/switch.ts';
+import { createDataModule, type DataModule } from './data-module/data-module.ts';
+import { joinUserPath, joinPath } from './utils/join/join.ts';
+import { copyReq } from './utils/req/req.ts';
+import { type SwitchParam, switchFunc } from './utils/switch/switch.ts';
 import {
   getMime,
   getMimeHeaders,
   getInit,
   type Mime,
   type InitProps,
-} from './utils/content-type.ts';
+} from './utils/content-type/content-type.ts';
 import {
   parseCookies,
   getCookie,
@@ -41,9 +41,9 @@ import {
   type CookieOptions,
 } from './cookies/cookies.ts';
 import { serveFiles, getFileEnt } from './static/static.ts';
-import { createServer } from './server.ts';
+import { createServer } from './server/server.ts';
 import { createConnectAdapter } from './connect/connect.ts';
-import { compressRecursive } from './compress.ts';
+import { compressRecursive } from './compress/compress.ts';
 
 export {
   H11,

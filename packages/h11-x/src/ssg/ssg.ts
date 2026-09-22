@@ -1,15 +1,15 @@
 import { joinPath } from 'h11';
-import { checkFile, getEntName } from './utils.ts';
+import { checkFile, getEntName } from '../utils/utils.ts';
 import type {
   EditViteConfig,
   Route,
   RouteConfig,
   RoutePage,
   SsgPages,
-} from './types.ts';
-import { scriptKey } from './consts.ts';
-import { createAssetsHtml } from './assets.ts';
-import { buildClient, buildServer } from './build.ts';
+} from '../types.ts';
+import { scriptKey } from '../consts.ts';
+import { createAssetsHtml } from '../assets/assets.ts';
+import { buildClient, buildServer } from '../build/build.ts';
 
 // Путь страницы становится файлом внутри каталога ассетов: "/blog" → blog.html,
 // "/blog/first" → blog/first.html, корень → index.html. Именно в таком виде их

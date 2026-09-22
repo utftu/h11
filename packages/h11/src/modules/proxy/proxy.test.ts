@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'bun:test';
 import { proxyReq } from './proxy.ts';
-import { H11 } from '../core/core.ts';
-import { createServer } from '../server.ts';
+import { H11 } from '../../core/core.ts';
+import { createServer } from '../../server/server.ts';
 
 // Настоящий сервер на том конце: proxyReq ходит через fetch, поэтому
 // подменять там нечего.

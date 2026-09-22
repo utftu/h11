@@ -2,13 +2,13 @@ import { rm } from 'node:fs/promises';
 import { defineConfig, build as buildVite, type Rollup } from 'vite';
 import { joinPath } from 'h11';
 import { defu } from 'defu';
-import { reganVite } from 'regan-vite';
-import { collectClientOut, writeConfig } from './assets.ts';
-import { checkFileOptional, getEntName } from './utils.ts';
-import { getProjectRoutes } from './routes.ts';
-import { makeSsr } from './ssr.tsx';
-import { makeSsg } from './ssg.ts';
-import type { EditViteConfig, Route, RouteClientOut } from './types.ts';
+import { reganVite } from 'regan/vite';
+import { collectClientOut, writeConfig } from '../assets/assets.ts';
+import { checkFileOptional, getEntName } from '../utils/utils.ts';
+import { getProjectRoutes } from '../routes/routes.ts';
+import { makeSsr } from '../ssr.tsx';
+import { makeSsg } from '../ssg/ssg.ts';
+import type { EditViteConfig, Route, RouteClientOut } from '../types.ts';
 
 // Префикс раздачи ассетов и префикс, под которым в деве монтируется vite.
 export const defaultPrefix = '/h11x';

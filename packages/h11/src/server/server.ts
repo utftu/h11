@@ -1,5 +1,5 @@
 import type { Server } from 'bun';
-import type { H11 } from './core/core.ts';
+import type { H11 } from '../core/core.ts';
 
 export const createServer = ({ h11 }: { h11: H11 }) => {
   return async (req: Request, server: Server<any>) => {

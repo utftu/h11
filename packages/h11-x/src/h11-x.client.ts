@@ -7,7 +7,7 @@ import {
   getStorageHtml,
   createStorage,
   hydratePage,
-} from './client.tsx';
+} from './client/client.tsx';
 
 export {
   Template,

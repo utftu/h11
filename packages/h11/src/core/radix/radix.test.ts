@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'bun:test';
 import { Radix } from './radix.ts';
-import type { Method } from '../types.ts';
+import type { Method } from '../../types.ts';
 
 const handler = async () => new Response();
 const handlerEnt = [handler];

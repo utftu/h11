@@ -3,11 +3,11 @@ import {
   makeRouteUniversal,
   defaultPrefix,
   defaultDevPrefix,
-} from './build.ts';
+} from './build/build.ts';
 import { makeSsr, renderSsr, createPage } from './ssr.tsx';
-import { makeSsg } from './ssg.ts';
-import { getAssets, readConfig } from './assets.ts';
-import { createApp, type App } from './app.ts';
+import { makeSsg } from './ssg/ssg.ts';
+import { getAssets, readConfig } from './assets/assets.ts';
+import { createApp, type App } from './app/app.ts';
 import type {
   ConfigH11X,
   Route,

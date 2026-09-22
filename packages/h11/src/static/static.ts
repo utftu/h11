@@ -1,7 +1,7 @@
 import { stat } from 'node:fs/promises';
-import { joinUserPath } from '../utils/join.ts';
+import { joinUserPath } from '../utils/join/join.ts';
 import type { Handler } from '../types.ts';
-import { getMime, getMimeHeaders } from '../utils/content-type.ts';
+import { getMime, getMimeHeaders } from '../utils/content-type/content-type.ts';
 
 const checkFile = async (filepath: string) => {
   const ent = await stat(filepath).catch(() => undefined);

@@ -1,5 +1,5 @@
-import type { Handler } from '../types.ts';
-import { copyReq } from '../utils/req.ts';
+import type { Handler } from '../../types.ts';
+import { copyReq } from '../../utils/req/req.ts';
 
 export const SIZE_1b = 1;
 export const SIZE_1kb = 1024;
