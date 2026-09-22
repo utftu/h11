@@ -17,6 +17,7 @@ const makeCtx = (headers: Record<string, string> = {}, body?: BodyInit) => ({
   params: {},
   h11: {} as any,
   reqId: 'test-req-id',
+  upgrade: () => undefined,
 });
 
 describe('createSizeLimitModule', () => {
@@ -90,6 +91,7 @@ describe('граница лимита', () => {
       }),
       data: {},
       providers: {},
+      upgrade: () => undefined,
     });
 
   const makeApp = (limit: number) => {
@@ -137,6 +139,7 @@ describe('граница лимита', () => {
       }),
       data: {},
       providers: {},
+      upgrade: () => undefined,
     });
 
     expect(caught).toBeInstanceOf(BodyTooLargeError);

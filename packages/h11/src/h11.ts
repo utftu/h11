@@ -20,8 +20,15 @@ import type {
   HandlerReturn,
   Context,
   Method,
+  Upgrade,
+  Ws,
+  WsData,
+  WsHandlers,
 } from './types.ts';
-import { createDataModule, type DataModule } from './data-module/data-module.ts';
+import {
+  createDataModule,
+  type DataModule,
+} from './data-module/data-module.ts';
 import { joinUserPath, joinPath } from './utils/join/join.ts';
 import { copyReq } from './utils/req/req.ts';
 import { type SwitchParam, switchFunc } from './utils/switch/switch.ts';
@@ -66,6 +73,10 @@ export {
   type HandlerReturn,
   type Context,
   type Method,
+  type Upgrade,
+  type Ws,
+  type WsData,
+  type WsHandlers,
   createDataModule,
   type DataModule,
   joinUserPath,

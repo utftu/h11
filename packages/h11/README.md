@@ -17,11 +17,9 @@ h11.get('/files/**', ({ params }) => {
   return new Response(`остаток пути: ${params.wild}`);
 });
 
-const server = createServer({ h11 });
-
 Bun.serve({
   port: 3000,
-  fetch: (req, bunServer) => server(req, bunServer),
+  ...createServer({ h11 }),
 });
 ```
 
@@ -87,13 +85,15 @@ h11.get('/hello', ({ reqId }) => {
 ```ts
 import { createDataModule, H11 } from 'h11';
 
-export const authModule = createDataModule<{user: User}>(async ({req, data}) => {
-  data.user = await getUser(req);
-});
+export const authModule = createDataModule<{ user: User }>(
+  async ({ req, data }) => {
+    data.user = await getUser(req);
+  },
+);
 
 const h11 = new H11().use(authModule);
 
-h11.get('/me', ({data}) => new Response(data.user.name)); // data.user типизирован
+h11.get('/me', ({ data }) => new Response(data.user.name)); // data.user типизирован
 ```
 
 Тип полей указывается явно: вывести его из присваиваний внутри функции нельзя. Маркер существует только в типах, в рантайме `createDataModule` возвращает тот же хендлер. Обычная миддлварь без пометки форму `data` не меняет.
@@ -120,13 +120,13 @@ h11.get('/assets/**', serveFiles({ dir: './public', prefix: '/assets/' }));
 ```ts
 import { createServer } from 'h11';
 
-const server = createServer({ h11 });
-
 Bun.serve({
   port: 3000,
-  fetch: (req, bunServer) => server(req, bunServer),
+  ...createServer({ h11 }),
 });
 ```
+
+`createServer` отдаёт пару для `Bun.serve`: `fetch` и `websocket`. Спред отдаёт обе сразу — без второй вебсокеты не поднимутся, потому что таблицу коллбеков `Bun.serve` требует заранее.
 
 `createConnectAdapter` оборачивает connect-мидлварь (`(req, res, next) => void`) в обычный `Handler` — этим пользуется [`h11-x`](../h11-x), чтобы проксировать dev-сервер Vite:
 
@@ -138,11 +138,37 @@ h11.use(
   createConnectAdapter({
     prefixToRemove: '/_dev',
     connectMiddleware: someConnectApp, // например vite.middlewares
-  })
+  }),
 );
 ```
 
 Регистрировать именно через `h11.use()`, а не `h11.get(..., '/**')` — middleware матчится для любого HTTP-метода, а `.get()`-wildcard только для GET (у connect-приложений вроде Vite dev-сервера бывают не только GET-запросы).
+
+## Вебсокеты
+
+Вебсокет — не отдельная таблица маршрутов, а то, что может сделать обычный хендлер. Поэтому работают миддлвари, параметры и `data`-модули:
+
+```ts
+h11.use('/room/**', authModule);
+
+h11.get('/room/:id', ({ params, data, upgrade }) => {
+  if (data.user === undefined) {
+    return new Response('нельзя', { status: 401 });
+  }
+
+  return upgrade({
+    open: (ws) => join(params.id, ws),
+    message: (ws, message) => send(params.id, `${data.user.name}: ${message}`),
+    close: (ws) => leave(params.id, ws),
+  });
+});
+```
+
+Коллбеки создаются на каждое соединение заново, поэтому состояние соединения держат в замыкании хендлера — отдельного хранилища не нужно.
+
+`upgrade` возвращает `undefined`, если запрос не был апгрейдом: хендлер тогда считается отказавшимся и ход переходит следующему варианту, как у любого другого хендлера. Обычный GET на тот же путь можно обслужить соседним маршрутом.
+
+Подпротокол Bun выбирает сам, повторяя запрошенный клиентом, — задавать `Sec-WebSocket-Protocol` руками не надо, от дубля заголовка браузер закрывает соединение.
 
 ## Сборка
 

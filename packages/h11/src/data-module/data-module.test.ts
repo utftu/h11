@@ -19,6 +19,7 @@ describe('createDataModule', () => {
       req: new Request('http://x/me'),
       data: {},
       providers: {},
+      upgrade: () => undefined,
     });
 
     expect(await res.text()).toBe('aleksey');
@@ -33,6 +34,7 @@ describe('createDataModule', () => {
       req: new Request('http://x/api/me'),
       data: {},
       providers: {},
+      upgrade: () => undefined,
     });
 
     expect(await res.text()).toBe('1');
@@ -51,6 +53,7 @@ describe('createDataModule', () => {
       req: new Request('http://x/trace'),
       data: {},
       providers: {},
+      upgrade: () => undefined,
     });
 
     expect(await res.text()).toBe('abc');

@@ -154,7 +154,7 @@ describe('куки на настоящем Response', () => {
       return res;
     });
 
-    const server = Bun.serve({ port: 0, fetch: createServer({ h11 }) });
+    const server = Bun.serve({ port: 0, ...createServer({ h11 }) });
     const res = await fetch(`http://localhost:${server.port}/login`);
 
     const cookies = res.headers.getSetCookie();
@@ -171,7 +171,7 @@ describe('куки на настоящем Response', () => {
 
     h11.get('/me', ({ req }) => new Response(getCookie(req, 'session') ?? '—'));
 
-    const server = Bun.serve({ port: 0, fetch: createServer({ h11 }) });
+    const server = Bun.serve({ port: 0, ...createServer({ h11 }) });
     const res = await fetch(`http://localhost:${server.port}/me`, {
       headers: { cookie: 'session=abc; theme=dark' },
     });
@@ -191,7 +191,7 @@ describe('куки на настоящем Response', () => {
       return res;
     });
 
-    const server = Bun.serve({ port: 0, fetch: createServer({ h11 }) });
+    const server = Bun.serve({ port: 0, ...createServer({ h11 }) });
     const res = await fetch(`http://localhost:${server.port}/logout`);
 
     const cookie = res.headers.getSetCookie()[0];

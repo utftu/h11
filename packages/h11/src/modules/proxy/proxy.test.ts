@@ -18,7 +18,7 @@ const startTarget = () => {
   target.post('/echo', async ({ req }) => new Response(await req.text()));
   target.get('/gone', () => new Response('нет', { status: 404 }));
 
-  return Bun.serve({ port: 0, fetch: createServer({ h11: target }) });
+  return Bun.serve({ port: 0, ...createServer({ h11: target }) });
 };
 
 describe('proxyReq', () => {
@@ -27,7 +27,7 @@ describe('proxyReq', () => {
     const h11 = new H11();
     h11.get('/**', proxyReq(`http://localhost:${target.port}`));
 
-    const front = Bun.serve({ port: 0, fetch: createServer({ h11 }) });
+    const front = Bun.serve({ port: 0, ...createServer({ h11 }) });
     const res = await fetch(`http://localhost:${front.port}/hello?a=1`);
 
     expect(await res.text()).toBe('цель: ?a=1');
@@ -42,7 +42,7 @@ describe('proxyReq', () => {
     const h11 = new H11();
     h11.post('/**', proxyReq(`http://localhost:${target.port}`));
 
-    const front = Bun.serve({ port: 0, fetch: createServer({ h11 }) });
+    const front = Bun.serve({ port: 0, ...createServer({ h11 }) });
     const res = await fetch(`http://localhost:${front.port}/echo`, {
       method: 'POST',
       body: 'тело запроса',
@@ -59,7 +59,7 @@ describe('proxyReq', () => {
     const h11 = new H11();
     h11.get('/**', proxyReq(`http://localhost:${target.port}`));
 
-    const front = Bun.serve({ port: 0, fetch: createServer({ h11 }) });
+    const front = Bun.serve({ port: 0, ...createServer({ h11 }) });
     const res = await fetch(`http://localhost:${front.port}/gone`);
 
     expect(res.status).toBe(404);

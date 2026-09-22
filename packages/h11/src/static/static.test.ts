@@ -136,7 +136,12 @@ describe('getFileEnt', () => {
 
 describe('serveFiles', () => {
   const exec = (h11: H11, path: string) =>
-    h11.exec({ req: new Request(`http://x${path}`), data: {}, providers: {} });
+    h11.exec({
+      req: new Request(`http://x${path}`),
+      data: {},
+      providers: {},
+      upgrade: () => undefined,
+    });
 
   it('отдаёт файл по префиксу', async () => {
     const dir = await makeDir({ 'app.js': 'console.log(1)' });

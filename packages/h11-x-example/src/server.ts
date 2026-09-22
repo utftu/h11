@@ -18,11 +18,9 @@ app.h11.get('/about', async () => {
   return new Response(html, getInit('html'));
 });
 
-const server = createServer({ h11: app.h11 });
-
+// createServer отдаёт пару для Bun.serve: fetch и таблицу вебсокетов. Вторая
+// нужна и в этом примере — через неё идёт HMR-канал dev-сервера vite.
 Bun.serve({
   port: 3000,
-  async fetch(req, bunServer) {
-    return server(req, bunServer);
-  },
+  ...createServer({ h11: app.h11 }),
 });

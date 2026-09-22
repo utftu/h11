@@ -4,7 +4,9 @@ import { H11 } from './core.ts';
 const makeReq = (url: string, method = 'GET') =>
   new Request(`http://localhost${url}`, { method });
 
-const ctx = () => ({ data: {}, providers: {} });
+// Апгрейд умеет только провайдер, а тут его нет — сокеты этим тестам
+// не нужны.
+const ctx = () => ({ data: {}, providers: {}, upgrade: () => undefined });
 
 describe('H11', () => {
   describe('routing', () => {
@@ -190,8 +192,7 @@ describe('перебор вариантов', () => {
   const exec = (h11: H11, path: string, method = 'GET') =>
     h11.exec({
       req: new Request(`http://x${path}`, { method }),
-      data: {},
-      providers: {},
+      ...ctx(),
     });
 
   it('статика выигрывает у параметра', async () => {
@@ -261,8 +262,7 @@ describe('событие code', () => {
 
     await h11.exec({
       req: new Request('http://x/boom'),
-      data: {},
-      providers: {},
+      ...ctx(),
     });
 
     expect(events).toHaveLength(1);

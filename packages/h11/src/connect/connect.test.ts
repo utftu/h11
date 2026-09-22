@@ -3,7 +3,7 @@ import { createConnectAdapter } from './connect.ts';
 import { H11 } from '../core/core.ts';
 
 const exec = (h11: H11, req: Request) =>
-  h11.exec({ req, data: {}, providers: {} });
+  h11.exec({ req, data: {}, providers: {}, upgrade: () => undefined });
 
 describe('createConnectAdapter', () => {
   it('отдаёт ответ, который написала мидлварь', async () => {

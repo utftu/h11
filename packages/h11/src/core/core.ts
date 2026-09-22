@@ -1,5 +1,5 @@
 import { Radix } from './radix/radix.ts';
-import type { Handler, Method } from '../types.ts';
+import type { Handler, Method, Upgrade } from '../types.ts';
 import type { DataModule } from '../data-module/data-module.ts';
 import { createEventEmitter } from 'utftu';
 import {
@@ -93,14 +93,19 @@ export class H11<TData extends Record<any, any> = {}> {
     return this;
   }
 
+  // upgrade приходит от провайдера: апгрейд делает сам сервер, ядро о нём
+  // ничего не знает и своего придумать не может. Параметр обязательный —
+  // зовущий говорит прямо, умеет он вебсокеты или нет.
   async exec({
     req,
     data,
     providers,
+    upgrade,
   }: {
     req: Request;
     data: Record<string, string>;
     providers: Record<string, any>;
+    upgrade: Upgrade;
   }): Promise<Response> {
     const url = new URL(req.url);
     const { middlewares, matches } = this.radix.find(
@@ -119,6 +124,7 @@ export class H11<TData extends Record<any, any> = {}> {
       providers,
       h11: this,
       reqId,
+      upgrade,
     };
 
     try {

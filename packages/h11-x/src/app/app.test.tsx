@@ -96,7 +96,7 @@ describe('createApp в проде', () => {
     expect([...new Set(viteRoots)]).toEqual([root]);
     const server = Bun.serve({
       port: 0,
-      fetch: createServer({ h11: app.h11 }),
+      ...createServer({ h11: app.h11 }),
     });
     const origin = `http://localhost:${server.port}`;
 
@@ -163,7 +163,7 @@ describe('перенос собранного', () => {
 
     const server = Bun.serve({
       port: 0,
-      fetch: createServer({ h11: app.h11 }),
+      ...createServer({ h11: app.h11 }),
     });
     const origin = `http://localhost:${server.port}`;
 
