@@ -165,7 +165,7 @@ describe('перенос собранного', () => {
 });
 
 describe('корневые стили в деве', () => {
-  it('приезжают ссылкой до скриптов и модулем для горячей замены', async () => {
+  it('приезжают ссылкой до скриптов', async () => {
     const root = await makeProject();
 
     const app = await createApp({ root, prod: false });
@@ -174,11 +174,13 @@ describe('корневые стили в деве', () => {
 
     const link =
       '<link rel="stylesheet" href="/_vite/h11x/src/styles.css?direct">';
-    const module =
-      '<script type="module" defer src="/_vite/h11x/src/styles.css"></script>';
 
     expect(html).toContain(link);
-    expect(html).toContain(module);
+    // Модуля с тем же файлом быть не должно: он дал бы вторую загрузку и
+    // вторую копию стилей в DOM.
+    expect(html).not.toContain(
+      '<script type="module" defer src="/_vite/h11x/src/styles.css">',
+    );
 
     // Ссылка раньше любого скрипта — иначе разметка успеет отрисоваться
     // нестилизованной.

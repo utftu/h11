@@ -165,23 +165,18 @@ export const renderSsr = async <TProps extends Record<any, any> = any>({
       const viteClient = joinPath(prefixPath, '/@vite/client');
       const jsClient = joinPath(prefixPath, route.client.src);
 
-      // Корневые стили подключаются дважды, и это не ошибка. Ссылка с ?direct
-      // — чтобы браузер получил css вместе с разметкой и страница не моргнула
-      // нестилизованной. Модуль — чтобы работала горячая замена: vite отдаёт
-      // по этому же пути js, который вставляет стили и умеет обновляться.
-      // После горячей правки ссылка останется со старым содержимым, но
-      // вставленный модулем блок идёт в DOM позже и перебивает её.
-      // Платим лишней загрузкой файла в деве.
-      const stylesUrl =
-        config.styles === undefined
-          ? undefined
-          : joinPath(prefixPath, config.styles.src);
-
+      // Корневые стили — ссылкой с ?direct: по такому запросу vite отдаёт
+      // готовый css, и браузер получает стили вместе с разметкой, без
+      // моргания. Горячая замена при этом работает: на правку файла vite
+      // присылает css-update именно на этот путь, а его клиент подменяет
+      // сам <link>, удаляя старый. Модуль тут не нужен — он дал бы вторую
+      // загрузку того же файла и вторую копию стилей в DOM.
       const stylesTags =
-        stylesUrl === undefined
+        config.styles === undefined
           ? ''
-          : createCssLinkText(`${stylesUrl}?direct`) +
-            createScriptText(stylesUrl);
+          : createCssLinkText(
+              `${joinPath(prefixPath, config.styles.src)}?direct`,
+            );
 
       // Стили роута тут не перечислить: в деве сборки нет, и какие css тянет
       // клиентский модуль, знает только vite. Их по-прежнему подключает
