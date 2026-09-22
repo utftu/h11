@@ -50,26 +50,75 @@ const viteConfigBaseClient = defineConfig({
   },
 });
 
+// Корневые стили лежат по конвенции в src/styles.css проекта. Собираются
+// отдельной сборкой, а не в составе роута: файл один на всё приложение, и своим
+// <link> он кешируется независимо от страниц.
+export const stylesFile = 'src/styles.css';
+
+export const buildStyles = async ({
+  root,
+  baseDir,
+  prefix,
+  editViteConfig,
+}: {
+  root: string;
+  baseDir: string;
+  prefix: string;
+  editViteConfig: EditViteConfig;
+}) => {
+  const entry = joinPath(root, stylesFile);
+
+  if (!(await Bun.file(entry).exists())) {
+    return;
+  }
+
+  const config = defineConfig({
+    base: `${prefix}/`,
+    build: {
+      rollupOptions: { input: entry },
+      outDir: joinPath(baseDir, 'assets'),
+      assetsDir: '',
+    },
+  });
+
+  let configFinal = defu(config, viteConfigBaseClient);
+  configFinal = editViteConfig(
+    { mode: 'ssr', target: 'client', route: { dir: root, name: 'styles' } },
+    configFinal,
+  );
+
+  const result = (await buildVite(configFinal)) as Rollup.RollupOutput;
+  const css = result.output.find((ent) => ent.fileName.endsWith('.css'));
+
+  if (css === undefined) {
+    return;
+  }
+
+  return { src: stylesFile, out: css.fileName };
+};
+
 // Серверный модуль роута: ssr-страница или ssg-список страниц. Собирается как
 // библиотека (один вход — один файл), потому что импортировать его будем мы
-// сами, а не браузер. Возвращается путь к собранному файлу — его же кладём в
-// config.json как server.out.
+// сами, а не браузер. Возвращается путь относительно baseDir — в config.json
+// абсолютных путей нет, иначе каталог сборки нельзя было бы перенести.
 export const buildServer = async ({
   entry,
-  outDir,
+  outDirName,
+  baseDir,
   mode,
   route,
   editViteConfig,
 }: {
   entry: string;
-  outDir: string;
+  outDirName: string;
+  baseDir: string;
   mode: 'ssr' | 'ssg';
   route: Route;
   editViteConfig: EditViteConfig;
 }) => {
   const config = defineConfig({
     build: {
-      outDir,
+      outDir: joinPath(baseDir, outDirName),
       lib: {
         entry,
         formats: ['es'],
@@ -83,7 +132,7 @@ export const buildServer = async ({
 
   await buildVite(configFinal);
 
-  return joinPath(outDir, `${route.name}.js`);
+  return joinPath(outDirName, `${route.name}.js`);
 };
 
 // Клиентская сборка роута. Каталог сборки — тот же, что отдаёт serveFiles,
@@ -198,8 +247,16 @@ export const buildH11X = async ({
     }
   }
 
+  const styles = await buildStyles({
+    root,
+    baseDir: baseDirPrepared,
+    prefix,
+    editViteConfig,
+  });
+
   const ssrStore = await makeSsr({
     routes: ssrRoutes,
+    root,
     baseDir: baseDirPrepared,
     prod,
     prefix,
@@ -210,8 +267,10 @@ export const buildH11X = async ({
   // сборки пишут в один каталог, и порядок делает вывод предсказуемым.
   const ssgStore = await makeSsg({
     routes: ssgRoutes,
+    root,
     baseDir: baseDirPrepared,
     prefix,
+    styles,
     editViteConfig,
   });
 
@@ -221,6 +280,7 @@ export const buildH11X = async ({
     prod,
     prefix,
     devPrefix,
+    styles,
     routes: { ...ssrStore, ...ssgStore },
   });
 };

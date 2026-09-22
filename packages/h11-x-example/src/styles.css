@@ -1,0 +1,8 @@
+:root {
+  --brand: rebeccapurple;
+}
+
+body {
+  font-family: system-ui, sans-serif;
+  color: var(--brand);
+}

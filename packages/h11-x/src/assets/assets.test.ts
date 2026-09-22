@@ -101,4 +101,17 @@ describe('createAssetsHtml', () => {
         '<script type="module" defer src="/h11x/about-abc.js"></script>',
     );
   });
+
+  it('корневые стили идут раньше стилей роута', () => {
+    const html = createAssetsHtml('/h11x', config.routes.about.client.out, {
+      src: 'src/styles.css',
+      out: 'styles-xyz.css',
+    });
+
+    expect(html).toBe(
+      '<link rel="stylesheet" href="/h11x/styles-xyz.css">' +
+        '<link rel="stylesheet" href="/h11x/about-ghi.css">' +
+        '<script type="module" defer src="/h11x/about-abc.js"></script>',
+    );
+  });
 });

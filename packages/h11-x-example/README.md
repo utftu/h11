@@ -22,6 +22,7 @@ bun run ../../dapes.run.ts example run
 ```
 src/
   server.ts                     # createApp + регистрация /about
+  styles.css                    # корневые стили, подхватываются по конвенции
   routes/about/
     about.tsx                   # regan-компонент
     about.ssr.tsx                # createPage(About)

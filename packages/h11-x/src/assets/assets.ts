@@ -1,7 +1,7 @@
 import { relative, resolve } from 'node:path';
 import { joinPath } from 'h11';
 import type { Rollup } from 'vite';
-import type { ConfigH11X, RouteClientOut } from '../types.ts';
+import type { ConfigH11X, ConfigStyles, RouteClientOut } from '../types.ts';
 import {
   createCssLinkText,
   createScriptText,
@@ -81,11 +81,18 @@ export const getAssets = (app: { config: ConfigH11X }, name: string) => {
   };
 };
 
-// Теги для прода: стили роута и его entry-скрипты. Остальное (chunks, шрифты,
-// картинки) в HTML не попадает — их подтягивают сам entry и css, а preload
-// страница при желании вставляет сама через getAssets.
-export const createAssetsHtml = (prefix: string, out: RouteClientOut) => {
-  const links = out.css
+// Теги для прода: корневые стили, стили роута и его entry-скрипты. Остальное
+// (chunks, шрифты, картинки) в HTML не попадает — их подтягивают сам entry и
+// css, а preload страница при желании вставляет сама через getAssets.
+export const createAssetsHtml = (
+  prefix: string,
+  out: RouteClientOut,
+  styles?: ConfigStyles,
+) => {
+  // Корневые стили идут первыми, чтобы стили роута могли их перебить.
+  const cssFiles = styles === undefined ? out.css : [styles.out, ...out.css];
+
+  const links = cssFiles
     .map((file) => createCssLinkText(joinPath(prefix, file)))
     .join('');
   const scripts = out.js

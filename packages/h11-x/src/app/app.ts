@@ -15,6 +15,10 @@ export type App = {
   h11: H11;
   vite?: ViteDevServer;
   config: ConfigH11X;
+  // Пути в config.json относительные, поэтому приложение носит с собой два
+  // якоря: root для исходников и baseDir для собранного.
+  root: string;
+  baseDir: string;
 };
 
 export const createApp = async ({
@@ -50,6 +54,9 @@ export const createApp = async ({
   if (!prod) {
     vite = await createViteServer({
       ...viteConfig,
+      // Корень vite — корень проекта: от него считаются пути к исходникам,
+      // которые лежат в config.json и уходят в dev-url.
+      root,
       plugins: [reganVite(), ...(viteConfig?.plugins ?? [])],
       base: devPrefixFull,
       server: { ...viteConfig?.server, middlewareMode: true },
@@ -60,15 +67,20 @@ export const createApp = async ({
     });
   }
 
-  await buildH11X({
-    root,
-    baseDir: baseDirPrepared,
-    prod,
-    routes,
-    prefix,
-    devPrefix,
-    editViteConfig,
-  });
+  // В проде ничего не собирается: там уже лежит результат buildH11X со
+  // сборочной машины, и его достаточно прочитать. Собирает только dev-старт —
+  // ему нужны ssg-страницы на диске и свежий config.json.
+  if (!prod) {
+    await buildH11X({
+      root,
+      baseDir: baseDirPrepared,
+      prod,
+      routes,
+      prefix,
+      devPrefix,
+      editViteConfig,
+    });
+  }
 
   const config = await readConfig(baseDirPrepared);
 
@@ -112,5 +124,5 @@ export const createApp = async ({
     }
   }
 
-  return { h11: h11Internal, vite, config };
+  return { h11: h11Internal, vite, config, root, baseDir: baseDirPrepared };
 };

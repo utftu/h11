@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'bun:test';
-import { mkdir, rm, writeFile } from 'node:fs/promises';
+import { cp, mkdir, rm, writeFile } from 'node:fs/promises';
 import { createServer } from 'h11';
+import { buildH11X } from '../build/build.ts';
 import { createApp } from './app.ts';
 import { renderSsr } from '../ssr.tsx';
 
@@ -64,6 +65,7 @@ export const pages = [
   );
 
   await writeFile(`${root}/.env`, 'PUBLIC_NAME=тест\nSECRET=нет\n');
+  await writeFile(`${root}/src/styles.css`, 'body{margin:0}');
 
   return root;
 };
@@ -72,6 +74,7 @@ describe('createApp в проде', () => {
   it('собирает роуты, раздаёт статику и рендерит ssr', async () => {
     const root = await makeProject();
 
+    await buildH11X({ root, prod: true });
     const app = await createApp({ root, prod: true });
     const server = Bun.serve({
       port: 0,
@@ -95,8 +98,14 @@ describe('createApp в проде', () => {
       props: { text: 'из пропсов' },
     });
     const html = getHtml();
+    const route = app.config.routes.about;
 
     expect(html).toContain('из пропсов');
+    // Корневые стили подхватились по конвенции и идут раньше стилей роута.
+    expect(app.config.styles?.src).toBe('src/styles.css');
+    expect(html.indexOf(app.config.styles!.out)).toBeLessThan(
+      html.indexOf(route!.client.out.css[0]),
+    );
     expect(html).toContain('<link rel="stylesheet" href="/h11x/');
     expect(html).toContain('<script type="module" defer src="/h11x/');
 
@@ -110,6 +119,45 @@ describe('createApp в проде', () => {
     expect((await fetch(`${origin}/${asset.split('/').at(-1)}`)).status).toBe(
       404,
     );
+
+    await server.stop(true);
+    await rm(root, { recursive: true, force: true });
+  }, 60_000);
+});
+
+describe('перенос собранного', () => {
+  it('работает из другого каталога без пересборки', async () => {
+    const root = await makeProject();
+    const buildDir = `${root}/.h11x`;
+    const movedDir = `${root}/.h11x-moved`;
+
+    // Сборочная машина.
+    await buildH11X({ root, baseDir: buildDir, prod: true });
+
+    // Деплой: каталог сборки уезжает под другое имя.
+    await cp(buildDir, movedDir, { recursive: true });
+    await rm(buildDir, { recursive: true, force: true });
+
+    // Боевая машина: ничего не пересобираем.
+    const app = await createApp({ root, baseDir: movedDir, prod: true });
+
+    expect(app.vite).toBeUndefined();
+
+    const server = Bun.serve({
+      port: 0,
+      fetch: createServer({ h11: app.h11 }),
+    });
+    const origin = `http://localhost:${server.port}`;
+
+    expect((await fetch(`${origin}/blog`)).status).toBe(200);
+
+    const getHtml = await renderSsr({
+      app,
+      name: 'about',
+      props: { text: 'после переезда' },
+    });
+
+    expect(getHtml()).toContain('после переезда');
 
     await server.stop(true);
     await rm(root, { recursive: true, force: true });

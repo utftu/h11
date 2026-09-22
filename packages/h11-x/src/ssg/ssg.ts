@@ -1,6 +1,8 @@
+import { relative } from 'node:path';
 import { joinPath } from 'h11';
 import { checkFile, getEntName } from '../utils/utils.ts';
 import type {
+  ConfigStyles,
   EditViteConfig,
   Route,
   RouteConfig,
@@ -28,13 +30,17 @@ export const getPageFile = (pathname: string) => {
 // config.json. Как и makeSsr, сам конфиг не пишет.
 export const makeSsg = async ({
   routes,
+  root,
   baseDir,
   prefix,
+  styles,
   editViteConfig,
 }: {
   routes: Route[];
+  root: string;
   baseDir: string;
   prefix: string;
+  styles?: ConfigStyles;
   editViteConfig: EditViteConfig;
 }): Promise<Record<string, RouteConfig>> => {
   const store: Record<string, RouteConfig> = {};
@@ -47,7 +53,8 @@ export const makeSsg = async ({
 
     const serverOut = await buildServer({
       entry: ssgFile,
-      outDir: joinPath(baseDir, 'ssg'),
+      outDirName: 'ssg',
+      baseDir,
       mode: 'ssg',
       route,
       editViteConfig,
@@ -64,12 +71,14 @@ export const makeSsg = async ({
 
     // Страницы пекутся один раз, на сборке, поэтому теги сюда уезжают
     // прод-овые: dev-режима у ssg нет, HMR на таких страницах не будет.
-    const assetsHtml = createAssetsHtml(prefix, out);
+    const assetsHtml = createAssetsHtml(prefix, out, styles);
 
     // Импортируем только что собранный модуль роута и забираем его список
     // страниц. await стоит и на списке, и на html каждой страницы, поэтому
     // промис в любом из двух мест работает сам собой, без отдельной ветки.
-    const { pages } = (await import(/* @vite-ignore */ serverOut)) as {
+    const { pages } = (await import(
+      /* @vite-ignore */ joinPath(baseDir, serverOut)
+    )) as {
       pages: SsgPages;
     };
 
@@ -91,8 +100,8 @@ export const makeSsg = async ({
 
     store[name] = {
       mode: 'ssg',
-      client: { src: clientFile, out },
-      server: { src: ssgFile, out: serverOut },
+      client: { src: relative(root, clientFile), out },
+      server: { src: relative(root, ssgFile), out: serverOut },
       pages: pagesResult,
     };
   });

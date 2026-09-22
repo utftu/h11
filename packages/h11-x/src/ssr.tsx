@@ -1,3 +1,4 @@
+import { relative } from 'node:path';
 import { type ViteDevServer } from 'vite';
 import { joinPath } from 'h11';
 import { checkFile, createScriptText, getEntName } from './utils/utils.ts';
@@ -17,12 +18,14 @@ import { buildClient, buildServer } from './build/build.ts';
 // конфиг целиком, вместе с ssg, собирает и записывает buildH11X.
 export const makeSsr = async ({
   routes,
+  root,
   baseDir,
   prod,
   prefix,
   editViteConfig,
 }: {
   routes: Route[];
+  root: string;
   baseDir: string;
   prod: boolean;
   prefix: string;
@@ -49,17 +52,18 @@ export const makeSsr = async ({
       store[name] = {
         mode: 'ssr',
         client: {
-          src: clientFile,
+          src: relative(root, clientFile),
           out: { js: [], chunks: [], css: [], assets: [] },
         },
-        server: { src: ssrFile, out: '' },
+        server: { src: relative(root, ssrFile), out: '' },
       };
       return;
     }
 
     const serverOut = await buildServer({
       entry: ssrFile,
-      outDir: joinPath(baseDir, 'ssr'),
+      outDirName: 'ssr',
+      baseDir,
       mode: 'ssr',
       route,
       editViteConfig,
@@ -76,8 +80,8 @@ export const makeSsr = async ({
 
     store[name] = {
       mode: 'ssr',
-      client: { src: clientFile, out },
-      server: { src: ssrFile, out: serverOut },
+      client: { src: relative(root, clientFile), out },
+      server: { src: relative(root, ssrFile), out: serverOut },
     };
   });
 
@@ -94,11 +98,16 @@ export const renderSsr = async <TProps extends Record<any, any> = any>({
   name,
   props = {} as any,
 }: {
-  app: { vite?: ViteDevServer; config: ConfigH11X };
+  app: {
+    vite?: ViteDevServer;
+    config: ConfigH11X;
+    root: string;
+    baseDir: string;
+  };
   name: string;
   props?: TProps;
 }) => {
-  const { vite, config } = app;
+  const { vite, config, root, baseDir } = app;
   const route = config.routes[name];
 
   // У ssg-роута server.out экспортирует список страниц, а не страницу —
@@ -114,8 +123,16 @@ export const renderSsr = async <TProps extends Record<any, any> = any>({
   // упасть сразу, а не отрендерить что-то наполовину рабочее.
   if (config.prod) {
     // Прод: берём собранный модуль и готовые теги ассетов из config.json.
-    const { page } = await import(/* @vite-ignore */ route.server.out);
-    const assetsHtml = createAssetsHtml(config.prefix, route.client.out);
+    // server.out лежит в config.json относительно baseDir — собираем
+    // абсолютный путь здесь, чтобы каталог сборки можно было перенести.
+    const { page } = await import(
+      /* @vite-ignore */ joinPath(baseDir, route.server.out)
+    );
+    const assetsHtml = createAssetsHtml(
+      config.prefix,
+      route.client.out,
+      config.styles,
+    );
 
     return () => {
       const html = page(props);
@@ -132,7 +149,7 @@ export const renderSsr = async <TProps extends Record<any, any> = any>({
       );
     }
 
-    const { page } = await vite.ssrLoadModule(route.server.src);
+    const { page } = await vite.ssrLoadModule(joinPath(root, route.server.src));
     return () => {
       const html = page(props);
 
@@ -143,12 +160,19 @@ export const renderSsr = async <TProps extends Record<any, any> = any>({
       const viteClient = joinPath(prefixPath, '/@vite/client');
       const jsClient = joinPath(prefixPath, route.client.src);
 
-      // Ссылок на css тут нет намеренно: в деве стили подключает сам
-      // клиентский модуль через import, а vite раздаёт их с HMR.
+      // Стили роута тут не нужны: их импортирует сам клиентский модуль, и
+      // vite отдаёт их с HMR. А корневые стили ничей импорт не тянет, поэтому
+      // подключаем их сами — тоже модулем, потому что в деве vite отдаёт css
+      // как js с HMR, и обычный <link> получил бы javascript.
+      const stylesScript =
+        config.styles === undefined
+          ? ''
+          : createScriptText(joinPath(prefixPath, config.styles.src));
+
       const script1 = createScriptText(viteClient);
       const script2 = createScriptText(jsClient);
 
-      const scripts = script1 + script2;
+      const scripts = stylesScript + script1 + script2;
       const htmlWithScript = html.replace(scriptKey, scripts);
 
       return htmlWithScript;

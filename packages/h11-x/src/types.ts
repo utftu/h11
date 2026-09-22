@@ -70,9 +70,17 @@ export type RouteConfig =
       pages: RoutePage[];
     };
 
+// Корневые стили проекта — один файл на всё приложение, подключается к каждой
+// странице. src считается от root, out — от каталога ассетов.
+export type ConfigStyles = {
+  src: string;
+  out: string;
+};
+
 export type ConfigH11X = {
   prod: boolean;
   prefix: string;
   devPrefix: string;
+  styles?: ConfigStyles;
   routes: Record<string, RouteConfig>;
 };
