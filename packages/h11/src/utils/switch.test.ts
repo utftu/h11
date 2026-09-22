@@ -8,7 +8,7 @@ describe('switchFunc', () => {
     const handler = mock(() => new Response('matched'));
     const result = await switchFunc(
       [{ check: () => true, handler: () => handler }],
-      req
+      req,
     );
 
     expect(result).toBe(handler);
@@ -23,7 +23,7 @@ describe('switchFunc', () => {
         { check: () => false, handler: skipped },
         { check: () => true, handler: matched },
       ],
-      req
+      req,
     );
 
     expect(skipped).not.toHaveBeenCalled();
@@ -36,7 +36,7 @@ describe('switchFunc', () => {
         { check: () => false, handler: mock() },
         { check: () => false, handler: mock() },
       ],
-      req
+      req,
     );
 
     expect(result).toEqual([]);
@@ -52,7 +52,7 @@ describe('switchFunc', () => {
 
     const result = await switchFunc(
       [{ check: async () => true, handler }],
-      req
+      req,
     );
 
     expect(result).toEqual([]);
@@ -75,7 +75,7 @@ describe('switchFunc', () => {
           },
         },
       ],
-      req
+      req,
     );
 
     expect(checkReqs[0]).toBe(req);

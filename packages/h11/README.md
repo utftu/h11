@@ -31,6 +31,8 @@ Bun.serve({
 - `:name` — именованный сегмент, попадает в `params.name`. Два разных имени на одном уровне (`/a/:x` и `/a/:y`) — ошибка при регистрации.
 - `/**` — wildcard-хвост, остаток пути — в `params.wild`.
 - `h11.use(pattern?, ...handlers)` — middleware. Выполняются для любого HTTP-метода, один раз на запрос, раньше всех маршрутов.
+- Паттерн всегда начинается со слэша и не кончается им: `users` и `/users/` — ошибка при регистрации. Исключение — корень `/`.
+- Форма `ctx.data` задаётся параметром класса (`new H11<{userId: string}>()`) либо расширяется модулями — см. ниже.
 - Хендлер, вернувший `undefined`/ничего, передаёт управление дальше; вернувший `Response` — останавливает всё.
 
 ### Порядок маршрутов
@@ -64,13 +66,7 @@ h11.get('/hello', ({ reqId }) => {
 });
 ```
 
-Если нужны кастомные правила поверх дефолта (другой заголовок, другой формат id) — `createReqIdModule(header?)` кладёт результат в `data.reqId` через обычный `.use()`, независимо от встроенного `ctx.reqId`:
-
-```ts
-import { createReqIdModule } from 'h11';
-
-h11.use(createReqIdModule('x-trace-id'));
-```
+Источник один: `ctx.reqId`. Нужен другой заголовок или свой формат — читай его в своей миддлвари и клади в `ctx.data`, но помни, что `ctx.reqId` при этом останется своим.
 
 ## Утилиты
 
@@ -83,9 +79,26 @@ h11.use(createReqIdModule('x-trace-id'));
 - `parseCookies(req)` / `getCookie(req, name)` — читают заголовок `Cookie`.
 - `setCookie(res, name, value, options?)` / `deleteCookie(res, name, options?)` — пишут `Set-Cookie` в `res.headers` (через `append`, не перезатирая предыдущие).
 
+## Модули данных
+
+Миддлварь, которая дописывает своё поле в `ctx.data`, помечается `createDataModule` — и тогда инстанс знает про это поле дальше по цепочке:
+
+```ts
+import { createDataModule, H11 } from 'h11';
+
+export const authModule = createDataModule<{user: User}>(async ({req, data}) => {
+  data.user = await getUser(req);
+});
+
+const h11 = new H11().use(authModule);
+
+h11.get('/me', ({data}) => new Response(data.user.name)); // data.user типизирован
+```
+
+Тип полей указывается явно: вывести его из присваиваний внутри функции нельзя. Маркер существует только в типах, в рантайме `createDataModule` возвращает тот же хендлер. Обычная миддлварь без пометки форму `data` не меняет.
+
 ## Модули
 
-- `createReqIdModule()` — кладёт id запроса в `data.reqId` (в `ctx.reqId` он есть и без модуля).
 - `createSizeLimitModule(limit)` — ограничивает размер тела запроса. Лимит включительно: тело ровно в `limit` байт проходит. Если размер виден в `content-length` — сразу `413`; если превышение вскрылось уже посреди потока, чтение тела падает с `BodyTooLargeError` (экспортируется), и её ловит `onError`, где приложение решает, чем ответить. Размеры под рукой: `SIZE_1b`, `SIZE_1kb`, `SIZE_1mb`.
 - `proxyReq(req, url)` — пересобирает запрос на другой адрес, сохраняя метод, заголовки и тело.
 

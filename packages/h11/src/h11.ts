@@ -6,7 +6,6 @@ import {
   type ErrorHandler,
   type NotFoundHandler,
 } from './core/errors.ts';
-import { createReqIdModule, type ReqIdData } from './modules/req-id.ts';
 import {
   createSizeLimitModule,
   BodyTooLargeError,
@@ -21,8 +20,8 @@ import type {
   HandlerReturn,
   Context,
   Method,
-  DataModule,
 } from './types.ts';
+import { createDataModule, type DataModule } from './data-module.ts';
 import { joinUserPath, joinPath } from './utils/join.ts';
 import { copyReq } from './utils/req.ts';
 import { type SwitchParam, switchFunc } from './utils/switch.ts';
@@ -56,8 +55,6 @@ export {
   defaultOnNotFound,
   type ErrorHandler,
   type NotFoundHandler,
-  createReqIdModule,
-  type ReqIdData,
   createSizeLimitModule,
   BodyTooLargeError,
   SIZE_1b,
@@ -69,6 +66,7 @@ export {
   type HandlerReturn,
   type Context,
   type Method,
+  createDataModule,
   type DataModule,
   joinUserPath,
   joinPath,

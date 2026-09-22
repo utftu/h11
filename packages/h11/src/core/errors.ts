@@ -21,9 +21,13 @@ export const defaultOnNotFound: NotFoundHandler = ({ req, h11 }) => {
 };
 
 export const defaultOnError: ErrorHandler = ({ req, error, h11 }) => {
+  // В text только сообщение: его подписчик может, не глядя, отправить
+  // клиенту. Стек лежит рядом, в самом error — кому он нужен для логов, тот
+  // возьмёт его оттуда осознанно.
   h11.ee.emit('code', {
     code: 500,
-    text: `h11: Error ${req.url} - ${error.message}\n${error.stack ?? ''}`,
+    text: `h11: Error ${req.url} - ${error.message}`,
+    error,
   });
 
   return new Response('Internal Server Error', {

@@ -1,4 +1,6 @@
 import { describe, expect, it } from 'bun:test';
+import { H11 } from '../core/core.ts';
+import { createServer } from '../server.ts';
 import {
   deleteCookie,
   getCookie,
@@ -75,7 +77,7 @@ describe('getCookie', () => {
 describe('serializeCookie', () => {
   it('кодирует значение и ставит Path=/ по умолчанию', () => {
     expect(serializeCookie('name', 'hello world')).toBe(
-      'name=hello%20world; Path=/'
+      'name=hello%20world; Path=/',
     );
   });
 
@@ -93,25 +95,25 @@ describe('serializeCookie', () => {
     });
 
     expect(result).toBe(
-      `session=abc; Max-Age=3600; Expires=${expires.toUTCString()}; Path=/app; Domain=example.com; SameSite=Strict; Secure; HttpOnly`
+      `session=abc; Max-Age=3600; Expires=${expires.toUTCString()}; Path=/app; Domain=example.com; SameSite=Strict; Secure; HttpOnly`,
     );
   });
 
   it('автоматически добавляет Secure для SameSite=None, если secure не указан', () => {
     expect(serializeCookie('a', '1', { sameSite: 'None' })).toBe(
-      'a=1; Path=/; SameSite=None; Secure'
+      'a=1; Path=/; SameSite=None; Secure',
     );
   });
 
   it('уважает явный secure: false даже с SameSite=None', () => {
     expect(serializeCookie('a', '1', { sameSite: 'None', secure: false })).toBe(
-      'a=1; Path=/; SameSite=None'
+      'a=1; Path=/; SameSite=None',
     );
   });
 
   it('не добавляет Secure для SameSite=Strict/Lax без явного secure', () => {
     expect(serializeCookie('a', '1', { sameSite: 'Lax' })).toBe(
-      'a=1; Path=/; SameSite=Lax'
+      'a=1; Path=/; SameSite=Lax',
     );
   });
 });
@@ -137,5 +139,65 @@ describe('deleteCookie', () => {
     expect(cookie).toContain('session=;');
     expect(cookie).toContain('Max-Age=0');
     expect(cookie).toContain('Expires=Thu, 01 Jan 1970 00:00:00 GMT');
+  });
+});
+
+describe('куки на настоящем Response', () => {
+  it('несколько Set-Cookie не затирают друг друга', async () => {
+    const h11 = new H11();
+
+    h11.get('/login', () => {
+      const res = new Response('ok');
+      setCookie(res, 'session', 'abc', { httpOnly: true, path: '/' });
+      setCookie(res, 'theme', 'dark', { path: '/' });
+
+      return res;
+    });
+
+    const server = Bun.serve({ port: 0, fetch: createServer({ h11 }) });
+    const res = await fetch(`http://localhost:${server.port}/login`);
+
+    const cookies = res.headers.getSetCookie();
+    expect(cookies).toHaveLength(2);
+    expect(cookies[0]).toContain('session=abc');
+    expect(cookies[0]).toContain('HttpOnly');
+    expect(cookies[1]).toContain('theme=dark');
+
+    await server.stop(true);
+  });
+
+  it('браузерный заголовок Cookie разбирается обратно', async () => {
+    const h11 = new H11();
+
+    h11.get('/me', ({ req }) => new Response(getCookie(req, 'session') ?? '—'));
+
+    const server = Bun.serve({ port: 0, fetch: createServer({ h11 }) });
+    const res = await fetch(`http://localhost:${server.port}/me`, {
+      headers: { cookie: 'session=abc; theme=dark' },
+    });
+
+    expect(await res.text()).toBe('abc');
+
+    await server.stop(true);
+  });
+
+  it('удаление ставит пустое значение и прошедший срок', async () => {
+    const h11 = new H11();
+
+    h11.get('/logout', () => {
+      const res = new Response('ok');
+      deleteCookie(res, 'session', { path: '/' });
+
+      return res;
+    });
+
+    const server = Bun.serve({ port: 0, fetch: createServer({ h11 }) });
+    const res = await fetch(`http://localhost:${server.port}/logout`);
+
+    const cookie = res.headers.getSetCookie()[0];
+    expect(cookie).toContain('session=;');
+    expect(cookie).toContain('Max-Age=0');
+
+    await server.stop(true);
   });
 });

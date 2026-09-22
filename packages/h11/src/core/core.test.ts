@@ -248,3 +248,27 @@ describe('перебор вариантов', () => {
     expect(calls).toBe(1);
   });
 });
+
+describe('событие code', () => {
+  it('на 500 отдаёт сообщение без стека, а сам error — отдельным полем', async () => {
+    const h11 = new H11();
+    const events: { code: number; text: string; error?: Error }[] = [];
+    h11.ee.on('code', (event) => events.push(event));
+
+    h11.get('/boom', () => {
+      throw new Error('внутри всё сломалось');
+    });
+
+    await h11.exec({
+      req: new Request('http://x/boom'),
+      data: {},
+      providers: {},
+    });
+
+    expect(events).toHaveLength(1);
+    expect(events[0].code).toBe(500);
+    expect(events[0].text).toContain('внутри всё сломалось');
+    expect(events[0].text).not.toContain('at ');
+    expect(events[0].error?.stack).toContain('at ');
+  });
+});

@@ -241,3 +241,31 @@ describe('конфликт параметров', () => {
     );
   });
 });
+
+describe('проверка паттерна', () => {
+  it('путь обязан начинаться со слэша', () => {
+    const radix = new Radix();
+
+    expect(() => radix.add('users', 'GET', handlerEnt)).toThrow(
+      'must start with "/"',
+    );
+    expect(() => radix.addMiddleware('api', handlerEnt)).toThrow(
+      'must start with "/"',
+    );
+  });
+
+  it('путь не должен кончаться слэшем', () => {
+    const radix = new Radix();
+
+    expect(() => radix.add('/users/', 'GET', handlerEnt)).toThrow(
+      'must not end with "/"',
+    );
+  });
+
+  it('корень — единственное исключение', () => {
+    const radix = new Radix();
+
+    expect(() => radix.addMiddleware('/', handlerEnt)).not.toThrow();
+    expect(() => radix.add('/', 'GET', handlerEnt)).not.toThrow();
+  });
+});

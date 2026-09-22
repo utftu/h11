@@ -4,7 +4,7 @@ import { joinUserPath } from './join.ts';
 describe('joinUserPath', () => {
   it('склеивает относительный путь', () => {
     expect(joinUserPath('/static', 'images/cat.jpg')).toBe(
-      '/static/images/cat.jpg'
+      '/static/images/cat.jpg',
     );
   });
 

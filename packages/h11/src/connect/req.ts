@@ -107,7 +107,7 @@ export class MockIncomingMessage extends Transform implements IncomingMessage {
   _transform(
     chunk: any,
     encoding: BufferEncoding,
-    next: TransformCallback
+    next: TransformCallback,
   ): void {
     if (this._failError) {
       this.emit('error', this._failError);

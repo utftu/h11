@@ -1,5 +1,6 @@
 import { Radix } from './radix.ts';
-import type { DataModule, Handler, Method } from '../types.ts';
+import type { Handler, Method } from '../types.ts';
+import type { DataModule } from '../data-module.ts';
 import { createEventEmitter } from 'utftu';
 import {
   defaultOnError,
@@ -14,9 +15,12 @@ export class H11<TData extends Record<any, any> = {}> {
   radix = new Radix();
   ee = createEventEmitter<
     {
+      // text безопасно отдать наружу, error есть только у пятисотых и нужен
+      // для логов: в нём стек.
       code: {
         code: number;
         text: string;
+        error?: Error;
       };
     } & Record<string, any>
   >();
@@ -66,12 +70,16 @@ export class H11<TData extends Record<any, any> = {}> {
     return this;
   }
 
+  // Модуль, помеченный createDataModule, расширяет форму ctx.data: после
+  // .use(authModule) инстанс знает про data.user. Обычный хендлер под эти
+  // перегрузки не подходит — у него нет обязательного маркера, — и уезжает в
+  // две нижние, оставляя TData как есть.
   use<TAdded extends Record<any, any>>(
     pattern: string,
-    handler: DataModule<TAdded>,
+    module: DataModule<TAdded>,
   ): H11<TData & TAdded>;
   use<TAdded extends Record<any, any>>(
-    handler: DataModule<TAdded>,
+    module: DataModule<TAdded>,
   ): H11<TData & TAdded>;
   use(pattern: string, ...handlers: Handler<TData>[]): this;
   use(...handlers: Handler<TData>[]): this;

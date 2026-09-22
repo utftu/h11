@@ -50,7 +50,7 @@ export class MockServerResponse
   _transform(
     chunk: Buffer,
     encoding: BufferEncoding,
-    callback: TransformCallback
+    callback: TransformCallback,
   ): void {
     if (!this.started) {
       this.started = true;
@@ -97,7 +97,7 @@ export class MockServerResponse
   writeHead(
     statusCode: number,
     reasonOrHeaders?: string | Record<string, string>,
-    headers?: Record<string, string>
+    headers?: Record<string, string>,
   ): this {
     this.statusCode = statusCode;
 

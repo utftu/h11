@@ -7,7 +7,7 @@ export type SwitchParam = {
 
 export const switchFunc = async (
   conditions: SwitchParam[],
-  req: Request
+  req: Request,
 ): Promise<HandlerReturn> => {
   for (const condition of conditions) {
     if (await condition.check(req)) {

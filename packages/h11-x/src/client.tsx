@@ -46,7 +46,10 @@ export const Script: FC = () => {
   return h(Fragment, {}, [scriptKey]);
 };
 
-export const DataSet: FC<{ data: Record<any, any> }> = (_, { globalCtx }) => {
+// Данные берутся из globalCtx — туда их кладёт createPage при рендере. Своего
+// пропа у DataSet нет: два источника одних и тех же данных разъехались бы, а
+// гидрация читает ровно то, что сериализовано здесь.
+export const DataSet: FC = (_, { globalCtx }) => {
   const dataStr = escapeJson(JSON.stringify(globalCtx.data));
   return <template id={storage_id}>{dataStr}</template>;
 };
@@ -62,10 +65,7 @@ export const Body: FC = (_, { children }) => {
   return children;
 };
 
-export const Template: FC<{
-  data?: Record<string, any> | void;
-  children?: Child;
-}> = ({ data = {} }, { children }) => {
+export const Template: FC<{ children?: Child }> = (_, { children }) => {
   let heads: Child[] = [];
   let headProps = {};
   let bodies: Child[] = [];
@@ -95,7 +95,7 @@ export const Template: FC<{
       <html>
         <head {...headProps}>
           <Script />
-          <DataSet data={data} />
+          <DataSet />
           {heads}
         </head>
         <body {...bodyProps}>

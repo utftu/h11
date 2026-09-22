@@ -143,6 +143,19 @@ export class Radix {
     return { middlewares, matches };
   }
 
+  // Паттерн всегда абсолютный и никогда не кончается слэшем: "users" молча
+  // создал бы узел "sers" (первый символ срезается как слэш), а "/users/" —
+  // пустой сегмент в конце, который ничему не соответствует.
+  private checkPattern(pattern: string) {
+    if (!pattern.startsWith('/')) {
+      throw new Error(`Pattern "${pattern}" must start with "/"`);
+    }
+
+    if (pattern.length > 1 && pattern.endsWith('/')) {
+      throw new Error(`Pattern "${pattern}" must not end with "/"`);
+    }
+  }
+
   private findOrCreateNode(pattern: string): Node {
     const patternSegments = pattern.slice(1).split('/');
     let currentNode = this.root;
@@ -179,6 +192,8 @@ export class Radix {
   // предыдущие: два get на один путь — это цепочка, как и всё остальное в
   // роутере.
   add(pattern: string, method: Method = 'GET', handlers: Handler[]) {
+    this.checkPattern(pattern);
+
     if (pattern.endsWith('/**')) {
       const prefix = pattern.slice(0, -3);
       const node = prefix ? this.findOrCreateNode(prefix) : this.root;
@@ -195,6 +210,8 @@ export class Radix {
   // тот же узел, что и "/api". Без этого "**" уехал бы в имя статического
   // сегмента и миддлварь молча не подключилась бы.
   addMiddleware(pattern: string, handlers: Handler[]) {
+    this.checkPattern(pattern);
+
     const prefix = pattern.endsWith('/**') ? pattern.slice(0, -3) : pattern;
     const node =
       prefix === '' || prefix === '/'

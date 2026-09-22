@@ -25,12 +25,12 @@ const allowedCompressFormats = Object.keys(formats) as Format[];
 export async function gzipFile(
   inputPath: string,
   outputPath: string,
-  options?: ZlibOptions
+  options?: ZlibOptions,
 ): Promise<void> {
   await pipeline(
     createReadStream(inputPath),
     createGzip(options),
-    createWriteStream(outputPath)
+    createWriteStream(outputPath),
   );
 }
 
@@ -40,12 +40,12 @@ export async function gzipFile(
 export async function deflateFile(
   inputPath: string,
   outputPath: string,
-  options?: ZlibOptions
+  options?: ZlibOptions,
 ): Promise<void> {
   await pipeline(
     createReadStream(inputPath),
     createDeflate(options),
-    createWriteStream(outputPath)
+    createWriteStream(outputPath),
   );
 }
 
@@ -55,12 +55,12 @@ export async function deflateFile(
 export async function brotliFile(
   inputPath: string,
   outputPath: string,
-  options?: BrotliOptions
+  options?: BrotliOptions,
 ): Promise<void> {
   await pipeline(
     createReadStream(inputPath),
     createBrotliCompress(options),
-    createWriteStream(outputPath)
+    createWriteStream(outputPath),
   );
 }
 

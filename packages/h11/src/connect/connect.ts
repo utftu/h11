@@ -20,7 +20,7 @@ const makePath = (url: string) => {
 type ConnectMiddleware = (
   req: IncomingMessage,
   res: ServerResponse,
-  next: (err: any | void) => void
+  next: (err: any | void) => void,
 ) => void | Promise<void>;
 
 export const createConnectAdapter = ({
@@ -35,7 +35,9 @@ export const createConnectAdapter = ({
     const nodeReq = convertReqToNodeReq({
       req: ctx.req,
       url: makePath(
-        prefixToRemove ? deletePrefix(ctx.req.url, prefixToRemove) : ctx.req.url
+        prefixToRemove
+          ? deletePrefix(ctx.req.url, prefixToRemove)
+          : ctx.req.url,
       ),
     });
 
@@ -74,7 +76,7 @@ export const createConnectAdapter = ({
         }
         goNext = true;
         promiseEnt.controls.resolve();
-      }
+      },
     );
 
     await Promise.race([promiseEnt.promise, nodeRes.promiseEnt.promise]);
