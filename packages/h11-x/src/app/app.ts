@@ -1,3 +1,4 @@
+import type { Server as HttpServer } from 'node:http';
 import { H11, joinPath, serveFiles, createConnectAdapter } from 'h11';
 import {
   createServer as createViteServer,
@@ -10,6 +11,7 @@ import { readConfig } from '../assets/assets.ts';
 import type { ConfigH11X } from '../types.ts';
 import type { EditViteConfig, Route } from '../types.ts';
 import { loadEnvFile } from '../env/env.ts';
+import { createWsHost, createWsProxy } from '../dev-ws.ts';
 
 export type App = {
   h11: H11;
@@ -19,6 +21,9 @@ export type App = {
   // якоря: root для исходников и baseDir для собранного.
   root: string;
   baseDir: string;
+  // В деве приложение держит два слушающих сокета — vite и локальный хост
+  // его ws-канала, — поэтому гасить их надо вместе. В проде закрывать нечего.
+  close: () => Promise<void>;
 };
 
 export const createApp = async ({
@@ -51,7 +56,10 @@ export const createApp = async ({
   const devPrefixFull = joinPath(devPrefix, prefix);
 
   let vite: ViteDevServer | undefined;
+  let wsHost: { server: HttpServer; port: number } | undefined;
   if (!prod) {
+    wsHost = await createWsHost();
+
     vite = await createViteServer({
       ...viteConfig,
       // Корень vite — корень проекта: от него считаются пути к исходникам,
@@ -59,7 +67,13 @@ export const createApp = async ({
       root,
       plugins: [reganVite(), ...(viteConfig?.plugins ?? [])],
       base: devPrefixFull,
-      server: { ...viteConfig?.server, middlewareMode: true },
+      server: {
+        ...viteConfig?.server,
+        middlewareMode: true,
+        // Свой сервер для ws-канала: без него vite зашил бы в клиента порт
+        // 24678, и HMR не дошёл бы ни через https, ни через обратный прокси.
+        ws: { ...viteConfig?.server?.ws, server: wsHost.server },
+      },
       // h11-x — уже собранный пакет, а не исходники под HMR: пусть
       // ssrLoadModule требует его напрямую через Node, а не пытается
       // прогнать через свой трансформ/анализ импортов.
@@ -86,7 +100,11 @@ export const createApp = async ({
 
   const h11Internal = h11 || new H11();
 
-  if (!prod && vite) {
+  if (!prod && vite && wsHost) {
+    // Раньше connect-адаптера: апгрейд — это обычный GET, и http-мидлвари
+    // vite ответили бы на него первыми, до того как дело дошло бы до сокета.
+    h11Internal.use(devPrefixFull, createWsProxy(wsHost.port));
+
     // Registered as middleware (`.use()`), not `.get(..., '/**')`: `.get()`
     // wildcards are scoped to GET only (`node.wilds['GET']`), while vite's
     // dev middleware also needs to handle other methods (HMR, sourcemaps,
@@ -124,5 +142,19 @@ export const createApp = async ({
     }
   }
 
-  return { h11: h11Internal, vite, config, root, baseDir: baseDirPrepared };
+  // Сначала vite: он снимает с хоста свой слушатель апгрейдов, а уже потом
+  // хост закрывается сам.
+  const close = async () => {
+    await vite?.close();
+    wsHost?.server.close();
+  };
+
+  return {
+    h11: h11Internal,
+    vite,
+    config,
+    root,
+    baseDir: baseDirPrepared,
+    close,
+  };
 };
