@@ -1,7 +1,12 @@
 import { relative } from 'node:path';
 import { type ViteDevServer } from 'vite';
 import { joinPath } from 'h11';
-import { checkFile, createScriptText, getEntName } from './utils/utils.ts';
+import {
+  checkFile,
+  createCssLinkText,
+  createScriptText,
+  getEntName,
+} from './utils/utils.ts';
 import type {
   ConfigH11X,
   EditViteConfig,
@@ -160,19 +165,31 @@ export const renderSsr = async <TProps extends Record<any, any> = any>({
       const viteClient = joinPath(prefixPath, '/@vite/client');
       const jsClient = joinPath(prefixPath, route.client.src);
 
-      // Стили роута тут не нужны: их импортирует сам клиентский модуль, и
-      // vite отдаёт их с HMR. А корневые стили ничей импорт не тянет, поэтому
-      // подключаем их сами — тоже модулем, потому что в деве vite отдаёт css
-      // как js с HMR, и обычный <link> получил бы javascript.
-      const stylesScript =
+      // Корневые стили подключаются дважды, и это не ошибка. Ссылка с ?direct
+      // — чтобы браузер получил css вместе с разметкой и страница не моргнула
+      // нестилизованной. Модуль — чтобы работала горячая замена: vite отдаёт
+      // по этому же пути js, который вставляет стили и умеет обновляться.
+      // После горячей правки ссылка останется со старым содержимым, но
+      // вставленный модулем блок идёт в DOM позже и перебивает её.
+      // Платим лишней загрузкой файла в деве.
+      const stylesUrl =
         config.styles === undefined
-          ? ''
-          : createScriptText(joinPath(prefixPath, config.styles.src));
+          ? undefined
+          : joinPath(prefixPath, config.styles.src);
 
+      const stylesTags =
+        stylesUrl === undefined
+          ? ''
+          : createCssLinkText(`${stylesUrl}?direct`) +
+            createScriptText(stylesUrl);
+
+      // Стили роута тут не перечислить: в деве сборки нет, и какие css тянет
+      // клиентский модуль, знает только vite. Их по-прежнему подключает
+      // импорт внутри модуля — и они по-прежнему могут моргнуть.
       const script1 = createScriptText(viteClient);
       const script2 = createScriptText(jsClient);
 
-      const scripts = stylesScript + script1 + script2;
+      const scripts = stylesTags + script1 + script2;
       const htmlWithScript = html.replace(scriptKey, scripts);
 
       return htmlWithScript;

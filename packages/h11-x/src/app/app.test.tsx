@@ -163,3 +163,28 @@ describe('перенос собранного', () => {
     await rm(root, { recursive: true, force: true });
   }, 60_000);
 });
+
+describe('корневые стили в деве', () => {
+  it('приезжают ссылкой до скриптов и модулем для горячей замены', async () => {
+    const root = await makeProject();
+
+    const app = await createApp({ root, prod: false });
+    const getHtml = await renderSsr({ app, name: 'about' });
+    const html = getHtml();
+
+    const link =
+      '<link rel="stylesheet" href="/_vite/h11x/src/styles.css?direct">';
+    const module =
+      '<script type="module" defer src="/_vite/h11x/src/styles.css"></script>';
+
+    expect(html).toContain(link);
+    expect(html).toContain(module);
+
+    // Ссылка раньше любого скрипта — иначе разметка успеет отрисоваться
+    // нестилизованной.
+    expect(html.indexOf(link)).toBeLessThan(html.indexOf('<script'));
+
+    await app.vite!.close();
+    await rm(root, { recursive: true, force: true });
+  }, 60_000);
+});
