@@ -86,6 +86,9 @@ export const renderSsr = async <TProps extends Record<any, any> = any>({
     );
   }
 
+  // Режим решает config.prod, записанный сборкой. Если он говорит dev, а
+  // vite-сервера нет — это рассогласование сборки и запуска, и правильно
+  // упасть сразу, а не отрендерить что-то наполовину рабочее.
   if (config.prod) {
     // Прод: берём собранный модуль и готовые теги ассетов из config.json.
     const { page } = await import(/* @vite-ignore */ route.server.out);
@@ -100,7 +103,13 @@ export const renderSsr = async <TProps extends Record<any, any> = any>({
   } else {
     // Dev: модуль исполняет vite прямо из исходника, поэтому страница видит
     // свежий код без пересборки.
-    const { page } = await vite!.ssrLoadModule(route.server.src);
+    if (vite === undefined) {
+      throw new Error(
+        `Route ${name}: config says dev, but there is no vite server — rebuild with prod: true or start the app in dev`,
+      );
+    }
+
+    const { page } = await vite.ssrLoadModule(route.server.src);
     return () => {
       const html = page(props);
 

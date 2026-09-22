@@ -156,6 +156,14 @@ export const buildH11X = async ({
       throw new Error(`No .client, .ssr or .ssg file for route ${dir}`);
     }
 
+    // Один только .client собирать некуда: без .ssr или .ssg нет ни страницы,
+    // ни списка страниц, и роут молча выпал бы из сборки и из config.json.
+    if (clientFile && !ssrFile && !ssgFile) {
+      throw new Error(
+        `Route ${dir} has .client but no .ssr or .ssg file — nothing to render`,
+      );
+    }
+
     // Страница гидрируется на клиенте, поэтому сборке нужны оба файла — без
     // .client некому подхватить разметку в браузере.
     if ((ssrFile || ssgFile) && !clientFile) {

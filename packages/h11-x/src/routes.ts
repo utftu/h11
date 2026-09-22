@@ -41,13 +41,17 @@ const walkRoutesDir = async (dir: string, name: string): Promise<Route[]> => {
   return nested.flat();
 };
 
-export const getDefaultRoutes = async (): Promise<Route[]> => {
-  const rootDir = getDefaultRoutesDir();
-
+// Каталог берётся параметром, а не из cwd: так же зовётся из тестов, и так
+// видно, что своего знания о проекте у обхода нет.
+export const getRoutes = async (rootDir: string): Promise<Route[]> => {
   const dirs = await readDirs(rootDir);
   const routes = await Promise.all(
     dirs.map((entName) => walkRoutesDir(`${rootDir}/${entName}`, entName)),
   );
 
   return routes.flat();
+};
+
+export const getDefaultRoutes = async (): Promise<Route[]> => {
+  return getRoutes(getDefaultRoutesDir());
 };

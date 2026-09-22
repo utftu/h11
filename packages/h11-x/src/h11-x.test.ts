@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'bun:test';
-import { mkdir } from 'node:fs/promises';
+import { mkdir, mkdtemp, rm as rmDir, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
 import { pid } from 'process';
 import { rm } from 'node:fs/promises';
 import { readConfig } from './assets.ts';
@@ -43,5 +44,60 @@ describe('buildH11X без роутов', () => {
     } finally {
       await rm(baseDir, { recursive: true, force: true });
     }
+  });
+});
+
+describe('buildH11X: проверка файлов роута', () => {
+  // Валидация роутов идёт до единой vite-сборки, поэтому такие случаи падают
+  // ещё до того, как что-то соберётся — каталоги можно не наполнять.
+  const makeRoute = async (files: string[]) => {
+    const baseDir = await mkdtemp(`${tmpdir()}/h11x-routes-`);
+    const dir = `${baseDir}/about`;
+    await mkdir(dir, { recursive: true });
+
+    for (const file of files) {
+      await writeFile(`${dir}/${file}`, '');
+    }
+
+    return { baseDir, dir };
+  };
+
+  const build = (baseDir: string, dir: string) =>
+    buildH11X({ baseDir: `${baseDir}/.h11x`, routes: [dir] });
+
+  it('пустая папка роута', async () => {
+    const { baseDir, dir } = await makeRoute([]);
+
+    expect(build(baseDir, dir)).rejects.toThrow('No .client, .ssr or .ssg');
+
+    await rmDir(baseDir, { recursive: true, force: true });
+  });
+
+  it('только .client — рендерить нечего', async () => {
+    const { baseDir, dir } = await makeRoute(['about.client.tsx']);
+
+    expect(build(baseDir, dir)).rejects.toThrow('nothing to render');
+
+    await rmDir(baseDir, { recursive: true, force: true });
+  });
+
+  it('.ssr без .client — некому гидрировать', async () => {
+    const { baseDir, dir } = await makeRoute(['about.ssr.tsx']);
+
+    expect(build(baseDir, dir)).rejects.toThrow('but no .client file');
+
+    await rmDir(baseDir, { recursive: true, force: true });
+  });
+
+  it('.ssr и .ssg вместе — непонятно, какой режим', async () => {
+    const { baseDir, dir } = await makeRoute([
+      'about.client.tsx',
+      'about.ssr.tsx',
+      'about.ssg.tsx',
+    ]);
+
+    expect(build(baseDir, dir)).rejects.toThrow('pick one mode');
+
+    await rmDir(baseDir, { recursive: true, force: true });
   });
 });

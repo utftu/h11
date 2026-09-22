@@ -14,7 +14,7 @@ import { buildClient, buildServer } from './build.ts';
 // Путь страницы становится файлом внутри каталога ассетов: "/blog" → blog.html,
 // "/blog/first" → blog/first.html, корень → index.html. Именно в таком виде их
 // потом находит раздача статики: /blog отдаёт blog.html, / отдаёт index.html.
-const getPageFile = (pathname: string) => {
+export const getPageFile = (pathname: string) => {
   const cleaned = pathname.split('/').filter(Boolean).join('/');
 
   if (cleaned === '') {

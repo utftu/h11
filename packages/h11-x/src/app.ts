@@ -83,14 +83,29 @@ export const createApp = async ({
     );
   }
 
+  const assetsDir = `${baseDirPrepared}/assets`;
+
+  // Ассеты с хешами в именах живут в своём пространстве имён, поэтому тут
+  // wildcard уместен: снаружи он ничего лишнего не открывает.
   h11Internal.get(
     `${prefix}/**`,
-    serveFiles({ dir: `${baseDirPrepared}/assets`, prefix: `${prefix}/` }),
+    serveFiles({ dir: assetsDir, prefix: `${prefix}/` }),
   );
-  h11Internal.get(
-    '/**',
-    serveFiles({ dir: `${baseDirPrepared}/assets`, prefix: '' }),
-  );
+
+  // Страницы ssg отдаются поимённо, а не ловушкой на "/**". Ловушка открыла
+  // бы с корня сайта весь каталог сборки, делала бы поход в файловую систему
+  // на каждый мусорный url и занимала бы единственный корневой слот, который
+  // может понадобиться самому приложению.
+  const servePage = serveFiles({ dir: assetsDir, prefix: '' });
+  for (const route of Object.values(config.routes)) {
+    if (route.mode !== 'ssg') {
+      continue;
+    }
+
+    for (const { pathname } of route.pages) {
+      h11Internal.get(pathname, servePage);
+    }
+  }
 
   return { h11: h11Internal, vite, config };
 };
