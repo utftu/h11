@@ -4,6 +4,9 @@
   "license": "MIT",
   "type": "module",
   "private": true,
+  "scripts": {
+    "dev": "bun src/server.ts"
+  },
   "dependencies": {
     "h11": "*",
     "h11-x": "*",

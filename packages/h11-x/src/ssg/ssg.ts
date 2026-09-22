@@ -54,6 +54,7 @@ export const makeSsg = async ({
     const serverOut = await buildServer({
       entry: ssgFile,
       outDirName: 'ssg',
+      root,
       baseDir,
       mode: 'ssg',
       route,
@@ -64,6 +65,7 @@ export const makeSsg = async ({
       entry: clientFile,
       mode: 'ssg',
       route,
+      root,
       baseDir,
       prefix,
       editViteConfig,

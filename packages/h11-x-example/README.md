@@ -6,8 +6,10 @@
 
 ```bash
 cp .env.example .env   # опционально — проверить проброс PUBLIC_*-переменных
-bun run src/server.ts
+bun run dev
 ```
+
+Запускать надо именно из этой папки: `root` по умолчанию — рабочий каталог, оттуда же берутся `.env` и `src/routes`. Из `src/` пример падает на `Cannot find module 'react/jsx-dev-runtime'` — туда не доезжает `jsxImportSource: "regan"`.
 
 Откроется на `http://localhost:3000/about`, dev-режим (`prod: false`) — с HMR через Vite.
 

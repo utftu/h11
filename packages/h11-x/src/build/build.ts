@@ -14,6 +14,11 @@ import type { EditViteConfig, Route, RouteClientOut } from '../types.ts';
 export const defaultPrefix = '/h11x';
 export const defaultDevPrefix = '/_vite';
 
+// Корень vite во всех трёх сборках — корень проекта, тот же, что у
+// dev-сервера. От него плагины считают, где искать контент: tailwind без этого
+// сканировал бы рабочий каталог процесса, и запуск сборки не из корня проекта
+// терял бы классы из src/routes. Оттуда же vite берёт vite.config и .env.
+
 type BuildProps = {
   root?: string;
   baseDir?: string;
@@ -73,6 +78,7 @@ export const buildStyles = async ({
   }
 
   const config = defineConfig({
+    root,
     base: `${prefix}/`,
     build: {
       rollupOptions: { input: entry },
@@ -104,6 +110,7 @@ export const buildStyles = async ({
 export const buildServer = async ({
   entry,
   outDirName,
+  root,
   baseDir,
   mode,
   route,
@@ -111,12 +118,14 @@ export const buildServer = async ({
 }: {
   entry: string;
   outDirName: string;
+  root: string;
   baseDir: string;
   mode: 'ssr' | 'ssg';
   route: Route;
   editViteConfig: EditViteConfig;
 }) => {
   const config = defineConfig({
+    root,
     build: {
       outDir: joinPath(baseDir, outDirName),
       lib: {
@@ -143,6 +152,7 @@ export const buildClient = async ({
   entry,
   mode,
   route,
+  root,
   baseDir,
   prefix,
   editViteConfig,
@@ -150,11 +160,13 @@ export const buildClient = async ({
   entry: string;
   mode: 'ssr' | 'ssg';
   route: Route;
+  root: string;
   baseDir: string;
   prefix: string;
   editViteConfig: EditViteConfig;
 }): Promise<RouteClientOut> => {
   const config = defineConfig({
+    root,
     base: `${prefix}/`,
     build: {
       rollupOptions: {

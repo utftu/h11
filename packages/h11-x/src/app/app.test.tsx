@@ -16,12 +16,16 @@ const makeProject = async () => {
   await mkdir(about, { recursive: true });
   await mkdir(blog, { recursive: true });
 
+  // Css лежит не только рядом с клиентским входом, но и в общем компоненте:
+  // так его находит только обход графа, а не взгляд на сам вход.
   await writeFile(
     `${about}/about.tsx`,
-    `import {Template} from 'h11-x/client';
-export const About = ({text}) => <Template><div>{text}</div></Template>;
+    `import './hero.css';
+import {Template} from 'h11-x/client';
+export const About = ({text}) => <Template><div class="hero">{text}</div></Template>;
 `,
   );
+  await writeFile(`${about}/hero.css`, `.hero{font-weight:700}`);
   await writeFile(
     `${about}/about.ssr.tsx`,
     `import {createPage} from 'h11-x';
@@ -74,8 +78,22 @@ describe('createApp в проде', () => {
   it('собирает роуты, раздаёт статику и рендерит ssr', async () => {
     const root = await makeProject();
 
-    await buildH11X({ root, prod: true });
+    // Корень vite у каждой сборки — корень проекта, а не рабочий каталог
+    // процесса: от него плагины вроде tailwind ищут контент.
+    const viteRoots: string[] = [];
+
+    await buildH11X({
+      root,
+      prod: true,
+      editViteConfig: (_, config) => {
+        viteRoots.push(config.root as string);
+        return config;
+      },
+    });
     const app = await createApp({ root, prod: true });
+
+    expect(viteRoots.length).toBeGreaterThan(0);
+    expect([...new Set(viteRoots)]).toEqual([root]);
     const server = Bun.serve({
       port: 0,
       fetch: createServer({ h11: app.h11 }),
@@ -164,27 +182,40 @@ describe('перенос собранного', () => {
   }, 60_000);
 });
 
-describe('корневые стили в деве', () => {
-  it('приезжают ссылкой до скриптов', async () => {
+describe('стили в деве', () => {
+  it('приезжают ссылками до скриптов', async () => {
     const root = await makeProject();
 
     const app = await createApp({ root, prod: false });
     const getHtml = await renderSsr({ app, name: 'about' });
     const html = getHtml();
 
-    const link =
-      '<link rel="stylesheet" href="/_vite/h11x/src/styles.css?direct">';
+    const prefix = '/_vite/h11x/src';
+    const rootLink = `<link rel="stylesheet" href="${prefix}/styles.css?direct">`;
+    // Импортируется прямо клиентским входом.
+    const routeLink = `<link rel="stylesheet" href="${prefix}/routes/about/about.css?direct">`;
+    // А этот — общим компонентом, то есть на шаг глубже.
+    const deepLink = `<link rel="stylesheet" href="${prefix}/routes/about/hero.css?direct">`;
 
-    expect(html).toContain(link);
-    // Модуля с тем же файлом быть не должно: он дал бы вторую загрузку и
+    expect(html).toContain(rootLink);
+    expect(html).toContain(routeLink);
+    expect(html).toContain(deepLink);
+
+    // Модуля с корневым файлом быть не должно: он дал бы вторую загрузку и
     // вторую копию стилей в DOM.
     expect(html).not.toContain(
-      '<script type="module" defer src="/_vite/h11x/src/styles.css">',
+      `<script type="module" defer src="${prefix}/styles.css">`,
     );
 
-    // Ссылка раньше любого скрипта — иначе разметка успеет отрисоваться
-    // нестилизованной.
-    expect(html.indexOf(link)).toBeLessThan(html.indexOf('<script'));
+    // Корневые стили раньше стилей роута — как и в проде, чтобы страница
+    // перебивала общее. И всё это раньше любого скрипта, иначе разметка
+    // успеет отрисоваться нестилизованной.
+    expect(html.indexOf(rootLink)).toBeLessThan(html.indexOf(routeLink));
+    // Порядок ссылок повторяет порядок импортов — ради этого обход идёт
+    // последовательно.
+    expect(html.indexOf(routeLink)).toBeLessThan(html.indexOf(deepLink));
+    expect(html.indexOf(routeLink)).toBeLessThan(html.indexOf('<script'));
+    expect(html.indexOf(deepLink)).toBeLessThan(html.indexOf('<script'));
 
     await app.vite!.close();
     await rm(root, { recursive: true, force: true });

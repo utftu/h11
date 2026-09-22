@@ -1,12 +1,7 @@
 import { relative } from 'node:path';
 import { type ViteDevServer } from 'vite';
 import { joinPath } from 'h11';
-import {
-  checkFile,
-  createCssLinkText,
-  createScriptText,
-  getEntName,
-} from './utils/utils.ts';
+import { checkFile, createScriptText, getEntName } from './utils/utils.ts';
 import type {
   ConfigH11X,
   EditViteConfig,
@@ -18,6 +13,7 @@ import { stringify, type FC } from 'regan';
 import { getPublicEnvs } from './env/env.ts';
 import { createAssetsHtml } from './assets/assets.ts';
 import { buildClient, buildServer } from './build/build.ts';
+import { getDevStylesTags } from './dev-styles.ts';
 
 // Собирает ssr-роуты и возвращает свою часть config.json. Сам ничего не пишет:
 // конфиг целиком, вместе с ssg, собирает и записывает buildH11X.
@@ -68,6 +64,7 @@ export const makeSsr = async ({
     const serverOut = await buildServer({
       entry: ssrFile,
       outDirName: 'ssr',
+      root,
       baseDir,
       mode: 'ssr',
       route,
@@ -78,6 +75,7 @@ export const makeSsr = async ({
       entry: clientFile,
       mode: 'ssr',
       route,
+      root,
       baseDir,
       prefix,
       editViteConfig,
@@ -155,38 +153,29 @@ export const renderSsr = async <TProps extends Record<any, any> = any>({
     }
 
     const { page } = await vite.ssrLoadModule(joinPath(root, route.server.src));
+
+    // В деве файлы отдаёт сам vite со своего префикса, а не serveFiles,
+    // поэтому путь строится от devPrefix и ведёт к исходнику, не к сборке.
+    const prefixPath = joinPath(config.devPrefix, config.prefix);
+
+    // Теги от пропсов не зависят, поэтому считаются один раз — заодно
+    // единственный await остаётся за пределами рендера.
+    const stylesTags = await getDevStylesTags({
+      vite,
+      prefix: prefixPath,
+      entry: route.client.src,
+      rootStyles: config.styles?.src,
+    });
+
+    const viteClient = createScriptText(joinPath(prefixPath, '/@vite/client'));
+    const jsClient = createScriptText(joinPath(prefixPath, route.client.src));
+
+    const devHtml = stylesTags + viteClient + jsClient;
+
     return () => {
       const html = page(props);
 
-      // В деве файлы отдаёт сам vite со своего префикса, а не serveFiles,
-      // поэтому путь строится от devPrefix и ведёт к исходнику, не к сборке.
-      const prefixPath = joinPath(config.devPrefix, config.prefix);
-
-      const viteClient = joinPath(prefixPath, '/@vite/client');
-      const jsClient = joinPath(prefixPath, route.client.src);
-
-      // Корневые стили — ссылкой с ?direct: по такому запросу vite отдаёт
-      // готовый css, и браузер получает стили вместе с разметкой, без
-      // моргания. Горячая замена при этом работает: на правку файла vite
-      // присылает css-update именно на этот путь, а его клиент подменяет
-      // сам <link>, удаляя старый. Модуль тут не нужен — он дал бы вторую
-      // загрузку того же файла и вторую копию стилей в DOM.
-      const stylesTags =
-        config.styles === undefined
-          ? ''
-          : createCssLinkText(
-              `${joinPath(prefixPath, config.styles.src)}?direct`,
-            );
-
-      // Стили роута тут не перечислить: в деве сборки нет, и какие css тянет
-      // клиентский модуль, знает только vite. Их по-прежнему подключает
-      // импорт внутри модуля — и они по-прежнему могут моргнуть.
-      const script1 = createScriptText(viteClient);
-      const script2 = createScriptText(jsClient);
-
-      const scripts = stylesTags + script1 + script2;
-      const htmlWithScript = html.replace(scriptKey, scripts);
-
+      const htmlWithScript = html.replace(scriptKey, devHtml);
       return htmlWithScript;
     };
   }
