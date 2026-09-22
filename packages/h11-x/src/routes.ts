@@ -1,11 +1,6 @@
 import { readdir } from 'node:fs/promises';
-import { cwd } from 'node:process';
 import type { Route } from './types.ts';
 import { checkFileOptional, getEntName } from './utils.ts';
-
-export const getDefaultRoutesDir = () => {
-  return `${cwd()}/src/routes`;
-};
 
 // Роутом считается директория, где есть файл по конвенции
 // <имя-папки>.client.{ts,tsx}, .ssr.{ts,tsx} или .ssg.{ts,tsx} — имя роута при
@@ -52,6 +47,8 @@ export const getRoutes = async (rootDir: string): Promise<Route[]> => {
   return routes.flat();
 };
 
-export const getDefaultRoutes = async (): Promise<Route[]> => {
-  return getRoutes(getDefaultRoutesDir());
+// Роуты живут в src/routes корня проекта — того самого root, откуда читается
+// .env, а не рабочего каталога процесса.
+export const getProjectRoutes = async (root: string): Promise<Route[]> => {
+  return getRoutes(`${root}/src/routes`);
 };

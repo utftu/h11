@@ -62,10 +62,18 @@ export class Radix {
   // вариантом. Порядок вариантов — это и есть приоритет, дальше exec просто
   // идёт по списку сверху вниз.
   find(path: string, method: Method = 'GET'): FindResult {
+    // "/hello/" — это тот же маршрут, что и "/hello": хвостовой слэш даёт
+    // пустой сегмент в конце, которому ничего не соответствует. Корень
+    // остаётся корнем.
+    let pathPrepared = path;
+    while (pathPrepared.length > 1 && pathPrepared.endsWith('/')) {
+      pathPrepared = pathPrepared.slice(0, -1);
+    }
+
     // "/users/42" → ['', 'users', '42']. Первый сегмент пустой, и ему
     // соответствует корневой узел, поэтому индекс сегмента и глубина узла
     // совпадают.
-    const segments = path.split('/');
+    const segments = pathPrepared.split('/');
 
     const middlewares: Handler[] = [];
     const matches: Match[] = [];

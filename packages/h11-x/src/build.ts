@@ -5,7 +5,7 @@ import { defu } from 'defu';
 import { reganVite } from 'regan-vite';
 import { collectClientOut, writeConfig } from './assets.ts';
 import { checkFileOptional, getEntName } from './utils.ts';
-import { getDefaultRoutes } from './routes.ts';
+import { getProjectRoutes } from './routes.ts';
 import { makeSsr } from './ssr.tsx';
 import { makeSsg } from './ssg.ts';
 import type { EditViteConfig, Route, RouteClientOut } from './types.ts';
@@ -15,6 +15,7 @@ export const defaultPrefix = '/h11x';
 export const defaultDevPrefix = '/_vite';
 
 type BuildProps = {
+  root?: string;
   baseDir?: string;
   routes?: (string | Route)[];
   prod?: boolean;
@@ -135,6 +136,7 @@ export const makeRouteUniversal = (route: string | Route) => {
 };
 
 export const buildH11X = async ({
+  root = process.cwd(),
   baseDir,
   prod = process.env.NODE_ENV === 'production',
   routes,
@@ -142,11 +144,11 @@ export const buildH11X = async ({
   devPrefix = defaultDevPrefix,
   editViteConfig = (_, config) => config,
 }: BuildProps) => {
-  const baseDirPrepared = baseDir || `${process.cwd()}/.h11x`;
+  const baseDirPrepared = baseDir || `${root}/.h11x`;
 
   await rm(baseDirPrepared, { recursive: true, force: true });
 
-  const routesResolved = routes ?? (await getDefaultRoutes());
+  const routesResolved = routes ?? (await getProjectRoutes(root));
 
   const ssrRoutes: Route[] = [];
   const ssgRoutes: Route[] = [];
@@ -154,7 +156,7 @@ export const buildH11X = async ({
   for (const route of routesResolved) {
     const { dir, name } = makeRouteUniversal(route);
     // Файлы внутри dir всегда именуются по basename самой директории, даже
-    // если name — вложенный путь вида "blog/aleksei" (см. getDefaultRoutes).
+    // если name — вложенный путь вида "blog/aleksei" (см. getProjectRoutes).
     const fileName = getEntName(dir);
 
     const ssrFile = await checkFileOptional(dir, `${fileName}.ssr`);

@@ -1,10 +1,14 @@
 import { describe, expect, it } from 'bun:test';
 import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { getDefaultRoutes, getRoutes } from './routes.ts';
+import { getProjectRoutes, getRoutes } from './routes.ts';
 
 const makeTree = async (files: string[]) => {
   const root = await mkdtemp(`${tmpdir()}/h11x-tree-`);
+
+  if (files.length === 0) {
+    return root;
+  }
 
   for (const file of files) {
     const parts = file.split('/');
@@ -68,10 +72,22 @@ describe('getRoutes', () => {
   });
 });
 
-describe('getDefaultRoutes', () => {
-  it('в проекте без src/routes роутов нет', async () => {
-    const routes = await getDefaultRoutes();
+describe('getProjectRoutes', () => {
+  it('ищет роуты в src/routes переданного корня', async () => {
+    const root = await makeTree(['src/routes/about/about.ssr.tsx']);
 
-    expect(Array.isArray(routes)).toBe(true);
+    expect(await getProjectRoutes(root)).toEqual([
+      { dir: `${root}/src/routes/about`, name: 'about' },
+    ]);
+
+    await rm(root, { recursive: true, force: true });
+  });
+
+  it('в проекте без src/routes роутов нет', async () => {
+    const root = await makeTree([]);
+
+    expect(await getProjectRoutes(root)).toEqual([]);
+
+    await rm(root, { recursive: true, force: true });
   });
 });

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'bun:test';
 import { stringify } from 'regan';
-import { Body, escapeJson, Head, Template } from './client.tsx';
+import { Body, escapeJson, getStorageHtml, Head, Template } from './client.tsx';
 
 describe('escapeJson', () => {
   it('прячет символы, которыми можно выйти из <template>', () => {
@@ -33,5 +33,32 @@ describe('Template', () => {
     expect(html).toInclude('<title>Заголовок</title></head>');
     expect(html).toInclude('<body class="page">');
     expect(html).toInclude('<div>тело</div>');
+  });
+});
+
+// Настоящего DOM в тестах нет, а getStorageHtml принимает окно параметром —
+// поэтому подсовываем заглушку с тем же интерфейсом, что и <template>.
+const makeWindow = (text: string | undefined) =>
+  ({
+    document: {
+      getElementById: (id: string) =>
+        id === 'h11x_storage_id' && text !== undefined
+          ? { content: { textContent: text } }
+          : null,
+    },
+  }) as unknown as Window;
+
+describe('getStorageHtml', () => {
+  it('читает то, что записал DataSet, включая экранированное', () => {
+    const data = { envs: {}, props: { text: 'a & b </template>' } };
+    const window = makeWindow(escapeJson(JSON.stringify(data)));
+
+    expect(getStorageHtml(window)).toEqual(data);
+  });
+
+  it('без элемента бросает понятную ошибку', () => {
+    expect(() => getStorageHtml(makeWindow(undefined))).toThrow(
+      'No storage element',
+    );
   });
 });

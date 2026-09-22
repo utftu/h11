@@ -61,6 +61,7 @@ export const createApp = async ({
   }
 
   await buildH11X({
+    root,
     baseDir: baseDirPrepared,
     prod,
     routes,

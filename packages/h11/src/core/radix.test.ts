@@ -269,3 +269,35 @@ describe('проверка паттерна', () => {
     expect(() => radix.add('/', 'GET', handlerEnt)).not.toThrow();
   });
 });
+
+describe('хвостовой слэш в запросе', () => {
+  it('/hello/ находит маршрут /hello', () => {
+    const radix = new Radix();
+    radix.add('/hello', 'GET', handlerEnt);
+
+    expect(find(radix, '/hello/').handlers).toContain(handler);
+  });
+
+  it('работает и для параметров', () => {
+    const radix = new Radix();
+    radix.add('/users/:id', 'GET', handlerEnt);
+
+    const result = find(radix, '/users/42/');
+    expect(result.handlers).toContain(handler);
+    expect(result.params.id).toBe('42');
+  });
+
+  it('несколько слэшей подряд тоже срезаются', () => {
+    const radix = new Radix();
+    radix.add('/hello', 'GET', handlerEnt);
+
+    expect(find(radix, '/hello///').handlers).toContain(handler);
+  });
+
+  it('корень остаётся корнем', () => {
+    const radix = new Radix();
+    radix.add('/', 'GET', handlerEnt);
+
+    expect(find(radix, '/').handlers).toContain(handler);
+  });
+});
