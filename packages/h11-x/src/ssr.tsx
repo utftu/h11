@@ -7,6 +7,7 @@ import type {
   EditViteConfig,
   Route,
   RouteConfig,
+  ViteBase,
 } from './types.ts';
 import { scriptKey } from './consts.ts';
 import { stringify, type FC } from 'regan';
@@ -23,6 +24,7 @@ export const makeSsr = async ({
   baseDir,
   prod,
   prefix,
+  viteBase,
   editViteConfig,
 }: {
   routes: Route[];
@@ -30,6 +32,7 @@ export const makeSsr = async ({
   baseDir: string;
   prod: boolean;
   prefix: string;
+  viteBase: ViteBase;
   editViteConfig: EditViteConfig;
 }): Promise<Record<string, RouteConfig>> => {
   const store: Record<string, RouteConfig> = {};
@@ -68,6 +71,7 @@ export const makeSsr = async ({
       baseDir,
       mode: 'ssr',
       route,
+      viteBase,
       editViteConfig,
     });
 
@@ -78,6 +82,7 @@ export const makeSsr = async ({
       root,
       baseDir,
       prefix,
+      viteBase,
       editViteConfig,
     });
 

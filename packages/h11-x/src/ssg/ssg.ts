@@ -8,6 +8,7 @@ import type {
   RouteConfig,
   RoutePage,
   SsgPages,
+  ViteBase,
 } from '../types.ts';
 import { scriptKey } from '../consts.ts';
 import { createAssetsHtml } from '../assets/assets.ts';
@@ -34,6 +35,7 @@ export const makeSsg = async ({
   baseDir,
   prefix,
   styles,
+  viteBase,
   editViteConfig,
 }: {
   routes: Route[];
@@ -41,6 +43,7 @@ export const makeSsg = async ({
   baseDir: string;
   prefix: string;
   styles?: ConfigStyles;
+  viteBase: ViteBase;
   editViteConfig: EditViteConfig;
 }): Promise<Record<string, RouteConfig>> => {
   const store: Record<string, RouteConfig> = {};
@@ -58,6 +61,7 @@ export const makeSsg = async ({
       baseDir,
       mode: 'ssg',
       route,
+      viteBase,
       editViteConfig,
     });
 
@@ -68,6 +72,7 @@ export const makeSsg = async ({
       root,
       baseDir,
       prefix,
+      viteBase,
       editViteConfig,
     });
 

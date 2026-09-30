@@ -240,6 +240,56 @@ describe('стили в деве', () => {
   }, 60_000);
 });
 
+describe('viteBase', () => {
+  it('доезжает и до dev-сервера, и до каждой сборки', async () => {
+    const root = await makeProject();
+
+    // Плагин-метка: записывает, в каком корне и с каким входом его позвали.
+    const seen: string[] = [];
+    const viteBase = () => ({
+      plugins: [
+        {
+          name: 'метка',
+          configResolved: (config: any) => {
+            seen.push(config.command);
+          },
+        },
+      ],
+    });
+
+    await buildH11X({ root, prod: true, viteBase });
+
+    // Стили, клиент и сервер каждого из двух роутов — пять сборок.
+    expect(seen.length).toBe(5);
+    expect([...new Set(seen)]).toEqual(['build']);
+
+    seen.length = 0;
+
+    const app = await createApp({ root, prod: false, viteBase });
+
+    // Dev-сервер получает тот же base, но своим инстансом плагина.
+    expect(seen).toContain('serve');
+
+    await app.close();
+    await rm(root, { recursive: true, force: true });
+  }, 60_000);
+
+  it('host уезжает в allowedHosts dev-сервера', async () => {
+    const root = await makeProject();
+
+    const app = await createApp({
+      root,
+      prod: false,
+      host: 'dispute.local.dev',
+    });
+
+    expect(app.vite!.config.server.allowedHosts).toContain('dispute.local.dev');
+
+    await app.close();
+    await rm(root, { recursive: true, force: true });
+  }, 60_000);
+});
+
 describe('HMR-канал в деве', () => {
   it('идёт через наш origin и доносит события до браузера', async () => {
     const root = await makeProject();

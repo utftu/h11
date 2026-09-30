@@ -2,14 +2,15 @@ import type { Server as HttpServer } from 'node:http';
 import { H11, joinPath, serveFiles, createConnectAdapter } from 'h11';
 import {
   createServer as createViteServer,
+  type InlineConfig,
   type ViteDevServer,
-  type UserConfig,
 } from 'vite';
+import { defu } from 'defu';
 import { buildH11X, defaultPrefix, defaultDevPrefix } from '../build/build.ts';
 import { reganVite } from 'regan/vite';
 import { readConfig } from '../assets/assets.ts';
 import type { ConfigH11X } from '../types.ts';
-import type { EditViteConfig, Route } from '../types.ts';
+import type { EditViteConfig, Route, ViteBase } from '../types.ts';
 import { loadEnvFile } from '../env/env.ts';
 import { createWsHost, createWsProxy } from '../dev-ws.ts';
 
@@ -33,8 +34,9 @@ export const createApp = async ({
   prod = process.env.NODE_ENV === 'production',
   prefix = defaultPrefix,
   devPrefix = defaultDevPrefix,
+  host,
+  viteBase = () => ({}),
   editViteConfig = (_, config) => config,
-  viteConfig,
   h11,
 }: {
   root?: string;
@@ -43,8 +45,12 @@ export const createApp = async ({
   prod?: boolean;
   prefix?: string;
   devPrefix?: string;
+  // Домен, под которым приложение открывают снаружи. Нужен только деву: за
+  // обратным прокси vite видит в запросе чужой для себя хост и отвергает его,
+  // пока тот не назван.
+  host?: string;
+  viteBase?: ViteBase;
   editViteConfig?: EditViteConfig;
-  viteConfig?: UserConfig;
   h11?: H11;
 } = {}): Promise<App> => {
   // root — корень проекта, baseDir — каталог сборки. Раньше это был один
@@ -60,25 +66,29 @@ export const createApp = async ({
   if (!prod) {
     wsHost = await createWsHost();
 
-    vite = await createViteServer({
-      ...viteConfig,
+    // Наш конфиг идёт первым: defu отдаёт ему приоритет и склеивает массивы в
+    // том же порядке, поэтому reganVite оказывается перед плагинами
+    // приложения, а middlewareMode и ws перебить нельзя.
+    const config: InlineConfig = {
       // Корень vite — корень проекта: от него считаются пути к исходникам,
       // которые лежат в config.json и уходят в dev-url.
       root,
-      plugins: [reganVite(), ...(viteConfig?.plugins ?? [])],
+      plugins: [reganVite()],
       base: devPrefixFull,
       server: {
-        ...viteConfig?.server,
         middlewareMode: true,
+        allowedHosts: host === undefined ? undefined : [host],
         // Свой сервер для ws-канала: без него vite зашил бы в клиента порт
         // 24678, и HMR не дошёл бы ни через https, ни через обратный прокси.
-        ws: { ...viteConfig?.server?.ws, server: wsHost.server },
+        ws: { server: wsHost.server },
       },
       // h11-x — уже собранный пакет, а не исходники под HMR: пусть
       // ssrLoadModule требует его напрямую через Node, а не пытается
       // прогнать через свой трансформ/анализ импортов.
-      ssr: { external: ['h11-x'], ...viteConfig?.ssr },
-    });
+      ssr: { external: ['h11-x'] },
+    };
+
+    vite = await createViteServer(defu(config, viteBase()) as InlineConfig);
   }
 
   // В проде ничего не собирается: там уже лежит результат buildH11X со
@@ -92,6 +102,7 @@ export const createApp = async ({
       routes,
       prefix,
       devPrefix,
+      viteBase,
       editViteConfig,
     });
   }

@@ -8,7 +8,12 @@ import { checkFileOptional, getEntName } from '../utils/utils.ts';
 import { getProjectRoutes } from '../routes/routes.ts';
 import { makeSsr } from '../ssr.tsx';
 import { makeSsg } from '../ssg/ssg.ts';
-import type { EditViteConfig, Route, RouteClientOut } from '../types.ts';
+import type {
+  EditViteConfig,
+  Route,
+  RouteClientOut,
+  ViteBase,
+} from '../types.ts';
 
 // Префикс раздачи ассетов и префикс, под которым в деве монтируется vite.
 export const defaultPrefix = '/h11x';
@@ -26,6 +31,7 @@ type BuildProps = {
   prod?: boolean;
   devPrefix?: string;
   prefix?: string;
+  viteBase?: ViteBase;
   editViteConfig?: EditViteConfig;
 };
 
@@ -39,7 +45,6 @@ const checkExternal = (id: string) => {
 };
 
 const viteConfigBaseServer = defineConfig({
-  plugins: [reganVite()],
   build: {
     rollupOptions: {
       external: checkExternal,
@@ -49,11 +54,16 @@ const viteConfigBaseServer = defineConfig({
 });
 
 const viteConfigBaseClient = defineConfig({
-  plugins: [reganVite()],
   build: {
     emptyOutDir: false,
   },
 });
+
+// Конфиг каждой сборки складывается из трёх слоёв: наш (он главный и
+// перекрывает остальные), общий от приложения и общая база пакета. defu кладёт
+// первый аргумент выше остальных, а массивы склеивает в том же порядке —
+// поэтому наш reganVite оказывается перед плагинами приложения, как и у
+// dev-сервера.
 
 // Корневые стили лежат по конвенции в src/styles.css проекта. Собираются
 // отдельной сборкой, а не в составе роута: файл один на всё приложение, и своим
@@ -64,11 +74,13 @@ export const buildStyles = async ({
   root,
   baseDir,
   prefix,
+  viteBase,
   editViteConfig,
 }: {
   root: string;
   baseDir: string;
   prefix: string;
+  viteBase: ViteBase;
   editViteConfig: EditViteConfig;
 }) => {
   const entry = joinPath(root, stylesFile);
@@ -80,6 +92,7 @@ export const buildStyles = async ({
   const config = defineConfig({
     root,
     base: `${prefix}/`,
+    plugins: [reganVite()],
     build: {
       rollupOptions: { input: entry },
       outDir: joinPath(baseDir, 'assets'),
@@ -87,7 +100,7 @@ export const buildStyles = async ({
     },
   });
 
-  let configFinal = defu(config, viteConfigBaseClient);
+  let configFinal = defu(config, viteBase(), viteConfigBaseClient);
   configFinal = editViteConfig(
     { mode: 'ssr', target: 'client', route: { dir: root, name: 'styles' } },
     configFinal,
@@ -114,6 +127,7 @@ export const buildServer = async ({
   baseDir,
   mode,
   route,
+  viteBase,
   editViteConfig,
 }: {
   entry: string;
@@ -122,10 +136,12 @@ export const buildServer = async ({
   baseDir: string;
   mode: 'ssr' | 'ssg';
   route: Route;
+  viteBase: ViteBase;
   editViteConfig: EditViteConfig;
 }) => {
   const config = defineConfig({
     root,
+    plugins: [reganVite()],
     build: {
       outDir: joinPath(baseDir, outDirName),
       lib: {
@@ -136,7 +152,7 @@ export const buildServer = async ({
     },
   });
 
-  let configFinal = defu(config, viteConfigBaseServer);
+  let configFinal = defu(config, viteBase(), viteConfigBaseServer);
   configFinal = editViteConfig({ mode, target: 'server', route }, configFinal);
 
   await buildVite(configFinal);
@@ -155,6 +171,7 @@ export const buildClient = async ({
   root,
   baseDir,
   prefix,
+  viteBase,
   editViteConfig,
 }: {
   entry: string;
@@ -163,11 +180,13 @@ export const buildClient = async ({
   root: string;
   baseDir: string;
   prefix: string;
+  viteBase: ViteBase;
   editViteConfig: EditViteConfig;
 }): Promise<RouteClientOut> => {
   const config = defineConfig({
     root,
     base: `${prefix}/`,
+    plugins: [reganVite()],
     build: {
       rollupOptions: {
         input: entry,
@@ -177,7 +196,7 @@ export const buildClient = async ({
     },
   });
 
-  let configFinal = defu(config, viteConfigBaseClient);
+  let configFinal = defu(config, viteBase(), viteConfigBaseClient);
   configFinal = editViteConfig({ mode, target: 'client', route }, configFinal);
 
   const result = (await buildVite(configFinal)) as Rollup.RollupOutput;
@@ -203,6 +222,7 @@ export const buildH11X = async ({
   routes,
   prefix = defaultPrefix,
   devPrefix = defaultDevPrefix,
+  viteBase = () => ({}),
   editViteConfig = (_, config) => config,
 }: BuildProps) => {
   const baseDirPrepared = baseDir || `${root}/.h11x`;
@@ -263,6 +283,7 @@ export const buildH11X = async ({
     root,
     baseDir: baseDirPrepared,
     prefix,
+    viteBase,
     editViteConfig,
   });
 
@@ -272,6 +293,7 @@ export const buildH11X = async ({
     baseDir: baseDirPrepared,
     prod,
     prefix,
+    viteBase,
     editViteConfig,
   });
 
@@ -283,6 +305,7 @@ export const buildH11X = async ({
     baseDir: baseDirPrepared,
     prefix,
     styles,
+    viteBase,
     editViteConfig,
   });
 
