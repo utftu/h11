@@ -34,7 +34,7 @@ export const createApp = async ({
   prod = process.env.NODE_ENV === 'production',
   prefix = defaultPrefix,
   devPrefix = defaultDevPrefix,
-  host,
+  url,
   viteBase = () => ({}),
   editViteConfig = (_, config) => config,
   h11,
@@ -45,10 +45,11 @@ export const createApp = async ({
   prod?: boolean;
   prefix?: string;
   devPrefix?: string;
-  // Домен, под которым приложение открывают снаружи. Нужен только деву: за
-  // обратным прокси vite видит в запросе чужой для себя хост и отвергает его,
-  // пока тот не назван.
-  host?: string;
+  // Публичный адрес приложения целиком, как его обычно и держат в окружении:
+  // APP_URL=https://nopeople.local.dev. Нужен только деву — за обратным прокси
+  // vite видит в запросе чужой для себя хост и отвергает запрос, пока тот не
+  // назван. В проде не используется вовсе.
+  url?: string;
   viteBase?: ViteBase;
   editViteConfig?: EditViteConfig;
   h11?: H11;
@@ -77,7 +78,9 @@ export const createApp = async ({
       base: devPrefixFull,
       server: {
         middlewareMode: true,
-        allowedHosts: host === undefined ? undefined : [host],
+        // Вите нужен только домен. Невалидный url уронит старт с внятным
+        // сообщением — это лучше, чем молчаливые 403 на всю статику.
+        allowedHosts: url === undefined ? undefined : [new URL(url).hostname],
         // Свой сервер для ws-канала: без него vite зашил бы в клиента порт
         // 24678, и HMR не дошёл бы ни через https, ни через обратный прокси.
         ws: { server: wsHost.server },

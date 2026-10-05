@@ -274,16 +274,19 @@ describe('viteBase', () => {
     await rm(root, { recursive: true, force: true });
   }, 60_000);
 
-  it('host уезжает в allowedHosts dev-сервера', async () => {
+  it('домен из url уезжает в allowedHosts dev-сервера', async () => {
     const root = await makeProject();
 
     const app = await createApp({
       root,
       prod: false,
-      host: 'dispute.local.dev',
+      url: 'https://nopeople.local.dev',
     });
 
-    expect(app.vite!.config.server.allowedHosts).toContain('dispute.local.dev');
+    // Вите уходит только домен: порт и схема ему не нужны.
+    expect(app.vite!.config.server.allowedHosts).toContain(
+      'nopeople.local.dev',
+    );
 
     await app.close();
     await rm(root, { recursive: true, force: true });
