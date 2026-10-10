@@ -21,8 +21,18 @@ const makeProject = async () => {
   await writeFile(
     `${about}/about.tsx`,
     `import './hero.css';
-import {Template} from 'h11-x/client';
-export const About = ({text}) => <Template><div class="hero">{text}</div></Template>;
+import {Template, Head} from 'h11-x/client';
+export const About = ({text}) => (
+  <Template>
+    <>
+      <Head>
+        <meta charset="utf-8" />
+        <title>про нас</title>
+      </Head>
+      <div class="hero">{text}</div>
+    </>
+  </Template>
+);
 `,
   );
   await writeFile(`${about}/hero.css`, `.hero{font-weight:700}`);
@@ -131,6 +141,9 @@ describe('createApp в проде', () => {
     const route = app.config.routes.about;
 
     expect(html).toContain('из пропсов');
+    // Head внутри фрагмента всё равно попадает в <head>, а не в <body>.
+    expect(html).toContain('<title>про нас</title>');
+    expect(html.indexOf('<title>')).toBeLessThan(html.indexOf('<body'));
     // Корневые стили подхватились по конвенции и идут раньше стилей роута.
     expect(app.config.styles?.src).toBe('src/styles.css');
     expect(html.indexOf(app.config.styles!.out)).toBeLessThan(

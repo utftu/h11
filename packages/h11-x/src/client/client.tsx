@@ -54,18 +54,44 @@ export const DataSet: FC = (_, { globalCtx }) => {
   return <template id={storage_id}>{dataStr}</template>;
 };
 
-// Head и Body сами ничего не рендерят — Template вынимает их детей и кладёт
-// в <head> и <body>. Собственный рендер случается, только если их поставили
-// мимо Template.
-export const Head: FC = (_, { children }) => {
-  return children;
+// Head и Body ничего не рендерят сами: Template забирает их содержимое, не
+// выполняя сами компоненты. Значит выполниться они могут только в одном
+// случае — их поставили туда, где Template их не видит. Раньше содержимое
+// такого Head молча уезжало в <body>: title браузер ещё терпит, а, скажем,
+// viewport там уже не работает. Поэтому падаем.
+const createLostError = (name: string) => {
+  return new Error(
+    `${name} works only as a child of Template — fragments in between are fine, components are not`,
+  );
 };
 
-export const Body: FC = (_, { children }) => {
-  return children;
+export const Head: FC = () => {
+  throw createLostError('Head');
 };
 
-export const Template: FC<{ children?: Child }> = (_, { children }) => {
+export const Body: FC = () => {
+  throw createLostError('Body');
+};
+
+// Фрагменты прозрачны: оборачивать детей во <> приходится по самым разным
+// причинам, и Head внутри фрагмента — это тот же Head. Рекурсивно, потому что
+// фрагмент может быть не один.
+const flatChildren = (children: any[]): any[] => {
+  const store: any[] = [];
+
+  for (const child of children) {
+    if (child?.component === Fragment) {
+      store.push(...flatChildren(child.children));
+      continue;
+    }
+
+    store.push(child);
+  }
+
+  return store;
+};
+
+export const Template: FC = (_, { children }) => {
   let heads: Child[] = [];
   let headProps = {};
   let bodies: Child[] = [];
@@ -73,7 +99,7 @@ export const Template: FC<{ children?: Child }> = (_, { children }) => {
 
   // Дети приезжают сюда неразвёрнутыми узлами, поэтому Head и Body узнаются
   // по самому компоненту, а их содержимое и атрибуты берутся из узла.
-  const realChildren = children.filter((child: any) => {
+  const realChildren = flatChildren(children).filter((child: any) => {
     if (child?.component === Head) {
       heads.push(...child.children);
       headProps = child.props;

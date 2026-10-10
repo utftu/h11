@@ -34,6 +34,37 @@ describe('Template', () => {
     expect(html).toInclude('<body class="page">');
     expect(html).toInclude('<div>тело</div>');
   });
+
+  it('видит Head сквозь фрагменты', () => {
+    const html = stringify(
+      <Template>
+        <>
+          <Head>
+            <title>Заголовок</title>
+          </Head>
+          <div>тело</div>
+        </>
+      </Template>,
+      { data: { envs: {}, props: {} } },
+    );
+
+    expect(html).toInclude('<title>Заголовок</title></head>');
+    expect(html).toInclude('<div>тело</div></body>');
+  });
+
+  it('Head мимо Template падает, а не уезжает молча в body', () => {
+    const render = () =>
+      stringify(
+        <div>
+          <Head>
+            <title>Заголовок</title>
+          </Head>
+        </div>,
+        { data: { envs: {}, props: {} } },
+      );
+
+    expect(render).toThrow('Head works only as a child of Template');
+  });
 });
 
 // Настоящего DOM в тестах нет, а getStorageHtml принимает окно параметром —
