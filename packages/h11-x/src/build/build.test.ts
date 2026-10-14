@@ -69,10 +69,27 @@ describe('buildH11X без роутов', () => {
     const baseDir = `/tmp/h11x-test-${pid}-${Date.now()}/.h11x`;
     await mkdir(baseDir, { recursive: true });
     try {
-      await buildH11X({ baseDir, routes: [] });
+      await buildH11X({ baseDir, routes: [], prod: true });
       const config = await readConfig(baseDir);
       expect(config.routes).toEqual({});
       expect(config.prefix).toBe(defaultPrefix);
+    } finally {
+      await rm(baseDir, { recursive: true, force: true });
+    }
+  });
+});
+
+describe('buildH11X без режима', () => {
+  it('падает и не трогает каталог сборки', async () => {
+    const baseDir = `/tmp/h11x-test-${pid}-${Date.now()}/.h11x`;
+    await mkdir(baseDir, { recursive: true });
+    await writeFile(`${baseDir}/заметка`, 'готовая сборка');
+
+    try {
+      // prod не передан, а NODE_ENV под bun test — "test", то есть режим
+      // непонятен. Дальше каталог сносится целиком, поэтому падаем раньше.
+      await expect(buildH11X({ baseDir })).rejects.toThrow('No mode');
+      expect(await Bun.file(`${baseDir}/заметка`).exists()).toBe(true);
     } finally {
       await rm(baseDir, { recursive: true, force: true });
     }
@@ -95,7 +112,7 @@ describe('buildH11X: проверка файлов роута', () => {
   };
 
   const build = (baseDir: string, dir: string) =>
-    buildH11X({ baseDir: `${baseDir}/.h11x`, routes: [dir] });
+    buildH11X({ baseDir: `${baseDir}/.h11x`, routes: [dir], prod: true });
 
   it('пустая папка роута', async () => {
     const { baseDir, dir } = await makeRoute([]);

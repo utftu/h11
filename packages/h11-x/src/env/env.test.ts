@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'bun:test';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { rm, writeFile } from 'node:fs/promises';
-import { loadEnvFile, getPublicEnvs } from './env.ts';
+import { getProd, loadEnvFile, getPublicEnvs } from './env.ts';
 
 describe('loadEnvFile', () => {
   const envPath = join(tmpdir(), `h11x-env-test-${Date.now()}.env`);
@@ -93,5 +93,42 @@ describe('getPublicEnvs', () => {
 
     expect(envs.PUBLIC_ONE).toBeUndefined();
     expect(envs.PUBLIC_TWO).toBeUndefined();
+  });
+});
+
+describe('getProd', () => {
+  const withNodeEnv = (value: string | undefined, run: () => void) => {
+    const before = Bun.env.NODE_ENV;
+    if (value === undefined) {
+      delete Bun.env.NODE_ENV;
+    } else {
+      Bun.env.NODE_ENV = value;
+    }
+
+    try {
+      run();
+    } finally {
+      if (before === undefined) {
+        delete Bun.env.NODE_ENV;
+      } else {
+        Bun.env.NODE_ENV = before;
+      }
+    }
+  };
+
+  it('переданное значение главнее окружения', () => {
+    withNodeEnv('production', () => {
+      expect(getProd(false)).toBe(false);
+    });
+  });
+
+  it('читает NODE_ENV, когда не передано', () => {
+    withNodeEnv('production', () => expect(getProd()).toBe(true));
+    withNodeEnv('development', () => expect(getProd()).toBe(false));
+  });
+
+  it('на пустом и непонятном NODE_ENV падает, а не считает это девом', () => {
+    withNodeEnv(undefined, () => expect(() => getProd()).toThrow('No mode'));
+    withNodeEnv('test', () => expect(() => getProd()).toThrow('No mode'));
   });
 });

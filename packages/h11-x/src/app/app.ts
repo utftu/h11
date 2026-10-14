@@ -11,7 +11,7 @@ import { reganVite } from 'regan/vite';
 import { readConfig } from '../assets/assets.ts';
 import type { ConfigH11X } from '../types.ts';
 import type { EditViteConfig, Route, ViteBase } from '../types.ts';
-import { loadEnvFile } from '../env/env.ts';
+import { getProd, loadEnvFile } from '../env/env.ts';
 import { createWsHost, createWsProxy } from '../dev-ws.ts';
 
 export type App = {
@@ -31,7 +31,7 @@ export const createApp = async ({
   root = process.cwd(),
   baseDir,
   routes,
-  prod = process.env.NODE_ENV === 'production',
+  prod,
   prefix = defaultPrefix,
   devPrefix = defaultDevPrefix,
   url,
@@ -42,6 +42,8 @@ export const createApp = async ({
   root?: string;
   baseDir?: string;
   routes?: (string | Route)[];
+  // Не передан — берётся из NODE_ENV, но молчать там нельзя: непонятное или
+  // пустое значение роняет старт. См. getProd.
   prod?: boolean;
   prefix?: string;
   devPrefix?: string;
@@ -60,11 +62,13 @@ export const createApp = async ({
   const baseDirPrepared = baseDir || `${root}/.h11x`;
 
   await loadEnvFile(`${root}/.env`);
+  // После .env: NODE_ENV мог приехать и оттуда.
+  const prodFinal = getProd(prod);
   const devPrefixFull = joinPath(devPrefix, prefix);
 
   let vite: ViteDevServer | undefined;
   let wsHost: { server: HttpServer; port: number } | undefined;
-  if (!prod) {
+  if (!prodFinal) {
     wsHost = await createWsHost();
 
     // Наш конфиг идёт первым: defu отдаёт ему приоритет и склеивает массивы в
@@ -97,11 +101,11 @@ export const createApp = async ({
   // В проде ничего не собирается: там уже лежит результат buildH11X со
   // сборочной машины, и его достаточно прочитать. Собирает только dev-старт —
   // ему нужны ssg-страницы на диске и свежий config.json.
-  if (!prod) {
+  if (!prodFinal) {
     await buildH11X({
       root,
       baseDir: baseDirPrepared,
-      prod,
+      prod: prodFinal,
       routes,
       prefix,
       devPrefix,
@@ -114,7 +118,7 @@ export const createApp = async ({
 
   const h11Internal = h11 || new H11();
 
-  if (!prod && vite && wsHost) {
+  if (!prodFinal && vite && wsHost) {
     // Раньше connect-адаптера: апгрейд — это обычный GET, и http-мидлвари
     // vite ответили бы на него первыми, до того как дело дошло бы до сокета.
     h11Internal.use(devPrefixFull, createWsProxy(wsHost.port));

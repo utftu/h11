@@ -6,6 +6,7 @@ import { reganVite } from 'regan/vite';
 import { collectClientOut, writeConfig } from '../assets/assets.ts';
 import { checkFileOptional, getEntName } from '../utils/utils.ts';
 import { getProjectRoutes } from '../routes/routes.ts';
+import { getProd } from '../env/env.ts';
 import { makeSsr } from '../ssr.tsx';
 import { makeSsg } from '../ssg/ssg.ts';
 import type {
@@ -28,6 +29,7 @@ type BuildProps = {
   root?: string;
   baseDir?: string;
   routes?: (string | Route)[];
+  // Не передан — берётся из NODE_ENV, см. getProd.
   prod?: boolean;
   devPrefix?: string;
   prefix?: string;
@@ -218,7 +220,7 @@ export const makeRouteUniversal = (route: string | Route) => {
 export const buildH11X = async ({
   root = process.cwd(),
   baseDir,
-  prod = process.env.NODE_ENV === 'production',
+  prod,
   routes,
   prefix = defaultPrefix,
   devPrefix = defaultDevPrefix,
@@ -226,6 +228,10 @@ export const buildH11X = async ({
   editViteConfig = (_, config) => config,
 }: BuildProps) => {
   const baseDirPrepared = baseDir || `${root}/.h11x`;
+
+  // Режим разрешается до удаления каталога: непонятный NODE_ENV должен ронять
+  // сборку, а не сносить то, что в каталоге уже лежит.
+  const prodFinal = getProd(prod);
 
   await rm(baseDirPrepared, { recursive: true, force: true });
 
@@ -291,7 +297,7 @@ export const buildH11X = async ({
     routes: ssrRoutes,
     root,
     baseDir: baseDirPrepared,
-    prod,
+    prod: prodFinal,
     prefix,
     viteBase,
     editViteConfig,
@@ -312,7 +318,7 @@ export const buildH11X = async ({
   // config.json читает createApp при каждом старте, поэтому пишем его
   // всегда — даже когда роутов нет (тогда routes будет пустым).
   await writeConfig(baseDirPrepared, {
-    prod,
+    prod: prodFinal,
     prefix,
     devPrefix,
     styles,
