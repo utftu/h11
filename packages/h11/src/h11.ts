@@ -14,12 +14,15 @@ import {
   SIZE_1mb,
 } from './modules/size-limit/size-limit.ts';
 import { proxyReq } from './modules/proxy/proxy.ts';
+import { logReq } from './log/log.ts';
 import type {
   Handler,
   HandlerResponse,
   HandlerReturn,
   Context,
   Method,
+  RequestEvent,
+  ResponseEvent,
   Upgrade,
   Ws,
   WsData,
@@ -30,6 +33,7 @@ import {
   type DataModule,
 } from './data-module/data-module.ts';
 import { joinUserPath, joinPath } from './utils/join/join.ts';
+import { getIp } from './utils/ip/ip.ts';
 import { copyReq } from './utils/req/req.ts';
 import { type SwitchParam, switchFunc } from './utils/switch/switch.ts';
 import {
@@ -73,6 +77,8 @@ export {
   type HandlerReturn,
   type Context,
   type Method,
+  type RequestEvent,
+  type ResponseEvent,
   type Upgrade,
   type Ws,
   type WsData,
@@ -81,6 +87,7 @@ export {
   type DataModule,
   joinUserPath,
   joinPath,
+  getIp,
   copyReq,
   switchFunc,
   type SwitchParam,
@@ -100,4 +107,5 @@ export {
   createServer,
   createConnectAdapter,
   compressRecursive,
+  logReq,
 };

@@ -1,5 +1,6 @@
 import { describe, it, expect, mock } from 'bun:test';
 import { H11 } from './core.ts';
+import type { RequestEvent, ResponseEvent } from '../types.ts';
 
 const makeReq = (url: string, method = 'GET') =>
   new Request(`http://localhost${url}`, { method });
@@ -250,25 +251,139 @@ describe('перебор вариантов', () => {
   });
 });
 
-describe('событие code', () => {
-  it('на 500 отдаёт сообщение без стека, а сам error — отдельным полем', async () => {
+describe('события request и response', () => {
+  it('кидается на каждый запрос, со статусом настоящего ответа', async () => {
     const h11 = new H11();
-    const events: { code: number; text: string; error?: Error }[] = [];
-    h11.ee.on('code', (event) => events.push(event));
+    const events: ResponseEvent[] = [];
+    h11.ee.on('response', (event) => events.push(event));
+
+    h11.get('/hello', () => new Response('ok'));
+
+    await h11.exec({ req: makeReq('/hello'), ...ctx() });
+    await h11.exec({ req: makeReq('/nope'), ...ctx() });
+
+    expect(events).toHaveLength(2);
+    expect(events[0].res.status).toBe(200);
+    expect(events[0].req.method).toBe('GET');
+    expect(events[0].ms).toBeGreaterThanOrEqual(0);
+    expect(events[0].error).toBeUndefined();
+    expect(events[1].res.status).toBe(404);
+  });
+
+  it('переживает свои onError и onNotFound — его кидает ядро', async () => {
+    const h11 = new H11();
+    const events: ResponseEvent[] = [];
+    h11.ee.on('response', (event) => events.push(event));
+
+    h11.onNotFound = () => new Response('нет', { status: 410 });
+    h11.onError = () => new Response('ой', { status: 503 });
 
     h11.get('/boom', () => {
       throw new Error('внутри всё сломалось');
     });
 
-    await h11.exec({
-      req: new Request('http://x/boom'),
-      ...ctx(),
+    await h11.exec({ req: makeReq('/boom'), ...ctx() });
+    await h11.exec({ req: makeReq('/nope'), ...ctx() });
+
+    expect(events).toHaveLength(2);
+    expect(events[0].res.status).toBe(503);
+    expect(events[0].error?.message).toBe('внутри всё сломалось');
+    expect(events[1].res.status).toBe(410);
+    expect(events[1].error).toBeUndefined();
+  });
+
+  it('брошенный Response едет обычным ответом, без error', async () => {
+    const h11 = new H11();
+    const events: ResponseEvent[] = [];
+    h11.ee.on('response', (event) => events.push(event));
+
+    h11.get('/early', () => {
+      throw new Response('редирект', { status: 302 });
     });
 
-    expect(events).toHaveLength(1);
-    expect(events[0].code).toBe(500);
-    expect(events[0].text).toContain('внутри всё сломалось');
-    expect(events[0].text).not.toContain('at ');
-    expect(events[0].error?.stack).toContain('at ');
+    await h11.exec({ req: makeReq('/early'), ...ctx() });
+
+    expect(events[0].res.status).toBe(302);
+    expect(events[0].error).toBeUndefined();
+  });
+
+  it('reqId в событии тот же, что в контексте', async () => {
+    const h11 = new H11();
+    const events: ResponseEvent[] = [];
+    h11.ee.on('response', (event) => events.push(event));
+
+    let fromCtx = '';
+    h11.get('/hello', ({ reqId }) => {
+      fromCtx = reqId;
+      return new Response('ok');
+    });
+
+    await h11.exec({ req: makeReq('/hello'), ...ctx() });
+
+    expect(events[0].reqId).toBe(fromCtx);
+  });
+  it('request кидается до обработки, response после — и видно оба', async () => {
+    const h11 = new H11();
+    const order: string[] = [];
+
+    h11.ee.on('request', (event: RequestEvent) => {
+      order.push(`request ${event.reqId}`);
+    });
+    h11.ee.on('response', (event: ResponseEvent) => {
+      order.push(`response ${event.reqId} ${event.res.status}`);
+    });
+
+    h11.get('/hello', ({ reqId }) => {
+      order.push(`handler ${reqId}`);
+      return new Response('ok');
+    });
+
+    await h11.exec({ req: makeReq('/hello'), ...ctx() });
+
+    const [first, second, third] = order;
+    const reqId = first.split(' ')[1];
+
+    expect(first).toBe(`request ${reqId}`);
+    expect(second).toBe(`handler ${reqId}`);
+    expect(third).toBe(`response ${reqId} 200`);
+  });
+
+  it('request приезжает и у запроса, который завис', async () => {
+    const h11 = new H11();
+    const requests: RequestEvent[] = [];
+    const responses: ResponseEvent[] = [];
+
+    h11.ee.on('request', (event) => requests.push(event));
+    h11.ee.on('response', (event) => responses.push(event));
+
+    h11.get('/hang', () => new Promise<Response>(() => {}));
+
+    const hanging = h11.exec({ req: makeReq('/hang'), ...ctx() });
+
+    await Promise.race([hanging, Bun.sleep(10)]);
+
+    expect(requests).toHaveLength(1);
+    expect(responses).toHaveLength(0);
+  });
+
+  it('providers едут в оба события — из них достают ip', async () => {
+    const h11 = new H11();
+    const providers = { bun: { server: 'сервер' } };
+    let fromRequest: Record<string, any> = {};
+    let fromResponse: Record<string, any> = {};
+
+    h11.ee.on('request', (event) => {
+      fromRequest = event.providers;
+    });
+    h11.ee.on('response', (event) => {
+      fromResponse = event.providers;
+    });
+
+    h11.get('/hello', () => new Response('ok'));
+
+    await h11.exec({ req: makeReq('/hello'), ...ctx(), providers });
+
+    expect(fromRequest).toBe(providers);
+    expect(fromResponse).toBe(providers);
   });
 });

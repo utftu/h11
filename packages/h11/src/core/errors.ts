@@ -5,12 +5,10 @@ export type ErrorHandler = (
   props: { error: Error } & Context,
 ) => Response | Promise<Response>;
 
-export const defaultOnNotFound: NotFoundHandler = ({ req, h11 }) => {
-  h11.ee.emit('code', {
-    code: 404,
-    text: `Not found ${req.url}`,
-  });
-
+// Дефолтные хендлеры только отвечают, ничего не эмитят: про каждый запрос,
+// включая 404 и 500, ядро кидает событие response — и кидает независимо от
+// того, свои тут хендлеры или эти.
+export const defaultOnNotFound: NotFoundHandler = () => {
   return new Response('Not Found', {
     status: 404,
     statusText: 'Not Found 404',
@@ -20,16 +18,7 @@ export const defaultOnNotFound: NotFoundHandler = ({ req, h11 }) => {
   });
 };
 
-export const defaultOnError: ErrorHandler = ({ req, error, h11 }) => {
-  // В text только сообщение: его подписчик может, не глядя, отправить
-  // клиенту. Стек лежит рядом, в самом error — кому он нужен для логов, тот
-  // возьмёт его оттуда осознанно.
-  h11.ee.emit('code', {
-    code: 500,
-    text: `h11: Error ${req.url} - ${error.message}`,
-    error,
-  });
-
+export const defaultOnError: ErrorHandler = () => {
   return new Response('Internal Server Error', {
     status: 500,
     statusText: 'Internal Server Error',

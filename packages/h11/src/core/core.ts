@@ -1,5 +1,11 @@
 import { Radix } from './radix/radix.ts';
-import type { Handler, Method, Upgrade } from '../types.ts';
+import type {
+  Handler,
+  Method,
+  RequestEvent,
+  ResponseEvent,
+  Upgrade,
+} from '../types.ts';
 import type { DataModule } from '../data-module/data-module.ts';
 import { createEventEmitter } from 'utftu';
 import {
@@ -15,13 +21,8 @@ export class H11<TData extends Record<any, any> = {}> {
   radix = new Radix();
   ee = createEventEmitter<
     {
-      // text безопасно отдать наружу, error есть только у пятисотых и нужен
-      // для логов: в нём стек.
-      code: {
-        code: number;
-        text: string;
-        error?: Error;
-      };
+      request: RequestEvent;
+      response: ResponseEvent;
     } & Record<string, any>
   >();
   onNotFound: NotFoundHandler = defaultOnNotFound;
@@ -96,24 +97,64 @@ export class H11<TData extends Record<any, any> = {}> {
   // upgrade приходит от провайдера: апгрейд делает сам сервер, ядро о нём
   // ничего не знает и своего придумать не может. Параметр обязательный —
   // зовущий говорит прямо, умеет он вебсокеты или нет.
-  async exec({
-    req,
-    data,
-    providers,
-    upgrade,
-  }: {
+  async exec(props: {
     req: Request;
     data: Record<string, string>;
     providers: Record<string, any>;
     upgrade: Upgrade;
   }): Promise<Response> {
+    const reqId =
+      props.req.headers.get(REQUEST_ID_HEADER) ?? crypto.randomUUID();
+
+    // Время считается от первого события: подписчик зовётся синхронно, и
+    // если он медленный — это тоже время запроса, прятать его незачем.
+    const start = performance.now();
+
+    // События кидает ядро, а не хендлеры: onError и onNotFound приложение
+    // переопределяет первым делом, и сигнал о запросе от этого пропадать не
+    // должен. Статус в response — от настоящего ответа, поэтому свои
+    // хендлеры событие переживает.
+    this.ee.emit('request', {
+      req: props.req,
+      reqId,
+      providers: props.providers,
+    });
+
+    const { res, error } = await this.run({ ...props, reqId });
+
+    this.ee.emit('response', {
+      req: props.req,
+      reqId,
+      providers: props.providers,
+      res,
+      ms: performance.now() - start,
+      error,
+    });
+
+    return res;
+  }
+
+  // Ответ и исключение возвращаются вместе: решение, что случилось с
+  // запросом, отделено от того, кто про это узнает. Поэтому тут нет ни
+  // события, ни замера времени — всё это делает exec выше.
+  private async run({
+    req,
+    data,
+    providers,
+    upgrade,
+    reqId,
+  }: {
+    req: Request;
+    data: Record<string, string>;
+    providers: Record<string, any>;
+    upgrade: Upgrade;
+    reqId: string;
+  }): Promise<{ res: Response; error?: Error }> {
     const url = new URL(req.url);
     const { middlewares, matches } = this.radix.find(
       url.pathname,
       req.method as Method,
     );
-    const reqId = req.headers.get(REQUEST_ID_HEADER) ?? crypto.randomUUID();
-
     // Параметры тут — от самого точного варианта, того, что пойдёт первым.
     // Своего набора у миддлварей нет: они подошли по пути, а не по маршруту,
     // и на момент их выполнения ещё неизвестно, кто в итоге ответит.
@@ -135,7 +176,7 @@ export class H11<TData extends Record<any, any> = {}> {
       for (const middleware of middlewares) {
         const response = await middleware(props);
         if (response) {
-          return response;
+          return { res: response };
         }
       }
 
@@ -152,18 +193,24 @@ export class H11<TData extends Record<any, any> = {}> {
         for (const handler of match.handlers) {
           const response = await handler(matchProps);
           if (response) {
-            return response;
+            return { res: response };
           }
         }
       }
 
       // Ни один вариант не ответил — либо их и не было, либо все отказались.
-      return this.onNotFound(props);
+      return { res: await this.onNotFound(props) };
     } catch (error) {
+      // Брошенный Response — осознанный ранний выход, а не поломка: в
+      // событии он поедет обычным ответом, без error.
       if (error instanceof Response) {
-        return error;
+        return { res: error };
       }
-      return this.onError({ ...props, error: error as Error });
+
+      return {
+        res: await this.onError({ ...props, error: error as Error }),
+        error: error as Error,
+      };
     }
   }
 }
