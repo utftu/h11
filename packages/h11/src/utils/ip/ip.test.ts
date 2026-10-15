@@ -37,4 +37,19 @@ describe('getIp', () => {
 
     expect(getIp({ req, providers: {} })).toHaveLength(45);
   });
+  it('ipv4 из двустекового сокета печатается без ::ffff:', () => {
+    const providers = {
+      bun: { server: { requestIP: () => ({ address: '::ffff:127.0.0.1' }) } },
+    };
+
+    expect(getIp({ req: makeReq(), providers })).toBe('127.0.0.1');
+  });
+
+  it('настоящий ipv6 остаётся как есть', () => {
+    const providers = {
+      bun: { server: { requestIP: () => ({ address: '::1' }) } },
+    };
+
+    expect(getIp({ req: makeReq(), providers })).toBe('::1');
+  });
 });

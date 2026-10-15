@@ -1,4 +1,4 @@
-import { describe, expect, it, spyOn } from 'bun:test';
+import { describe, expect, it } from 'bun:test';
 import { createServer } from './server.ts';
 import { H11 } from '../core/core.ts';
 
@@ -155,37 +155,5 @@ describe('вебсокеты', () => {
     expect(res.status).toBe(401);
 
     await server.stop(true);
-  });
-});
-
-describe('лог запросов', () => {
-  it('печатает строку на запрос по умолчанию и молчит при log: false', async () => {
-    const h11 = new H11();
-    h11.get('/hello', () => new Response('ok'));
-
-    const quiet = new H11();
-    quiet.get('/hello', () => new Response('ok'));
-
-    const spy = spyOn(console, 'log').mockImplementation(() => {});
-
-    const loud = Bun.serve({ port: 0, ...createServer({ h11 }) });
-    await fetch(`http://localhost:${loud.port}/hello`);
-    await loud.stop(true);
-
-    const lines = spy.mock.calls.map((call) => call[0]);
-
-    const silent = Bun.serve({
-      port: 0,
-      ...createServer({ h11: quiet, log: false }),
-    });
-    await fetch(`http://localhost:${silent.port}/hello`);
-    await silent.stop(true);
-
-    const linesAfter = spy.mock.calls.map((call) => call[0]);
-    spy.mockRestore();
-
-    expect(lines).toHaveLength(1);
-    expect(lines[0]).toContain('GET 200 /hello');
-    expect(linesAfter).toHaveLength(1);
   });
 });

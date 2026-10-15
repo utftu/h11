@@ -14,7 +14,6 @@ import {
   SIZE_1mb,
 } from './modules/size-limit/size-limit.ts';
 import { proxyReq } from './modules/proxy/proxy.ts';
-import { logReq } from './log/log.ts';
 import type {
   Handler,
   HandlerResponse,
@@ -107,5 +106,4 @@ export {
   createServer,
   createConnectAdapter,
   compressRecursive,
-  logReq,
 };

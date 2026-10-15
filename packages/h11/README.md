@@ -83,12 +83,25 @@ h11.ee.on('response', ({ req, res, reqId, providers, ms, error }) => {
 
 ### Печать
 
-`logReq` — подписчик на `response`, который его печатает:
+Своего логгера в h11 нет: шина есть, а что писать в stdout — дело приложения. Готовая строка с фильтром «страницы печатать, ассеты нет» живёт в [`h11-x`](../h11-x), потому что отличить одно от другого можно только зная префиксы раздачи.
+
+Руками это выглядит так:
 
 ```ts
-import { logReq } from 'h11';
+import { getIp } from 'h11';
 
-h11.ee.on('response', logReq);
+h11.ee.on('response', (event) => {
+  const { pathname } = new URL(event.req.url);
+  const ip = getIp(event) ?? '-';
+
+  console.log(
+    `${event.req.method} ${event.res.status} ${pathname} ${event.ms.toFixed(1)}ms ${ip} ${event.reqId.slice(0, 8)}`,
+  );
+
+  if (event.error) {
+    console.log(event.error.stack);
+  }
+});
 ```
 
 ```
@@ -98,10 +111,6 @@ POST 500 /api 12.4ms 203.0.113.7 9ab31c02
 Error: внутри всё сломалось
     at ...
 ```
-
-Метод, статус, путь с query, время, ip, первые 8 символов `reqId` — ими и грепать, полный лежит в событии. Статус сразу за методом: по нему строку просматривают глазами, а путь бывает любой длины. Неизвестный ip печатается прочерком, чтобы поля не съезжали. Стек — второй строкой и только когда в событии есть `error`.
-
-Настраивать `logReq` нечем: нужен свой формат — пишется свой подписчик на то же событие. `createServer` вешает `logReq` сам, см. ниже.
 
 ### getIp
 
@@ -191,14 +200,6 @@ Bun.serve({
 
 `createServer` отдаёт пару для `Bun.serve`: `fetch` и `websocket`. Спред отдаёт обе сразу — без второй вебсокеты не поднимутся, потому что таблицу коллбеков `Bun.serve` требует заранее.
 
-Заодно он подписывает `logReq` на событие `response`, то есть сервер из коробки печатает строку на каждый запрос. Выключается параметром:
-
-```ts
-Bun.serve({ port: 3000, ...createServer({ h11, log: false }) });
-```
-
-Подписку ставит `createServer`, а не конструктор `H11`: инстанс живёт и в тестах, и внутри [`h11-x`](../h11-x) — печатать оттуда нечего, а настоящий сервер один.
-
 `createConnectAdapter` оборачивает connect-мидлварь (`(req, res, next) => void`) в обычный `Handler` — этим пользуется [`h11-x`](../h11-x), чтобы проксировать dev-сервер Vite:
 
 ```ts
@@ -258,7 +259,6 @@ src/
   types.ts
   core/              класс H11, события request/response, дефолтные onError/onNotFound
     radix/           radix-роутер
-  log/               logReq — печать события response
   static/            раздача файлов: serveFiles, поиск файла, content-type
   server/            адаптер под Bun.serve
   connect/           мост к connect-мидлварям

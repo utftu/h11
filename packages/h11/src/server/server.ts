@@ -1,7 +1,6 @@
 import type { Server } from 'bun';
 import type { H11 } from '../core/core.ts';
 import type { Upgrade, Ws, WsData, WsHandlers } from '../types.ts';
-import { logReq } from '../log/log.ts';
 
 // Апгрейд уже случился — Bun ждёт от fetch undefined, а не ответ. Но хендлеру
 // надо что-то вернуть, иначе ядро посчитает его отказавшимся и передаст ход
@@ -20,20 +19,7 @@ const websocket = {
     ws.data.handlers.close?.(ws, code, reason),
 };
 
-export const createServer = ({
-  h11,
-  log = true,
-}: {
-  h11: H11;
-  log?: boolean;
-}) => {
-  // Подписку ставит createServer, а не конструктор H11: инстанс живёт и в
-  // тестах, и внутри h11-x, и печатать оттуда нечего. Настоящий сервер — вот
-  // он, и только тут у строки в stdout есть смысл.
-  if (log) {
-    h11.ee.on('response', logReq);
-  }
-
+export const createServer = ({ h11 }: { h11: H11 }) => {
   const fetch = async (req: Request, server: Server<WsData>) => {
     // Подпротокол Bun выбирает сам, повторяя запрошенный клиентом. Если
     // задать Sec-WebSocket-Protocol ещё и тут, заголовок уедет дважды и

@@ -84,6 +84,15 @@ export type ConfigStyles = {
   out: string;
 };
 
+// Параметры строки лога. static: печатать и удачно отданные ассеты — по
+// умолчанию их не видно, иначе одна загрузка страницы в деве это 13 строк.
+// query: показывать ли строку запроса — по умолчанию нет, в неё попадают
+// одноразовые токены из ссылок вида /signin?token=...
+export type LogOptions = {
+  static?: boolean;
+  query?: boolean;
+};
+
 export type ConfigH11X = {
   prod: boolean;
   prefix: string;

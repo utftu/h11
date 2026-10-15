@@ -10,9 +10,10 @@ import { buildH11X, defaultPrefix, defaultDevPrefix } from '../build/build.ts';
 import { reganVite } from 'regan/vite';
 import { readConfig } from '../assets/assets.ts';
 import type { ConfigH11X } from '../types.ts';
-import type { EditViteConfig, Route, ViteBase } from '../types.ts';
+import type { EditViteConfig, LogOptions, Route, ViteBase } from '../types.ts';
 import { getProd, loadEnvFile } from '../env/env.ts';
 import { createWsHost, createWsProxy } from '../dev-ws.ts';
+import { createLogReq } from '../log/log.ts';
 
 export type App = {
   h11: H11;
@@ -35,6 +36,7 @@ export const createApp = async ({
   prefix = defaultPrefix,
   devPrefix = defaultDevPrefix,
   url,
+  log = {},
   viteBase = () => ({}),
   editViteConfig = (_, config) => config,
   h11,
@@ -52,6 +54,9 @@ export const createApp = async ({
   // vite видит в запросе чужой для себя хост и отвергает запрос, пока тот не
   // назван. В проде не используется вовсе.
   url?: string;
+  // Строка на запрос в stdout. false — молчать совсем. Ассеты по умолчанию не
+  // печатаются, см. LogOptions.
+  log?: false | LogOptions;
   viteBase?: ViteBase;
   editViteConfig?: EditViteConfig;
   h11?: H11;
@@ -117,6 +122,15 @@ export const createApp = async ({
   const config = await readConfig(baseDirPrepared);
 
   const h11Internal = h11 || new H11();
+
+  // Подписку ставит createApp, а не createServer из h11: отличить ассет от
+  // страницы можно только зная префиксы раздачи, а они известны тут.
+  if (log !== false) {
+    h11Internal.ee.on(
+      'response',
+      createLogReq({ prefix, devPrefix: devPrefixFull, ...log }),
+    );
+  }
 
   if (!prodFinal && vite && wsHost) {
     // Раньше connect-адаптера: апгрейд — это обычный GET, и http-мидлвари

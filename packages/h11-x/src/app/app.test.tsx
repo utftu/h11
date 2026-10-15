@@ -1,6 +1,6 @@
-import { describe, expect, it } from 'bun:test';
+import { describe, expect, it, spyOn } from 'bun:test';
 import { cp, mkdir, rm, writeFile } from 'node:fs/promises';
-import { createServer } from 'h11';
+import { createServer, H11 } from 'h11';
 import { buildH11X } from '../build/build.ts';
 import { createApp } from './app.ts';
 import { renderSsr } from '../ssr.tsx';
@@ -366,5 +366,47 @@ describe('HMR-канал в деве', () => {
     // проверки это не влияет — они все выше, — а тест из-за этого висел.
     await Promise.race([server.stop(true), Bun.sleep(2000)]);
     await rm(root, { recursive: true, force: true });
+  }, 60_000);
+});
+
+describe('лог запросов', () => {
+  it('подписан сам: страницу видно, удачный ассет нет, log: false молчит', async () => {
+    const root = await makeProject();
+    await buildH11X({ root, prod: true });
+
+    const spy = spyOn(console, 'log').mockImplementation(() => {});
+
+    const app = await createApp({ root, prod: true });
+    const server = Bun.serve({ port: 0, ...createServer({ h11: app.h11 }) });
+    const origin = `http://localhost:${server.port}`;
+
+    await fetch(`${origin}/blog`);
+    const route = app.config.routes.blog;
+    await fetch(`${origin}${app.config.prefix}/${route.client.out.js[0]}`);
+
+    const lines = spy.mock.calls.map((call) => call[0]);
+
+    const quiet = await createApp({
+      root,
+      prod: true,
+      log: false,
+      h11: new H11(),
+    });
+    const quietServer = Bun.serve({
+      port: 0,
+      ...createServer({ h11: quiet.h11 }),
+    });
+    await fetch(`http://localhost:${quietServer.port}/blog`);
+
+    const linesAfter = spy.mock.calls.map((call) => call[0]);
+    spy.mockRestore();
+
+    await server.stop(true);
+    await quietServer.stop(true);
+    await rm(root, { recursive: true, force: true });
+
+    expect(lines).toHaveLength(1);
+    expect(lines[0]).toContain('GET 200 /blog');
+    expect(linesAfter).toHaveLength(1);
   }, 60_000);
 });

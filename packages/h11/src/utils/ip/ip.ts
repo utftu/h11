@@ -21,5 +21,18 @@ export const getIp = ({
     return forwarded.split(',')[0].trim().slice(0, 45);
   }
 
-  return providers.bun?.server?.requestIP(req)?.address;
+  const address = providers.bun?.server?.requestIP(req)?.address;
+
+  if (address === undefined) {
+    return;
+  }
+
+  // Слушатель двустековый, и клиент, пришедший по ipv4, выглядит как
+  // ::ffff:127.0.0.1 — тот же адрес в форме ipv6 (RFC 4291). В логе и в
+  // сравнениях нужен обычный ipv4.
+  if (address.startsWith('::ffff:')) {
+    return address.slice('::ffff:'.length);
+  }
+
+  return address;
 };
