@@ -133,4 +133,29 @@ describe('createLogReq', () => {
     expect(lines).toHaveLength(2);
     expect(lines[1]).toContain('at ');
   });
+  it('молчит про удачные пробы здоровья', () => {
+    const logReq = createLogReq(prefixes);
+    const lines = catchLogs(() => {
+      logReq(makeEvent({ url: 'http://localhost/ping', type: 'text/plain' }));
+      logReq(makeEvent({ url: 'http://localhost/ready', type: 'text/plain' }));
+    });
+
+    expect(lines).toEqual([]);
+  });
+
+  it('упавшую пробу печатает — её и ждут в логе', () => {
+    const logReq = createLogReq(prefixes);
+    const lines = catchLogs(() =>
+      logReq(
+        makeEvent({
+          url: 'http://localhost/ready',
+          type: 'text/plain',
+          status: 503,
+        }),
+      ),
+    );
+
+    expect(lines).toHaveLength(1);
+    expect(lines[0]).toContain('GET 503 /ready');
+  });
 });

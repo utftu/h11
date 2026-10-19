@@ -21,7 +21,7 @@ const makeProject = async () => {
   await writeFile(
     `${about}/about.tsx`,
     `import './hero.css';
-import {Template, Head} from 'h11-x/client';
+import {Template, Head, getEnv} from 'h11-x/client';
 export const About = ({text}) => (
   <Template>
     <>
@@ -30,6 +30,7 @@ export const About = ({text}) => (
         <title>про нас</title>
       </Head>
       <div class="hero">{text}</div>
+      <div class="env">{getEnv('PUBLIC_NAME')}</div>
     </>
   </Template>
 );
@@ -154,6 +155,8 @@ describe('createApp в проде', () => {
 
     // Только PUBLIC_* уезжает на клиент.
     expect(html).toContain('"PUBLIC_NAME":"тест"');
+    // getEnv на сервере читает ту же переменную из окружения процесса.
+    expect(html).toContain('<div class="env">тест</div>');
     expect(html).not.toContain('SECRET');
 
     // Файлы из разметки реально отдаются, и каталог сборки не открыт с корня.
@@ -384,6 +387,12 @@ describe('лог запросов', () => {
     const route = app.config.routes.blog;
     await fetch(`${origin}${app.config.prefix}/${route.client.out.js[0]}`);
 
+    // Пробы здоровья createApp регистрирует сам, и в логе их не видно.
+    const ping = await fetch(`${origin}/ping`);
+    const ready = await fetch(`${origin}/ready`);
+    // Пути ровно два: healthz не регистрируется, по нему никто и не ходит.
+    const health = await fetch(`${origin}/healthz`);
+
     const lines = spy.mock.calls.map((call) => call[0]);
 
     const quiet = await createApp({
@@ -405,8 +414,48 @@ describe('лог запросов', () => {
     await quietServer.stop(true);
     await rm(root, { recursive: true, force: true });
 
-    expect(lines).toHaveLength(1);
+    expect(await ping.text()).toBe('pong');
+    expect(await ready.json()).toEqual([]);
+    expect(health.status).toBe(404);
+
+    // Страница одной строкой, ассет и пробы молча. 404 на бывший /healthz
+    // печатается: он больше не наш путь, а обычный неизвестный, и правило
+    // «статус от 400 печатается всегда» на него распространяется.
+    expect(lines).toHaveLength(2);
     expect(lines[0]).toContain('GET 200 /blog');
-    expect(linesAfter).toHaveLength(1);
+    expect(lines[1]).toContain('GET 404 /healthz');
+    expect(linesAfter).toHaveLength(2);
+  }, 60_000);
+});
+
+describe('проверки готовности', () => {
+  it('createApp доносит checks до /ready', async () => {
+    const root = await makeProject();
+    await buildH11X({ root, prod: true });
+
+    let ready = false;
+    const app = await createApp({
+      root,
+      prod: true,
+      log: false,
+      health: { checks: { db: () => ready } },
+    });
+    const server = Bun.serve({ port: 0, ...createServer({ h11: app.h11 }) });
+    const origin = `http://localhost:${server.port}`;
+
+    // Живость от готовности не зависит: процесс отвечает, зависимость нет.
+    const downPing = await fetch(`${origin}/ping`);
+    const downReady = await fetch(`${origin}/ready`);
+
+    ready = true;
+    const upReady = await fetch(`${origin}/ready`);
+
+    await server.stop(true);
+    await rm(root, { recursive: true, force: true });
+
+    expect(downPing.status).toBe(200);
+    expect(downReady.status).toBe(503);
+    expect(await downReady.json()).toEqual(['db']);
+    expect(upReady.status).toBe(200);
   }, 60_000);
 });

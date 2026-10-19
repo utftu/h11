@@ -10,10 +10,17 @@ import { buildH11X, defaultPrefix, defaultDevPrefix } from '../build/build.ts';
 import { reganVite } from 'regan/vite';
 import { readConfig } from '../assets/assets.ts';
 import type { ConfigH11X } from '../types.ts';
-import type { EditViteConfig, LogOptions, Route, ViteBase } from '../types.ts';
+import type {
+  EditViteConfig,
+  HealthOptions,
+  LogOptions,
+  Route,
+  ViteBase,
+} from '../types.ts';
 import { getProd, loadEnvFile } from '../env/env.ts';
 import { createWsHost, createWsProxy } from '../dev-ws.ts';
 import { createLogReq } from '../log/log.ts';
+import { addHealth } from '../health/health.ts';
 
 export type App = {
   h11: H11;
@@ -37,6 +44,7 @@ export const createApp = async ({
   devPrefix = defaultDevPrefix,
   url,
   log = {},
+  health = {},
   viteBase = () => ({}),
   editViteConfig = (_, config) => config,
   h11,
@@ -57,6 +65,9 @@ export const createApp = async ({
   // Строка на запрос в stdout. false — молчать совсем. Ассеты по умолчанию не
   // печатаются, см. LogOptions.
   log?: false | LogOptions;
+  // /ping и /ready для мониторинга. checks — проверки зависимостей для
+  // /ready. false — не регистрировать вовсе: пути заняты приложением.
+  health?: false | HealthOptions;
   viteBase?: ViteBase;
   editViteConfig?: EditViteConfig;
   h11?: H11;
@@ -148,6 +159,12 @@ export const createApp = async ({
         connectMiddleware: vite.middlewares,
       }),
     );
+  }
+
+  // Раньше роутов приложения — чтобы служебные пути не оказались за чужим
+  // wildcard'ом. Отключается health: false.
+  if (health !== false) {
+    addHealth(h11Internal, health);
   }
 
   const assetsDir = `${baseDirPrepared}/assets`;

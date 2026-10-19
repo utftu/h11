@@ -1,5 +1,6 @@
 import { getIp, type ResponseEvent } from 'h11';
 import type { LogOptions } from '../types.ts';
+import { pingPath, readyPath } from '../health/health.ts';
 
 // Строка лога живёт тут, а не в h11, потому что интересна она только вместе с
 // политикой «что печатать»: какие пути раздаёт статика и какой из ответов
@@ -25,6 +26,7 @@ export const createLogReq = ({
   devPrefix: string;
 } & LogOptions) => {
   const prefixes = [`${prefix}/`, `${devPrefix}/`];
+  const probes = [pingPath, readyPath];
 
   // Шум — это удачно отданный ассет: путь под префиксом раздачи, а в ответе
   // не страница. Ошибка на том же пути шумом не считается: пропавший или
@@ -32,6 +34,13 @@ export const createLogReq = ({
   const checkNoise = ({ res }: ResponseEvent, pathname: string) => {
     if (res.status >= 400) {
       return false;
+    }
+
+    // Удачная проба здоровья не несёт ничего: монитор, стучащий раз в пять
+    // секунд, это 17 тысяч одинаковых строк в сутки. Отключать это нечем —
+    // смотреть там не на что, а 503 печатается по правилу выше.
+    if (probes.includes(pathname)) {
+      return true;
     }
 
     if (checkHtml(res)) {

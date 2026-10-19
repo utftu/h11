@@ -8,6 +8,8 @@ import { makeSsr, renderSsr, createPage } from './ssr.tsx';
 import { makeSsg } from './ssg/ssg.ts';
 import { getAssets, readConfig } from './assets/assets.ts';
 import { createApp, type App } from './app/app.ts';
+import { addHealth, pingPath, readyPath } from './health/health.ts';
+import { getEnv } from './client/client.tsx';
 import type {
   ConfigH11X,
   Route,
@@ -21,6 +23,9 @@ import type {
   SsgPages,
   EditViteConfig,
   EditViteConfigProps,
+  HealthChecks,
+  HealthOptions,
+  LogOptions,
 } from './types.ts';
 
 export {
@@ -35,6 +40,10 @@ export {
   getAssets,
   defaultPrefix,
   defaultDevPrefix,
+  addHealth,
+  pingPath,
+  readyPath,
+  getEnv,
 };
 
 export type {
@@ -51,4 +60,7 @@ export type {
   SsgPages,
   EditViteConfig,
   EditViteConfigProps,
+  HealthChecks,
+  HealthOptions,
+  LogOptions,
 };

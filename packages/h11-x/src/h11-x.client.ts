@@ -7,6 +7,7 @@ import {
   getStorageHtml,
   createStorage,
   hydratePage,
+  getEnv,
 } from './client/client.tsx';
 
 export {
@@ -18,4 +19,5 @@ export {
   getStorageHtml,
   createStorage,
   hydratePage,
+  getEnv,
 };

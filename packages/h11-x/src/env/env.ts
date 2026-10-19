@@ -1,4 +1,5 @@
 import { parseEnv } from 'node:util';
+import { publicPrefix } from '../consts.ts';
 
 // Режим либо передан явно, либо берётся из NODE_ENV — но только если там одно
 // из двух понятных значений. Молчаливого «ничего не сказали, значит дев» быть
@@ -45,13 +46,11 @@ export const loadEnvFile = async (path?: string) => {
   }
 };
 
-const PUBLIC_PREFIX = 'PUBLIC_';
-
 export const getPublicEnvs = (): Record<string, string> => {
   const result: Record<string, string> = {};
 
   for (const [key, value] of Object.entries(process.env)) {
-    if (key.startsWith(PUBLIC_PREFIX) && value !== undefined) {
+    if (key.startsWith(publicPrefix) && value !== undefined) {
       result[key] = value;
     }
   }

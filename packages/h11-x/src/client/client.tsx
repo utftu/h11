@@ -1,4 +1,4 @@
-import { scriptKey } from '../consts.ts';
+import { publicPrefix, scriptKey } from '../consts.ts';
 import { Fragment, h, hydrate, type Child, type FC } from 'regan';
 
 const storage_id = 'h11x_storage_id';
@@ -34,10 +34,63 @@ export const getStorageHtml = (localWindow?: Window) => {
   return data;
 };
 
+// Публичные переменные на клиенте живут в window.h11x.envs: видно одним
+// выражением в консоли, доступно не только нашему коду, и рядом есть куда
+// положить следующее.
+declare global {
+  interface Window {
+    h11x?: { envs: Record<string, string> };
+  }
+}
+
+export const setEnvs = (envs: Record<string, string>) => {
+  window.h11x = { ...window.h11x, envs };
+  return envs;
+};
+
+const readEnvs = () => {
+  const store = window.h11x?.envs;
+
+  if (store !== undefined) {
+    return store;
+  }
+
+  // Гидрация ещё не прошла, а значения в разметке уже лежат — читаем их
+  // сами. Иначе getEnv на верхнем уровне модуля вернул бы undefined там,
+  // где сервер вернул значение, и дерево разъехалось бы молча.
+  return setEnvs(getStorageHtml().envs);
+};
+
+// Одна функция на оба конца: на сервере читает окружение процесса, в браузере
+// — то, что сервер положил в разметку. Нужна именно одна, потому что общий
+// компонент рендерится и там, и там.
+//
+// Bun.env, а не process.env: второе vite схлопывает в литерал при сборке
+// клиента — измерено, process.env.NODE_ENV превращается в "production".
+export const getEnv = (name: string) => {
+  // Имя без префикса — server-only переменная: на сервере она есть, в
+  // браузере её нет, и общий компонент отрендерил бы два разных дерева.
+  // Молча разойтись хуже, чем упасть на первом вызове.
+  if (!name.startsWith(publicPrefix)) {
+    throw new Error(
+      `getEnv reads only ${publicPrefix}* variables (got ${name}) — server-only values are in Bun.env`,
+    );
+  }
+
+  if (typeof window === 'undefined') {
+    return Bun.env[name];
+  }
+
+  return readEnvs()[name];
+};
+
 // Пропсы берутся из того же data, что записал сервер: без них клиент
 // отрендерил бы другое дерево, и гидрация разъехалась бы с разметкой.
 export const hydratePage = (Component: FC<any>) => {
   const data = getStorageHtml();
+
+  // Store заполняется до рендера: компоненты читают getEnv уже при гидрации.
+  setEnvs(data.envs);
 
   hydrate(document, <Component {...data.props} />, { data });
 };
