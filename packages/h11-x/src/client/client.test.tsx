@@ -154,3 +154,18 @@ describe('getEnv', () => {
     expect(() => getEnv('SECRET')).toThrow('getEnv reads only PUBLIC_');
   });
 });
+
+describe('Template', () => {
+  it('props уезжают на <html> — там нужны lang и dir', async () => {
+    const html = await stringify(
+      <Template lang="ru" dir="rtl">
+        <div>текст</div>
+      </Template>,
+      { data: { envs: {}, props: {} } },
+    );
+
+    expect(html).toContain('<html lang="ru" dir="rtl">');
+    // Дети остались детьми, а не атрибутами.
+    expect(html).toContain('<div>текст</div>');
+  });
+});

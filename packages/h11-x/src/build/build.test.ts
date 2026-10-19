@@ -150,3 +150,86 @@ describe('buildH11X: проверка файлов роута', () => {
     await rm(baseDir, { recursive: true, force: true });
   });
 });
+
+describe('алиасы приложения', () => {
+  it('собираются в серверный модуль, а не остаются импортом', async () => {
+    // Внутри пакета, а не в /tmp: снаружи воркспейса не разрешается импорт
+    // h11-x, а серверному модулю роута он нужен.
+    const root = `${import.meta.dir}/../../.test-project-alias-${pid}`;
+    const dir = `${root}/src/routes/about`;
+    await mkdir(`${root}/src/locales`, { recursive: true });
+    await mkdir(dir, { recursive: true });
+
+    await writeFile(
+      `${root}/src/locales/ru.json`,
+      JSON.stringify({ title: 'ВШИТЫЙ_ЗАГОЛОВОК', unused: 'ЛИШНИЙ_КЛЮЧ' }),
+    );
+    await writeFile(
+      `${dir}/about.tsx`,
+      `import {Template} from 'h11-x/client';
+import * as t from '@locale';
+export const About = () => <Template lang="ru"><h1>{t.title}</h1></Template>;
+`,
+    );
+    await writeFile(
+      `${dir}/about.ssr.tsx`,
+      `import {createPage} from 'h11-x';
+import {About} from './about.tsx';
+export const page = createPage(About);
+`,
+    );
+    await writeFile(
+      `${dir}/about.client.tsx`,
+      `import {hydratePage} from 'h11-x/client';
+import {About} from './about.tsx';
+hydratePage(About);
+`,
+    );
+
+    await buildH11X({
+      root,
+      prod: true,
+      viteBase: () => ({
+        resolve: { alias: { '@locale': `${root}/src/locales/ru.json` } },
+      }),
+    });
+
+    const server = await Bun.file(`${root}/.h11x/ssr/about.js`).text();
+
+    await rm(root, { recursive: true, force: true });
+
+    // Строка вшита, импорта наружу не осталось: иначе прод падал бы при
+    // старте, а сборка проходила молча.
+    expect(server).toContain('ВШИТЫЙ_ЗАГОЛОВОК');
+    expect(server).not.toContain('@locale');
+    // Неиспользованный ключ выброшен — на обеих сборках.
+    expect(server).not.toContain('ЛИШНИЙ_КЛЮЧ');
+  }, 60_000);
+
+  it('не мешает приложению задать внешность самому', async () => {
+    const root = await mkdtemp(`${tmpdir()}/h11x-ext-`);
+    const dir = `${root}/about`;
+    await mkdir(dir, { recursive: true });
+    await writeFile(`${dir}/about.ssr.tsx`, `export const page = () => '';\n`);
+    await writeFile(`${dir}/about.client.tsx`, `export const client = 1;\n`);
+
+    const seen: unknown[] = [];
+
+    await buildH11X({
+      baseDir: `${root}/.h11x`,
+      routes: [dir],
+      prod: true,
+      viteBase: () => ({ build: { rollupOptions: { external: ['своё'] } } }),
+      editViteConfig: (props, config) => {
+        if (props.target === 'server') {
+          seen.push(config.build?.rollupOptions?.external);
+        }
+        return config;
+      },
+    });
+
+    await rm(root, { recursive: true, force: true });
+
+    expect(seen).toEqual([['своё']]);
+  }, 60_000);
+});

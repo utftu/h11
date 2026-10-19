@@ -1,5 +1,10 @@
 import { rm } from 'node:fs/promises';
-import { defineConfig, build as buildVite, type Rollup } from 'vite';
+import {
+  defineConfig,
+  build as buildVite,
+  type AliasOptions,
+  type Rollup,
+} from 'vite';
 import { joinPath } from 'h11';
 import { defu } from 'defu';
 import { reganVite } from 'regan/vite';
@@ -37,20 +42,54 @@ type BuildProps = {
   editViteConfig?: EditViteConfig;
 };
 
+// Имена алиасов приложения. По ним импорт ведёт внутрь проекта, значит его
+// надо собрать, а не оставить ссылкой наружу. Регулярки пропускаем: сравнить
+// их с id до резолва нельзя, а резолва на этом шаге ещё нет.
+const collectAliases = (alias?: AliasOptions) => {
+  if (alias === undefined) {
+    return [];
+  }
+
+  if (Array.isArray(alias)) {
+    const store: string[] = [];
+
+    for (const { find } of alias) {
+      if (typeof find === 'string') {
+        store.push(find);
+      }
+    }
+
+    return store;
+  }
+
+  return Object.keys(alias);
+};
+
 // Серверный модуль исполняем мы сами через import, поэтому тащить в него
 // зависимости из node_modules не надо: внешним считается всё, кроме
-// относительных путей и абсолютных путей проекта. Заодно h11-x и regan не
-// попадают в бандл вторым экземпляром — иначе плейсхолдеры и реактивность
-// оказались бы из другой копии пакета.
-const checkExternal = (id: string) => {
-  return !id.startsWith('.') && !id.startsWith('/');
+// относительных путей, абсолютных путей проекта и алиасов приложения. Заодно
+// h11-x и regan не попадают в бандл вторым экземпляром — иначе плейсхолдеры и
+// реактивность оказались бы из другой копии пакета.
+//
+// Алиасы тут обязательны: без них `import {x} from '@locale'` оставался бы
+// импортом в собранном модуле, и прод падал бы при старте — сборка при этом
+// проходит молча.
+const createCheckExternal = (aliases: string[]) => (id: string) => {
+  if (id.startsWith('.') || id.startsWith('/')) {
+    return false;
+  }
+
+  for (const alias of aliases) {
+    if (id === alias || id.startsWith(`${alias}/`)) {
+      return false;
+    }
+  }
+
+  return true;
 };
 
 const viteConfigBaseServer = defineConfig({
   build: {
-    rollupOptions: {
-      external: checkExternal,
-    },
     emptyOutDir: false,
   },
 });
@@ -141,6 +180,18 @@ export const buildServer = async ({
   viteBase: ViteBase;
   editViteConfig: EditViteConfig;
 }) => {
+  // viteBase зовётся один раз: плагины со своим состоянием одного инстанса
+  // на всех не обещают, а алиасы из него нужны ещё до слияния.
+  const base = viteBase();
+
+  // Своё правило ставим только когда приложение не задало внешность само. И
+  // не повторяем его значение в своём слое: defu склеивает массивы, и тот же
+  // external, названный дважды, удвоился бы.
+  const rollupOptions =
+    base.build?.rollupOptions?.external === undefined
+      ? { external: createCheckExternal(collectAliases(base.resolve?.alias)) }
+      : {};
+
   const config = defineConfig({
     root,
     plugins: [reganVite()],
@@ -151,10 +202,11 @@ export const buildServer = async ({
         formats: ['es'],
         fileName: route.name,
       },
+      rollupOptions,
     },
   });
 
-  let configFinal = defu(config, viteBase(), viteConfigBaseServer);
+  let configFinal = defu(config, base, viteConfigBaseServer);
   configFinal = editViteConfig({ mode, target: 'server', route }, configFinal);
 
   await buildVite(configFinal);

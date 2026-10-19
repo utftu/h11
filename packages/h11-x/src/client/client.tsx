@@ -144,7 +144,11 @@ const flatChildren = (children: any[]): any[] => {
   return store;
 };
 
-export const Template: FC = (_, { children }) => {
+// Props уезжают на <html>: туда нужны lang и dir, без которых локализация
+// неполная — браузер не знает языка для переносов и озвучки, а rtl не
+// включить вовсе. Дети в props не приезжают (они в ctx), поэтому расплескать
+// props целиком безопасно.
+export const Template: FC = (props, { children }) => {
   let heads: Child[] = [];
   let headProps = {};
   let bodies: Child[] = [];
@@ -171,7 +175,7 @@ export const Template: FC = (_, { children }) => {
   return (
     <Fragment>
       {'<!DOCTYPE html>'}
-      <html>
+      <html {...props}>
         <head {...headProps}>
           <Script />
           <DataSet />
