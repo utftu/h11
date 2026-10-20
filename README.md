@@ -1,44 +1,44 @@
 # h11
 
-Монорепозиторий с самописным HTTP-стеком на Bun/TypeScript: минималистичный роутер с раздачей статики (`h11`), и SSR-надстройка поверх Vite + [regan](https://www.npmjs.com/package/regan) (`h11-x`).
+A monorepo with a hand-rolled HTTP stack on Bun/TypeScript: a minimal router with static file serving (`h11`), and an SSR layer on top of Vite + [regan](https://www.npmjs.com/package/regan) (`h11-x`).
 
-## Пакеты
+## Packages
 
-| Пакет | Что делает |
+| Package | What it does |
 |---|---|
-| [`packages/h11`](./packages/h11) | Ядро — класс `H11` с radix-роутером, middleware, обработкой ошибок, раздачей статики и адаптером под `Bun.serve`. Рантайм только Bun |
-| [`packages/h11-x`](./packages/h11-x) | SSR/гидрация поверх `h11` + Vite + regan |
-| [`packages/h11-x-example`](./packages/h11-x-example) | Рабочий пример, связывающий всё вместе |
+| [`packages/h11`](./packages/h11) | The core — the `H11` class with a radix router, middlewares, error handling, static file serving and an adapter for `Bun.serve`. Bun-only runtime |
+| [`packages/h11-x`](./packages/h11-x) | SSR/hydration on top of `h11` + Vite + regan |
+| [`packages/h11-x-example`](./packages/h11-x-example) | A working example that wires everything together |
 
-## Разработка
+## Development
 
 ```bash
 bun install
-bun test    # тесты всех пакетов
+bun test    # tests of every package
 ```
 
-Рантайм — только Bun, во всех пакетах.
+The runtime is Bun only, in every package.
 
-Каждый пакет собирается независимо:
+Each package builds on its own:
 
 ```bash
 cd packages/h11 && bun run build
 ```
 
-Либо через оркестратор задач [`dapes`](https://www.npmjs.com/package/dapes), который знает о зависимостях между пакетами (`h11` → `h11-x` → `h11-x-example`):
+Or through the task orchestrator [`dapes`](https://www.npmjs.com/package/dapes), which knows the dependencies between packages (`h11` → `h11-x` → `h11-x-example`):
 
 ```bash
-bun run dapes.run.ts x build        # соберёт h11 → h11-x по цепочке
-bun run dapes.run.ts example run    # поднимет пример на :3000
+bun run dapes.run.ts x build        # builds h11 → h11-x in order
+bun run dapes.run.ts example run    # starts the example on :3000
 ```
 
-## Релиз в npm
+## Releasing to npm
 
-1. Бампнуть версию в `packages/<pkg>/package.json`, закоммитить.
-2. Собрать и опубликовать пакет руками: `cd packages/<pkg> && bun run build && npm publish`.
+1. Bump the version in `packages/<pkg>/package.json`, commit.
+2. Build and publish the package by hand: `cd packages/<pkg> && bun run build && npm publish`.
 
-Порядок важен: `h11` публикуется раньше `h11-x`, который на него ссылается.
+Order matters: `h11` is published before `h11-x`, which depends on it.
 
-## Статус
+## Status
 
-Личный/экспериментальный проект. `h11` покрыт тестами и относительно устоялся; `h11-x` — активно меняющийся SSR-слой (версия `0.0.x`), API может измениться без предупреждения.
+A personal/experimental project. `h11` is covered by tests and has settled down; `h11-x` is an actively changing SSR layer (version `0.0.x`), its API may change without notice.

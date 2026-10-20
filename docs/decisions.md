@@ -1,315 +1,318 @@
-# Решения
+# Decisions
 
-Что решено и почему. Записи правятся на месте, мёртвые удаляются.
+What was decided and why. Entries are edited in place, dead ones are deleted.
 
-## Монорепозиторий
+## Monorepo
 
-**Рантайм только Bun.** Абстракция `FsApi` с провайдерами под Bun и Node удалена, точки входа `h11/bun` и `h11/node` схлопнуты в одну `h11`. Файловая система зовётся напрямую — `Bun.file`, `Bun.write`, `node:fs/promises`.
-Почему: провайдеров было два, но Node-ветка не работала вовсе (собранный `dist/h11.js` не импортировался под Node), а абстракция стоила девяти методов интерфейса и дублирования между провайдерами.
-Отклонено: чинить Node-ветку и оставить обе — поддержка того, чем никто не пользуется.
+**Bun-only runtime.** The `FsApi` abstraction with providers for Bun and Node is gone, the `h11/bun` and `h11/node` entry points are collapsed into a single `h11`. The file system is called directly — `Bun.file`, `Bun.write`, `node:fs/promises`.
+Why: there were two providers, but the Node branch did not work at all (the built `dist/h11.js` would not import under Node), while the abstraction cost nine interface methods and duplication between the providers.
+Rejected: fixing the Node branch and keeping both — maintaining what nobody uses.
 
-**Точка входа пакета — только ре-экспорт.** `h11.ts`, `h11-x.ts`, `h11-x.client.ts` не содержат логики.
-Почему: `buildH11X` жил в точке входа h11-x и тянул за собой круговой импорт с `app.ts`.
+**Documentation is in English: the READMEs of every package and this file.**
+Why: the packages are published to npm, and English is the language of their readers. The working dialogue stays Russian.
 
-## h11 — роутер
+**A package's entry point is a re-export only.** `h11.ts`, `h11-x.ts`, `h11-x.client.ts` hold no logic.
+Why: `buildH11X` lived in h11-x's entry point and dragged a circular import with `app.ts` behind it.
 
-**Подошедшие маршруты собираются все и пробуются по очереди.** Приоритет: точный путь, затем параметрический, затем `/**` от глубокого к общему. Маршрут, чьи хендлеры вернули `undefined`, уступает ход следующему.
-Почему: в роутере уживались три модели — миддлвари чейнились, wildcards разной глубины чейнились, а точные пути нет. Разработчик ждёт одного поведения от всего.
-Цена: +4–9% к времени поиска (167 → 174 нс на статическом пути), список кандидатов вместо одной пары в `find`.
-Отклонено: оставить «один маршрут побеждает», как в fastify — не решает исходную задачу с `/**`.
+## h11 — the router
 
-**Миддлвари выполняются один раз, до вариантов.** `find` возвращает их отдельным списком.
-Почему: внутри вариантов миддлварь, прочитавшая тело запроса, отработала бы повторно на вычерпанном потоке.
-Цена: миддлварь видит `params` самого точного варианта, а не того, кто ответил.
+**All matching routes are collected and tried in order.** Priority: the exact path, then the parametric one, then `/**` from the deepest to the most general. A route whose handlers returned `undefined` yields to the next one.
+Why: three models coexisted in the router — middlewares chained, wildcards of different depth chained, and exact paths did not. A developer expects one behaviour from all of it.
+Cost: +4–9% to lookup time (167 → 174 ns on a static path), a list of candidates instead of a single pair in `find`.
+Rejected: keeping "one route wins", like fastify — it does not solve the original problem with `/**`.
 
-**Повторная регистрация пути дописывает хендлеры в конец.** Раньше второй `get('/a')` молча затирал первый.
+**Middlewares run once, before the candidates.** `find` returns them as a separate list.
+Why: inside the candidates a middleware that read the request body would run again on a drained stream.
+Cost: a middleware sees the `params` of the most exact candidate, not of the one that answered.
 
-**Паттерн обязан начинаться со слэша и не может им кончаться.** Исключение — корень `/`.
-Почему: `add('users')` молча создавал узел `sers`, `'/users/'` — пустой сегмент в конце.
+**Registering a path again appends handlers to the end.** Previously a second `get('/a')` silently overwrote the first.
 
-**Хвостовой слэш во входящем пути срезается:** `/hello/` находит маршрут `/hello`.
-Почему: для клиента это один и тот же адрес, и 404 на нём выглядит поломкой.
+**A pattern must start with a slash and may not end with one.** The root `/` is the exception.
+Why: `add('users')` silently created a node `sers`, and `'/users/'` an empty trailing segment.
 
-**Два разных имени параметра на одном уровне — ошибка регистрации.** Узел хранит одного параметрического ребёнка, и раньше второе имя молча терялось.
+**A trailing slash in the incoming path is trimmed:** `/hello/` finds the route `/hello`.
+Why: to a client it is the same address, and a 404 on it looks like a breakage.
 
-**Модули расширяют форму `ctx.data`, и маркер у них обязательный.** `createDataModule<{user: User}>(handler)` помечает миддлварь, после `.use(authModule)` инстанс знает про `data.user`.
-Почему: маркер `__adds` был опциональным, под `DataModule` подходил любой хендлер, и `TData` расширялся мусором при любом `.use()`. Обязательный маркер плюс хелпер-каст чинит отбор, не теряя саму возможность.
-Отклонено: убрать модули данных совсем и задавать форму только параметром класса — теряется типизация того, что кладут auth и подобные модули.
+**Two different param names at the same level are a registration error.** A node stores a single parametric child, and the second name used to be lost silently.
 
-**`reqId` живёт только в `ctx.reqId`.** Модуль `createReqIdModule`, клавший его же в `data.reqId`, удалён — два источника одного значения.
+**Modules extend the shape of `ctx.data`, and their marker is mandatory.** `createDataModule<{user: User}>(handler)` marks a middleware, and after `.use(authModule)` the instance knows about `data.user`.
+Why: the `__adds` marker was optional, any handler matched `DataModule`, and `TData` got extended with garbage on any `.use()`. A mandatory marker plus a helper cast fixes the selection without losing the capability itself.
+Rejected: dropping data modules entirely and setting the shape only through the class parameter — that loses the typing of whatever auth and similar modules put there.
 
-**Параметры маршрута не декодируются:** `/users/a%20b` даёт `a%20b`.
-Почему: что прислали, то и отдаём; пути в проекте только латиницей.
+**`reqId` lives only in `ctx.reqId`.** The `createReqIdModule` module, which put the same value into `data.reqId`, is deleted — two sources for one value.
 
-## h11 — вебсокеты
+**Route params are not decoded:** `/users/a%20b` yields `a%20b`.
+Why: what was sent is what we hand over; paths in the project are latin-only.
 
-**`createServer` отдаёт пару `{fetch, websocket}`** — `Bun.serve({port, ...createServer({h11})})`.
-Почему: таблицу вебсокет-коллбеков `Bun.serve` требует заранее, отдельно от `fetch`. Одно имя вместо двух, и забыть половину нельзя.
-Цена: ломает `fetch: createServer({h11})` во всех приложениях — одна строка на приложение.
-Отклонено: отдельный экспорт `websocket` (два имени, половину можно забыть) и функция с полем `.websocket` (скрытое присваивание).
+## h11 — websockets
 
-**Вебсокет объявляет обычный хендлер через `ctx.upgrade({open, message, close})`.**
-Почему: маршрутизация, миддлвари, параметры, `data`-модули и проваливание дальше по цепочке уже работают — второй контур маршрутизации не нужен. Состояние соединения живёт в замыкании хендлера, поэтому соединению не нужно носить своё `data`.
-Отклонено: `h11.ws(path, handlers)` — псевдометод в радиксе, статические коллбеки без доступа к `params` и отдельный вопрос про миддлвари.
+**`createServer` returns the pair `{fetch, websocket}`** — `Bun.serve({port, ...createServer({h11})})`.
+Why: `Bun.serve` wants the websocket callback table up front, separately from `fetch`. One name instead of two, and you cannot forget half of it.
+Cost: breaks `fetch: createServer({h11})` in every application — one line per application.
+Rejected: a separate `websocket` export (two names, half of it can be forgotten) and a function with a `.websocket` field (hidden assignment).
 
-**Удачный апгрейд хендлер возвращает ответом со статусом 101, а `createServer` переводит его в `undefined`.**
-Почему: Bun после апгрейда ждёт от `fetch` именно `undefined`, а ядру нужен непустой ответ — иначе хендлер считается отказавшимся и ход уходит дальше. Договорённость целиком лежит в `server.ts`: и тот, кто отдаёт 101, и тот, кто его читает.
-Отклонено: символ-маркер — протёк бы в тип `exec` и во всех, кто его зовёт.
+**A websocket is declared by an ordinary handler through `ctx.upgrade({open, message, close})`.**
+Why: routing, middlewares, params, `data` modules and falling through the chain already work — a second routing circuit is not needed. Connection state lives in the handler's closure, so a connection does not need to carry `data` of its own.
+Rejected: `h11.ws(path, handlers)` — a pseudo-method in the radix, static callbacks with no access to `params`, and a separate question about middlewares.
 
-**`upgrade` — обязательный параметр `exec`.** Ядро апгрейд не умеет и своего придумать не может: его даёт провайдер.
-Почему: значением по умолчанию была заглушка, бросающая ошибку, — скрытая ветка поведения в ядре ради тех, кто зовёт `exec` руками. Обязательный параметр говорит то же самое типом, до запуска.
-Цена: `exec` вручную зовут с `upgrade: () => undefined` — это тесты и всё.
-Отклонено: тихий дефолт `() => undefined` в ядре — хендлер молча проваливался бы дальше, и запрос кончался бы 404 без причины.
+**A successful upgrade is returned by the handler as a response with status 101, and `createServer` turns it into `undefined`.**
+Why: after an upgrade Bun expects exactly `undefined` from `fetch`, while the core needs a non-empty response — otherwise the handler counts as having declined and the turn moves on. The whole agreement lives in `server.ts`: both the side returning the 101 and the side reading it.
+Rejected: a symbol marker — it would leak into `exec`'s type and into everybody who calls it.
 
-**`Sec-WebSocket-Protocol` руками не ставится.** Bun сам повторяет запрошенный клиентом подпротокол; дубль заголовка закрывает соединение с кодом 1002 (`Mismatch client protocol`) — проверено.
+**`upgrade` is a mandatory parameter of `exec`.** The core cannot do upgrades and cannot invent one of its own: the provider gives it.
+Why: the default value was a stub that threw — a hidden branch of behaviour in the core for the sake of those who call `exec` by hand. A mandatory parameter says the same thing with a type, before anything runs.
+Cost: manual `exec` calls pass `upgrade: () => undefined` — that means the tests, and that is all.
+Rejected: a quiet default of `() => undefined` in the core — the handler would silently fall through, and the request would end in a 404 for no reason.
 
-## h11 — раздача статики
+**`Sec-WebSocket-Protocol` is not set by hand.** Bun echoes the subprotocol the client asked for itself; a duplicated header closes the connection with code 1002 (`Mismatch client protocol`) — measured.
 
-**`serveFiles` не отвечает своим 404.** Файла нет — хендлер молчит, запрос идёт дальше до `onNotFound` приложения.
-Почему: кастомный `onNotFound` на статике не работал, а код 404 дублировал `errors.ts`.
+## h11 — static file serving
 
-**Кроме точного совпадения ищутся `<путь>.html` и `<путь>/index.html`**, в том числе в предсжатых вариантах.
-Почему: ssg-страницы отдаются по красивым урлам (`/blog` → `blog.html`).
+**`serveFiles` does not answer with a 404 of its own.** No file — the handler stays silent and the request goes on to the application's `onNotFound`.
+Why: a custom `onNotFound` did not work for static files, and the 404 code duplicated `errors.ts`.
+
+**Besides the exact match, `<path>.html` and `<path>/index.html` are looked up**, including in their pre-compressed variants.
+Why: ssg pages are served at pretty urls (`/blog` → `blog.html`).
 
 ## h11 — API
 
-**Одно семейство для mime, всё по пути:** `getMime(path)`, `getMimeHeaders(path)`, `getInit(...)`. Старое `getContentType*` по ключу расширения удалено.
-Почему: два семейства об одном и том же, и снаружи не видно, какое выбирать. Голое расширение — тот же путь: `getMime('.html')`.
+**One family for mime, everything by path:** `getMime(path)`, `getMimeHeaders(path)`, `getInit(...)`. The old `getContentType*` by extension key is deleted.
+Why: two families about the same thing, and from the outside it was not clear which to pick. A bare extension is the same as a path: `getMime('.html')`.
 
-**`getInit` имеет две формы:** позиционную `getInit('json', 200, headers)` и объектную `getInit({mime, code, headers})`. Работа одна, внутри общий `createInit`.
-Отклонено: имена `getResponseProps`, `getMimeConfig`, `getMimeProps`, `getProps` — длинно или непонятно.
+**`getInit` has two forms:** the positional `getInit('json', 200, headers)` and the object one `getInit({mime, code, headers})`. The work is the same, with a shared `createInit` inside.
+Rejected: the names `getResponseProps`, `getMimeConfig`, `getMimeProps`, `getProps` — too long or unclear.
 
-**Ограничитель размера тела: лимит включительно.** Превышение по `content-length` — сразу 413; превышение в потоке рвёт чтение тела `BodyTooLargeError`, которую ловит `onError`.
-Почему: граница расходилась (`>` против `>=`), а ошибка гасилась `.catch(() => {})`.
+**The body size limiter: the limit is inclusive.** An excess visible in `content-length` means an immediate 413; an excess found mid-stream tears the body read with `BodyTooLargeError`, which `onError` catches.
+Why: the boundary disagreed with itself (`>` versus `>=`), and the error was swallowed by `.catch(() => {})`.
 
-## h11 — события
+## h11 — events
 
-**События кидает ядро, а не хендлеры.** Из `exec`, во всех ветках: хендлер ответил, брошен `Response`, сработал `onNotFound`, сработал `onError`. Статус берётся из настоящего `res`.
-Почему: событие `code` кидали сами дефолтные `onNotFound` и `onError`, и первое же, что делают в проде — свой `onError`, — молча убивало единственный сигнал об ошибке.
+**The events are emitted by the core, not by the handlers.** From `exec`, in every branch: a handler answered, a `Response` was thrown, `onNotFound` kicked in, `onError` kicked in. The status is read from the real `res`.
+Why: the `code` event used to be emitted by the default `onNotFound` and `onError` themselves, and the very first thing done in production — a custom `onError` — silently killed the only signal about errors.
 
-**Событие `code` удалено, дефолтные хендлеры теперь только отвечают.**
-Почему: оно стало строгим подмножеством `response` — `code` это `res.status`, `error` тот же, а `text` собирается из `req.url` и `error.message`. При этом из трёх событий только оно исчезало, стоило написать свой `onError`, то есть мы документировали ловушку вместо того чтобы её убрать.
-Его единственная особенность — готовый безопасный `text` для клиента — не работала никогда: дефолтный `onError` отдаёт в тело `Internal Server Error`, а `text` уходил только в событие.
-Цена: ломается для тех, кто подписан снаружи монорепы. Замена — подписка на `response`, статус и `error` там те же.
+**The `code` event is deleted, the default handlers now only answer.**
+Why: it had become a strict subset of `response` — `code` is `res.status`, `error` is the same, and `text` is assembled from `req.url` and `error.message`. And of the three events it was the only one that disappeared the moment you wrote your own `onError`, meaning we were documenting a trap instead of removing it.
+Its only distinguishing feature — a ready, safe `text` for the client — never worked: the default `onError` puts `Internal Server Error` into the body, while `text` went into the event only.
+Cost: it breaks for anyone subscribed from outside the monorepo. The replacement is a subscription to `response`, where the status and `error` are the same.
 
-**Их два: `request` до обработки, `response` после.**
-Почему: запрос, который завис или уронил процесс, в `response` не приедет никогда — увидеть его можно только по `request` без пары. Заодно `request` это место, где начинают трассировку.
-Цена: два `emit` на запрос вместо одного и две формы в типах.
-Время считается от `request`, а не после него: подписчик зовётся синхронно, и медленный подписчик — это тоже время запроса, прятать его незачем.
+**There are two of them: `request` before handling, `response` after.**
+Why: a request that hung or killed the process will never arrive at `response` — the only way to see it is a `request` without a pair. And `request` is also the place where a trace begins.
+Cost: two `emit`s per request instead of one, and two shapes in the types.
+The time is counted from `request` and not after it: a subscriber is called synchronously, and a slow subscriber is also request time, with no reason to hide it.
 
-**Форма сырая: `{req, reqId, providers}` и то же плюс `{res, ms, error?}`.** Заранее ничего не выбрано, печатающий достаёт что печатает.
-Почему: в разобранном наборе полей каждое новое поле было бы новой версией API. `providers` в событии — чтобы подписчик мог дойти до сервера (из него берётся ip).
-Цена: подписчики зовутся синхронно, до возврата из `exec`, то есть `res` из подписчика можно испортить.
-Тело `exec` переехало в приватный `run`, возвращающий `{res, error?}`: через `finally` ответ не виден, а возвратов в теле много.
-`error` есть только у исключений: пятисотая, отданная хендлером осознанно, и брошенный `Response` — обычные ответы.
+**The shape is raw: `{req, reqId, providers}`, and the same plus `{res, ms, error?}`.** Nothing is picked in advance, whoever prints digs out what they print.
+Why: with a pre-parsed set of fields every new field would be a new version of the API. `providers` is in the event so that a subscriber can reach the server (the ip comes from it).
+Cost: subscribers are called synchronously, before `exec` returns, which means `res` can be spoiled from a subscriber.
+The body of `exec` moved into a private `run` that returns `{res, error?}`: through a `finally` the response is not visible, and there are many returns in the body.
+`error` only exists for exceptions: a 500 returned deliberately by a handler, and a thrown `Response`, are ordinary answers.
 
-**Логгера в h11 нет, только шина.** `createServer` ничего не подписывает, в README лежит готовый подписчик на восемь строк.
-Почему: строка лога интересна вместе с политикой «что печатать», а политика требует знать, какие пути раздаёт статика и какой ответ — страница. Ядро этого не знает, h11-x знает.
-Цена: у голого h11 нет access-log из коробки — нужна одна строка подписки.
+**There is no logger in h11, only the bus.** `createServer` subscribes nothing, and the README carries a ready eight-line subscriber.
+Why: a log line is only interesting together with the policy of "what to print", and that policy needs to know which paths static serving owns and which answer is a page. The core does not know that, h11-x does.
+Cost: bare h11 has no access log out of the box — one line of subscription is needed.
 
-**`getIp` берёт первый хоп из `x-forwarded-for`, и только без заголовка — адрес сокета.** Остаётся в h11: это про запрос, а не про лог.
-Почему: за обратным прокси в сокете всегда сам прокси. Измерено: `server.requestIP(req)` отдаёт только адрес соединения, за Caddy это `127.0.0.1`, то есть ip в логе был бы один и тот же у всех запросов.
-Цена: заголовок приходит от клиента и подделывается, если до приложения можно дойти напрямую, минуя прокси. Для строки лога терпимо, решения по этому ip принимать нельзя — так и написано в README и в самом файле. Чужое значение режется по 45 символов, максимуму ipv6.
-Адрес вида `::ffff:127.0.0.1` приводится к `127.0.0.1`: двустековый слушатель так показывает клиента, пришедшего по ipv4 (RFC 4291), и это тот же адрес в форме ipv6. Измерено: по `127.0.0.1` сокет отдаёт `::ffff:127.0.0.1`, по `localhost` и `[::1]` — `::1`.
+**`getIp` takes the first hop of `x-forwarded-for`, and only without the header — the socket address.** It stays in h11: this is about the request, not about the log.
+Why: behind a reverse proxy the socket always holds the proxy itself. Measured: `server.requestIP(req)` returns only the connection address, which behind Caddy is `127.0.0.1`, meaning the ip in the log would be the same for every request.
+Cost: the header comes from the client and can be forged if the application can be reached directly, bypassing the proxy. Tolerable for a log line, but no decisions may be made by that ip — that is written both in the README and in the file itself. A foreign value is cut at 45 characters, the ipv6 maximum.
+An address like `::ffff:127.0.0.1` is normalized to `127.0.0.1`: that is how a dual-stack listener shows a client that arrived over ipv4 (RFC 4291), and it is the same address in ipv6 form. Measured: over `127.0.0.1` the socket returns `::ffff:127.0.0.1`, over `localhost` and `[::1]` — `::1`.
 
-## h11-x — сборка и конфиг
+## h11-x — build and config
 
-**Один `.h11x/config.json` на ssr и ssg.** Роут — `{mode, client: {src, out}, server: {src, out}}`, у ssg ещё `pages: [{pathname, file}]`. `src` — исходник, `out` — результат сборки.
-Отклонено: `entries` как имя для выхода сборки (в словаре сборщика entry — это вход), `clientLinks` (в объекте не только то, что становится тегами), суффиксы `-Raw`/`-File`.
+**One `.h11x/config.json` for ssr and ssg.** A route is `{mode, client: {src, out}, server: {src, out}}`, and an ssg one also has `pages: [{pathname, file}]`. `src` is the source, `out` is the build result.
+Rejected: `entries` as the name for the build output (in a bundler's vocabulary an entry is an input), `clientLinks` (the object holds more than what becomes tags), the suffixes `-Raw`/`-File`.
 
-**`pages` хранится в конфиге**, хотя раздача статики нашла бы html и без него.
-Почему: по нему регистрируются маршруты ssg-страниц поимённо.
+**`pages` is kept in the config**, even though static serving would find the html without it.
+Why: the ssg pages' routes are registered by name from it.
 
-**В `config.json` пишется весь выход vite**, а не первый файл: entry-чанки, остальные чанки, css, ассеты.
-Почему: раньше брался `output[0]`, и css в прод-разметку не попадал вовсе — страницы ехали без стилей.
+**The whole vite output is written into `config.json`**, not the first file: entry chunks, the rest of the chunks, css, assets.
+Why: `output[0]` used to be taken, and css never made it into the production markup at all — pages went out without styles.
 
-**Схема путей клиентской сборки связана жёстко:** `outDir` = каталог раздачи, `assetsDir` пустой, `base` = префикс раздачи.
-Почему: без `base` vite зашивал в css пути `/assets/...`, а отдавались файлы по `/h11x/...` — шрифты и картинки давали 404.
+**The client build's path scheme is tied together rigidly:** `outDir` = the serving directory, `assetsDir` empty, `base` = the serving prefix.
+Why: without `base` vite baked `/assets/...` paths into the css while the files were served at `/h11x/...` — fonts and images gave 404s.
 
-**Серверный модуль роута собирается с внешними зависимостями:** внешним считается всё, что не относительный и не абсолютный путь.
-Почему: тащить node_modules в модуль, который исполняем мы сами, незачем; заодно `h11-x/client` перестал попадать в бандл вторым экземпляром. Бандл роута: 34 КБ → 704 байта.
+**The route's server module is built with external dependencies:** anything that is not a relative and not an absolute path counts as external.
+Why: there is no point dragging node_modules into a module we execute ourselves; as a bonus `h11-x/client` stopped landing in the bundle as a second copy. The route's bundle: 34 KB → 704 bytes.
 
-**В dev ssr-роуты не собираются вовсе.** Рендер идёт из исходников через vite.
-Цена: `out` в конфиге пустой, `getAssets` в деве возвращает пустые списки.
+**In dev, ssr routes are not built at all.** Rendering goes from the sources through vite.
+Cost: `out` in the config is empty, and `getAssets` returns empty lists in dev.
 
-**Корень vite у всех трёх сборок — корень проекта.** `root` передаётся в `buildStyles`, `buildClient` и `buildServer` так же, как `baseDir`, `prefix` и `editViteConfig` — общим параметром.
-Почему: без него плагины считали контент от рабочего каталога процесса. Tailwind, подключённый через `src/styles.css`, при запуске сборки не из корня проекта терял бы классы из `src/routes`. Оттуда же vite берёт `vite.config` и `.env`, и dev-сервер уже работал именно так — сборки от него отставали.
+**Vite's root for all three builds is the project root.** `root` is passed to `buildStyles`, `buildClient` and `buildServer` the same way as `baseDir`, `prefix` and `editViteConfig` — as a shared parameter.
+Why: without it plugins counted the content from the process's working directory. Tailwind, hooked up through `src/styles.css`, would lose the classes from `src/routes` whenever a build was started from outside the project root. Vite also takes `vite.config` and `.env` from there, and the dev server already worked exactly that way — the builds lagged behind it.
 
-**Общий кусок vite-конфига — один параметр `viteBase`, подмешивается во все четыре vite** (dev-сервер и три сборки). Функция, а не объект.
-Почему: плагины приходилось объявлять дважды — в `viteConfig` для дева и в `editViteConfig` для сборок. Функция нужна потому, что конфигов четыре, сборки роутов идут параллельно, и плагины со своим состоянием (tailwind) одного инстанса на всех не обещают; так каждый конфиг получает свежие.
-Наш конфиг всегда первым аргументом `defu`: он перекрывает чужое, а массивы склеиваются в том же порядке — поэтому `reganVite` встаёт перед плагинами приложения. Настройки под `server` работают только в деве, под `build` — только в сборках, vite сам игнорирует чужую половину.
-Цена: `viteConfig` удалён. Заодно `reganVite` уехал из общих констант в конфиг каждой сборки — раньше один инстанс плагина делили все сборки сразу.
+**The shared piece of the vite config is a single `viteBase` parameter, mixed into all four vites** (the dev server and three builds). A function, not an object.
+Why: plugins had to be declared twice — in `viteConfig` for dev and in `editViteConfig` for the builds. A function is needed because there are four configs, route builds run in parallel, and plugins with state of their own (tailwind) do not promise that one instance will serve everybody; this way each config gets fresh ones.
+Our config is always `defu`'s first argument: it overrides foreign values, and arrays are concatenated in the same order — which is why `reganVite` comes before the application's plugins. Settings under `server` only work in dev, under `build` only in the builds, and vite ignores the other half itself.
+Cost: `viteConfig` is deleted. As a bonus `reganVite` moved out of the shared constants into each build's config — previously a single plugin instance was shared by all the builds at once.
 
-**`url` — публичный адрес приложения целиком**, из него берётся домен для `server.allowedHosts` dev-сервера.
-Почему: за обратным прокси vite отвергает запросы с чужого для себя домена — в деве вся статика отдаёт 403. Url, а не домен, потому что в окружении обычно лежит именно он (`APP_URL=https://nopeople.local.dev`), и разбирать его на стороне приложения незачем.
-Отклонено: `allowedHosts: true` по умолчанию — проверка вите у нас живая и защищает от dns-rebinding, через который страница злоумышленника вычитала бы исходники проекта с dev-префикса (проверено: чужой `Host` даёт 403, свой — 200). Отклонено и оставить это приложению через `viteBase`: тогда любой проект за прокси обязан знать ручку vite.
+**`url` is the application's whole public address**, and the domain for the dev server's `server.allowedHosts` is taken from it.
+Why: behind a reverse proxy vite rejects requests from a domain foreign to it — in dev all static files answer 403. A url and not a domain, because that is usually what sits in the environment (`APP_URL=https://nopeople.local.dev`), and there is no point parsing it on the application's side.
+Rejected: `allowedHosts: true` by default — vite's check is a live one here and protects against dns rebinding, through which an attacker's page would read out the project's sources from the dev prefix (measured: a foreign `Host` gives 403, our own gives 200). Also rejected: leaving it to the application through `viteBase` — then every project behind a proxy would have to know vite's knob.
 
-**`editViteConfig` получает `{mode, target, route}`.** Две независимые оси вместо склейки `'ssr_server'`, плюс сам роут — чтобы настроить конкретный.
+**`editViteConfig` receives `{mode, target, route}`.** Two independent axes instead of a glued `'ssr_server'`, plus the route itself — so that a specific one can be configured.
 
-**Режим: `prod` параметром, иначе из `NODE_ENV`, а непонятное значение роняет старт** (`getProd` в `env.ts`).
-Почему: по умолчанию стояло `process.env.NODE_ENV === 'production'`, но `bun build` схлопывает это выражение в константу при сборке пакета — в опубликованном `dist` лежало `prod = false`. Получить прод через окружение не мог никто: старт с `NODE_ENV=production` поднимал dev-сервер и сносил готовую сборку.
-Отклонено: считать непереданный режим девом — это и есть опасная ветка, образ без `NODE_ENV` снова стёр бы сборку. Поэтому пусто или `test` — ошибка, а не дев.
-`Bun.env`, а не `process.env.NODE_ENV`: первое bun не схлопывает (как и `process.env['NODE_ENV']`), проверено на сборке.
-В `createApp` режим разрешается после `loadEnvFile` — `NODE_ENV` из `.env` проекта тоже считается. В `buildH11X` — до `rm` каталога сборки.
+**The mode: `prod` as a parameter, otherwise from `NODE_ENV`, and an unclear value fails the startup** (`getProd` in `env.ts`).
+Why: the default used to be `process.env.NODE_ENV === 'production'`, but `bun build` folds that expression into a constant when the package is built — the published `dist` held `prod = false`. Nobody could get production through the environment: a start with `NODE_ENV=production` raised a dev server and wiped the finished build.
+Rejected: treating an unpassed mode as dev — that is the dangerous branch itself, and an image without `NODE_ENV` would wipe the build again. So empty or `test` is an error, not dev.
+`Bun.env` and not `process.env.NODE_ENV`: bun does not fold the former (nor `process.env['NODE_ENV']`), measured on a build.
+In `createApp` the mode is resolved after `loadEnvFile` — a `NODE_ENV` from the project's `.env` counts too. In `buildH11X` — before the `rm` of the build directory.
 
-**Режим рендера определяет `config.prod`, а не наличие vite.** Рассогласование сборки и запуска — это ошибка, и падать надо сразу.
+**The render mode is decided by `config.prod`, not by the presence of vite.** A mismatch between the build and the start is an error, and it must fail immediately.
 
-## h11-x — лог запросов
+## h11-x — the request log
 
-**Логгер живёт в h11-x, а подписывает его `createApp`.** Строка: `GET 200 /about 56.5ms 203.0.113.7 72ab8272`.
-Почему тут: отличить ассет от страницы можно только зная `prefix` и `devPrefix`, а знает их приложение. Почему в `createApp`, а не в `createServer`: `createServer` зовёт пользователь, и две подписки в двух местах давали бы двойные строки.
-Статус сразу за методом: по нему строку просматривают глазами, а путь бывает любой длины. От `reqId` хватает первых восьми символов, полный лежит в событии. Неизвестный ip — прочерк, чтобы поля не съезжали.
+**The logger lives in h11-x, and `createApp` subscribes it.** The line: `GET 200 /about 56.5ms 203.0.113.7 72ab8272`.
+Why here: telling an asset from a page is only possible when you know `prefix` and `devPrefix`, and the application is what knows them. Why in `createApp` and not in `createServer`: `createServer` is called by the user, and two subscriptions in two places would give doubled lines.
+The status comes right after the method: that is what the eye scans the line for, while a path can be of any length. The first eight characters of `reqId` are enough, the full one sits in the event. An unknown ip is a dash, so that the fields do not shift.
 
-**Удачно отданный ассет в лог не идёт, `log: {static: true}` возвращает.** Шум — это путь под `prefix` или `devPrefix`, ответ не `text/html` и статус меньше 400.
-Почему: измерено на `h11-x-example` — одна загрузка страницы в деве это 13 строк, из них полезная одна. После фильтра осталось 2, и вторая — артефакт краулера.
-Почему ошибки печатаются всегда: пропавший или упавший ассет надо видеть, иначе страница молча останется без стилей.
-Почему html под префиксом печатается: ssg-страницы лежат в том же каталоге, и `/h11x/blog.html` — это страница, а не шум.
+**A successfully served asset does not reach the log, `log: {static: true}` brings it back.** Noise is a path under `prefix` or `devPrefix`, an answer that is not `text/html`, and a status below 400.
+Why: measured on `h11-x-example` — a single page load in dev is 13 lines, of which one is useful. After the filter 2 were left, and the second one was a crawler's artifact.
+Why errors are always printed: a missing or failing asset has to be visible, otherwise the page will silently stay without styles.
+Why html under the prefix is printed: ssg pages live in that same directory, and `/h11x/blog.html` is a page, not noise.
 
-**Строка запроса не печатается, `log: {query: true}` возвращает.**
-Почему: в query попадают одноразовые токены из ссылок вида `/signin?token=...`, а лог живёт долго и читается многими. Терять query для отладки неприятно, но утёкший в лог токен дороже.
+**The query string is not printed, `log: {query: true}` brings it back.**
+Why: one-time tokens from links like `/signin?token=...` end up in the query, while a log lives long and is read by many. Losing the query for debugging is unpleasant, but a token leaked into the log costs more.
 
-**`log: false` снимает подписку целиком.** Нужен свой формат — своя подписка на `response`.
+**`log: false` removes the subscription entirely.** If you need your own format — your own subscription to `response`.
 
-**Два служебных пути, регистрирует `createApp`, выключатель — `health: false`.** `/ping` — живость, `200` `pong`, всегда. `/ready` — готовность, json-список непрошедших проверок.
-Почему в h11-x, а не в h11: ядро не занимает пути приложения само, а h11-x и так занимает `prefix`, `devPrefix` и пути ssg-страниц.
-Почему проверки только в готовности: в Kubernetes `livenessProbe` перезапускает контейнер, а `readinessProbe` убирает его из балансировки. Если упавшая база уронит живость, кластер начнёт перезапускать здоровый процесс и сделает хуже.
-Почему без `healthz`: конвенцию с несловарной `z` держат сами компоненты Kubernetes (`kube-apiserver`, `kubelet`), а поды по ней никто не опрашивает — дефолтных путей у проб нет вообще, путь всегда называют в манифесте. Значит имя выбираем по смыслу, а не по узнаваемости, и второе имя для того же обработчика не нужно.
-Отклонено: `/healthz` рядом с `/ready` как алиас — сначала так и было сделано, убрано, когда выяснилось, что узнаваемость мнимая.
-Почему оба метода: мониторы ходят и GET, и HEAD, а в h11 у каждого метода своя таблица — измерено, `HEAD /ping` на GET-роуте даёт `404`. `OPTIONS` не регистрируем: пробы им не ходят. Тело для HEAD отрезает сам Bun.
-Регистрируются раньше роутов приложения, иначе их мог бы перехватить чужой `/**`.
+**Two service paths, registered by `createApp`, the switch is `health: false`.** `/ping` — liveness, `200` `pong`, always. `/ready` — readiness, a json list of the checks that failed.
+Why in h11-x and not in h11: the core does not take the application's paths by itself, while h11-x already takes `prefix`, `devPrefix` and the ssg pages' paths.
+Why the checks are in readiness only: in Kubernetes `livenessProbe` restarts the container while `readinessProbe` removes it from load balancing. If a dead database brought liveness down, the cluster would start restarting a healthy process and make things worse.
+Why without `healthz`: the convention with a non-word `z` is kept by Kubernetes' own components (`kube-apiserver`, `kubelet`), while nobody polls pods by it — probes have no default paths at all, the path is always named in the manifest. So the name is chosen by meaning and not by recognizability, and a second name for the same handler is not needed.
+Rejected: `/healthz` next to `/ready` as an alias — it was done that way first and removed once it turned out that the recognizability was imaginary.
+Why both methods: monitors send both GET and HEAD, and in h11 every method has its own table — measured, `HEAD /ping` on a GET route gives a `404`. `OPTIONS` is not registered: probes do not use it. The body for HEAD is cut off by Bun itself.
+They are registered before the application's routes, otherwise somebody else's `/**` could intercept them.
 
-**Отказ проверки — исключение или ровно `false`.** Остальное, включая `0` и `''`, успех.
-Почему два способа: `() => db.execute('select 1')` падает исключением и работает как есть, а `() => pool.totalCount > 0` естественно возвращает булево. Требовать `throw` от второго — заставлять писать обёртку на каждую проверку.
+**A check fails by throwing or by returning exactly `false`.** Everything else, including `0` and `''`, is success.
+Why two ways: `() => db.execute('select 1')` fails by throwing and works as it is, while `() => pool.totalCount > 0` naturally returns a boolean. Demanding a `throw` from the second would mean writing a wrapper for every check.
 
-**Проверки идут параллельно, своего таймаута нет.**
-Почему параллельно: они независимы, а проба должна успеть до таймаута монитора. Почему без таймаута: он есть у того, кто опрашивает, и зависшая проверка для него такой же отказ. По js-style таймауты живут только вокруг `fetch`.
-Порядок имён в ответе — порядок объявления: `Promise.all` его сохраняет, и тело предсказуемо.
+**Checks run in parallel, with no timeout of their own.**
+Why in parallel: they are independent, and the probe has to finish before the monitor's timeout. Why without a timeout: the one polling us has it, and a hung check is just as much a failure to them. By js-style, timeouts only live around `fetch`.
+The order of names in the answer is the declaration order: `Promise.all` preserves it, and the body stays predictable.
 
-**Тело готовности — json-список имён, которые не готовы.** `[]` при успехе, `["db","redis"]` при отказе; причина — в stdout одной строкой `ready: db — connection refused`, без стека.
-Почему список, а не `ok`/`fail: ...` текстом: форма одна в обоих случаях, и монитору не нужно разбирать два разных ответа. `Response.json` сам ставит `application/json;charset=utf-8`, тело для HEAD отрезает Bun — измерено.
-Почему `/ping` остался текстом: `pong` это и есть канон ping-а, разбирать там нечего.
-Почему только имена: `/ready` открыт всем, кто дошёл до приложения, а в сообщении драйвера приезжает строка подключения. Стек драйвера при этом бесполезен — сигнал в сообщении.
-Цена: печатается и при `log: false`, то есть у stdout два выключателя, которые расходятся. Выбрано так потому, что отказ это не трафик: причину 503 нельзя терять. Отклонено: не печатать вовсе и оставить это автору проверки — тогда 503 без причины где-либо вообще, а это тот самый случай, который ищут ночью.
+**The readiness body is a json list of the names that are not ready.** `[]` on success, `["db","redis"]` on failure; the reason goes to stdout as a single line, `ready: db — connection refused`, without a stack trace.
+Why a list and not `ok`/`fail: ...` as text: the shape is the same in both cases, and a monitor does not need to parse two different answers. `Response.json` sets `application/json;charset=utf-8` itself, and the body for HEAD is cut off by Bun — measured.
+Why `/ping` stayed text: `pong` is the canon of ping, there is nothing to parse there.
+Why names only: `/ready` is open to anyone who reached the application, and a driver's message carries the connection string. The driver's stack trace is useless anyway — the signal is in the message.
+Cost: it is printed even with `log: false`, meaning stdout has two switches that disagree. It was chosen that way because a failure is not traffic: the reason behind a 503 must not be lost. Rejected: not printing at all and leaving it to the check's author — then there would be a 503 with no reason anywhere, and that is exactly the case people hunt for at night.
 
-**Удачная проба в лог не идёт, и выключателя у этого нет.**
-Почему: монитор раз в пять секунд — 17 тысяч одинаковых строк в сутки, и ни одна ничего не говорит. Упавшая проба печатается по общему правилу «статус от 400 печатается всегда».
-Отклонено: отдельная опция, чтобы включить их обратно — включать нечего, строки пустые по смыслу.
+**A successful probe does not reach the log, and there is no switch for that.**
+Why: a monitor every five seconds is 17 thousand identical lines a day, and not one of them says anything. A failed probe is printed by the general rule "a status from 400 up is always printed".
+Rejected: a separate option to turn them back on — there is nothing to turn on, the lines are meaningless by nature.
 
-## h11-x — переменные окружения
+## h11-x — environment variables
 
-**`getEnv(name)` одна на оба конца, живёт в клиентской точке входа.** На сервере читает `Bun.env`, в браузере — то, что сервер положил в разметку. Нет переменной — `undefined`. Экспортируется и из `h11-x`, и из `h11-x/client`.
-Почему в клиентской: общий компонент (`about.tsx`) рендерится и на сервере при SSR, и в браузере при гидрации, и импортирует `h11-x/client` — значит одна функция на оба случая может лежать только там, с ветвлением по `typeof window` в рантайме.
-Измерено, что ветвление безопасно: в клиентской сборке vite оставляет `Bun.env[name]` как есть, ветка в браузере мёртвая. А `process.env.NODE_ENV` он схлопывает в литерал `"production"` — поэтому в серверной ветке именно `Bun.env`, как и в `getProd`.
-Почему не отдельный модуль `client/env.ts`: ему нужен `getStorageHtml` из `client.tsx`, а `client.tsx` нужен `setEnvs` — вышло бы кольцо импортов. Файл небольшой, тема одна; разделим, когда разрастётся.
+**`getEnv(name)` is one function for both ends and lives in the client entry point.** On the server it reads `Bun.env`, in the browser — what the server put into the markup. No such variable — `undefined`. It is exported both from `h11-x` and from `h11-x/client`.
+Why the client one: a shared component (`about.tsx`) is rendered both on the server during SSR and in the browser during hydration, and it imports `h11-x/client` — so one function for both cases can only live there, branching on `typeof window` at runtime.
+Measured that the branching is safe: in the client build vite leaves `Bun.env[name]` as it is, and the branch is dead in the browser. Whereas `process.env.NODE_ENV` it folds into the literal `"production"` — which is why the server branch uses `Bun.env`, just like `getProd`.
+Why not a separate `client/env.ts` module: it would need `getStorageHtml` from `client.tsx`, and `client.tsx` would need `setEnvs` — an import cycle. The file is small and the topic is one; we will split it when it grows.
 
-**`getEnv` читает только `PUBLIC_*`, остальное роняет вызов.**
-Почему: причина не в утечке, а в расхождении. Server-only переменная на сервере есть, а в браузере её нет — общий компонент отрендерил бы два разных дерева, и гидрация разъехалась бы молча. Падение на первом вызове дешевле.
-Префикс переехал в `consts.ts`: он нужен обеим сторонам, а дублировать строку в двух файлах нельзя.
+**`getEnv` reads `PUBLIC_*` only, everything else throws.**
+Why: the reason is not a leak but divergence. A server-only variable exists on the server and does not exist in the browser — a shared component would render two different trees, and hydration would drift apart silently. Failing on the first call is cheaper.
+The prefix moved into `consts.ts`: both sides need it, and duplicating the string in two files is not allowed.
 
-**На клиенте значения живут в `window.h11x.envs`.** Заполняет `hydratePage` до рендера; `getEnv`, позванный раньше гидрации, берёт их из разметки сам и кладёт туда же.
-Почему window, а не разбор разметки на каждый вызов: видно одним выражением в консоли, доступно не только нашему коду, и чтение дешевле `JSON.parse`. Цена: состояние в глобальном объекте — но источником правды остаётся разметка, store лишь её вид.
-`setEnvs` сохраняет прочие поля `window.h11x` — объект общий, и место рядом с `envs` ещё понадобится.
+**On the client the values live in `window.h11x.envs`.** `hydratePage` fills it before rendering; a `getEnv` called before hydration takes them from the markup itself and puts them there too.
+Why window and not parsing the markup on every call: it is visible with one expression in the console, available to more than our own code, and reading is cheaper than `JSON.parse`. Cost: state in a global object — but the source of truth stays the markup, and the store is only a view of it.
+`setEnvs` preserves the other fields of `window.h11x` — the object is shared, and the space next to `envs` will be needed again.
 
-**Публичные переменные уезжают рантаймом, а не вшиваются в бандл.** `import.meta.env` и `VITE_*` работают, но значения попадают в бандл на сборке.
-Почему так нельзя: образ собирают один раз и запускают с разным окружением — внутри оказалось бы то, что было в CI.
-Цена: ssg-страницы рендерятся на сборке, значит `PUBLIC_*` застывают в их html. Неизбежно.
+**Public variables travel at runtime instead of being baked into the bundle.** `import.meta.env` and `VITE_*` work, but the values land in the bundle at build time.
+Why that is unacceptable: an image is built once and run with different environments — whatever was in CI would be inside it.
+Cost: ssg pages are rendered at build time, so `PUBLIC_*` freeze into their html. Unavoidable.
 
-## h11-x — локализация и алиасы
+## h11-x — localization and aliases
 
-**Внешность в серверной сборке учитывает алиасы приложения.** Было: внешним считалось всё, что не начинается с точки или слэша. Стало: плюс имена алиасов из `viteBase`.
-Почему: это был баг, и не про локали. Измерено — с `resolve.alias: {'@locale': ...}` в собранном модуле роута оставалось `import { title } from "@locale"`, сборка проходила молча, а прод падал бы при старте. Тот же `{'@': './src'}` — самый частый алиас на свете — ломался так же.
-Своё правило отступает, если приложение задало `build.rollupOptions.external` само. Значение приложения не повторяется в нашем слое: defu склеивает массивы, и названный дважды external удвоился бы — поймано тестом.
-Регулярки в `find` пропускаются: сравнить их с id до резолва нельзя, а резолва на этом шаге нет.
-Алиасы из `vite.config.ts` проекта так не учитываются — vite читает этот файл сам, и до сборки мы его не видим. Документировано: алиасы задаются через `viteBase`.
+**Externality in the server build takes the application's aliases into account.** It was: anything not starting with a dot or a slash counted as external. It is now: plus the alias names from `viteBase`.
+Why: this was a bug, and not about locales. Measured — with `resolve.alias: {'@locale': ...}` the built route module still held `import { title } from "@locale"`, the build passed silently, and production would crash on startup. The same `{'@': './src'}` — the most common alias in the world — broke in exactly the same way.
+Our rule steps aside if the application set `build.rollupOptions.external` itself. The application's value is not repeated in our layer: defu concatenates arrays, and an external named twice would be duplicated — caught by a test.
+Regular expressions in `find` are skipped: they cannot be compared with an id before resolution, and there is no resolution at that step.
+Aliases from the project's `vite.config.ts` are not taken into account this way — vite reads that file itself, and we do not see it before the build. Documented: aliases are set through `viteBase`.
 
-**`Template` расплёскивает свои props на `<html>`.**
-Почему: локализации нужны `lang` и `dir` — без первого браузер не знает языка для переносов и озвучки, без второго не включить rtl. Отдельный канал для двух атрибутов не нужен.
-Измерено, что дети в props не приезжают (они в ctx), поэтому расплескать props целиком безопасно.
+**`Template` spreads its props onto `<html>`.**
+Why: localization needs `lang` and `dir` — without the first the browser does not know the language for hyphenation and screen readers, without the second rtl cannot be turned on. A separate channel for two attributes is not needed.
+Measured that children do not arrive in props (they come via ctx), so spreading the props whole is safe.
 
-**Строки локалей вшиваются в страницу на сборке, по ключам.** Локаль выбирается алиасом, строки берутся именованными или namespace-импортами.
-Измерено: из трёх ключей в бандле остаётся использованный; на двух роутах с общим каталогом в бандл страницы попадают только её ключи и затронутые ключи общего файла — ни чужой страницы, ни неиспользованного, ни другого языка. Так же в серверном модуле.
-Отклонено: `define` каталогом целиком — измерено, объект не режется и подставляется заново в каждое место обращения. `define` по точечным ключам работает, но промах по ключу остаётся в коде как `__T.foo` и падает в рантайме, а при импортах это ошибка компиляции.
-Цена: ключи плоские (именованные экспорты только верхнего уровня) и язык фиксируется на сборке — образ на язык. Несколько языков в одном деплое потребовали бы клиентской сборки на локаль, выхода на локаль в `config.json` и выбора тега скрипта в ssr; этого нет.
+**Locale strings are baked into the page at build time, per key.** The locale is picked with an alias, the strings are taken with named or namespace imports.
+Measured: of three keys the used one remains in the bundle; with two routes sharing a catalog, a page's bundle receives only its own keys and the touched keys of the shared file — no other page, nothing unused, no other language. The same in the route's server module.
+Rejected: `define` with the whole catalog — measured, the object is not cut and is substituted anew at every access site. `define` with pinpoint keys does work, but a missed key stays in the code as `__T.foo` and fails at runtime, whereas with imports it is a compile error.
+Cost: the keys are flat (named exports only exist at the top level) and the language is fixed at build time — one image per language. Several languages in one deployment would need a client build per locale, a per-locale output in `config.json` and a script tag choice in ssr; none of that exists.
 
-**Каталог локалей — ts-файлы, а не json.** Строки экспортами, числительные обычными функциями поверх `Intl.PluralRules`.
-Почему ts: в json не положишь функций, а они нужны для числительных, подстановок и дат. Вырезается одинаково — измерено, vite превращает json в модуль с именованными экспортами, но на этом его возможности кончаются.
-Почему `Intl.PluralRules`: формы считает браузер по правилам языка (у русского `one`, `few`, `many`), своих таблиц не нужно. Правила создаются по одному на файл локали — файл знает свой язык, а на каждый вызов строить их дорого.
-Отклонено: фабрики вида `createPlural('ru', {...})` на уровне модуля. Измерено: сборщик не доказывает безвредность вызова, поэтому оставляет и его, и строки — неиспользованный ключ уезжает в бандл и ещё исполняется при загрузке. `/*#__PURE__*/` это лечит, тоже измерено, но опора на комментарий, который легко забыть, хуже правила «обычные функции».
+**The locale catalog is ts files, not json.** Strings as exports, plurals as ordinary functions on top of `Intl.PluralRules`.
+Why ts: you cannot put functions into json, and they are needed for plurals, interpolations and dates. The cutting works the same — measured, vite turns json into a module with named exports, but that is where its abilities end.
+Why `Intl.PluralRules`: the forms are worked out by the browser from the language's rules (in Russian `one`, `few`, `many`), no tables of our own needed. The rules are created once per locale file — the file knows its language, and building them on every call is expensive.
+Rejected: factories like `createPlural('ru', {...})` at module level. Measured: the bundler cannot prove such a call is harmless, so it keeps both the call and the strings — an unused key travels into the bundle and runs on load as well. `/*#__PURE__*/` cures that, also measured, but leaning on a comment that is easy to forget is worse than the rule "ordinary functions".
 
-**Каталог — плоские экспорты, не объект.** Вложенность берётся namespace-импортом на месте вызова.
-Почему: измерено, сборщик режет по экспортам, а не по свойствам. Один объект на весь каталог уезжает в бандл целиком вместе с чужими страницами (`{signin:{...},about:{...}}.signin.title` в собранном коде), объект на namespace — целиком со своими неиспользованными ключами, плоский экспорт — по одному ключу.
+**The catalog is flat exports, not an object.** The nesting comes from a namespace import at the call site.
+Why: measured, the bundler cuts by exports and not by properties. One object for the whole catalog travels into the bundle whole, together with other pages (`{signin:{...},about:{...}}.signin.title` in the built code), an object per namespace travels whole with its own unused keys, and a flat export travels key by key.
 
-**Совпадение локалей проверяется типами, а не тестом.** Пять строк в `check.ts`: `Widen<typeof import(...)>` в обе стороны.
-Почему `Widen`: литеральные типы строк у разных языков несовместимы по определению (`"Submit"` против `"Отправить"`), поэтому литералы расширяются до `string`, а подписи функций остаются — они и должны совпадать. Измерено: ловится забытый ключ, лишний ключ и разошедшаяся подпись `(count: string)` против `(count: number)`; разные переводы одного ключа ошибкой не считаются.
-Отклонено: тест на `Object.keys` — ключи он сверит, подписи функций нет.
+**Locale agreement is checked by types, not by a test.** Five lines in `check.ts`: `Widen<typeof import(...)>` in both directions.
+Why `Widen`: literal string types of different languages are incompatible by definition (`"Submit"` versus `"Отправить"`), so the literals are widened to `string` while function signatures stay — those are what must match. Measured: it catches a forgotten key, an extra key and a drifted signature, `(count: string)` versus `(count: number)`; different translations of the same key are not an error.
+Rejected: a test on `Object.keys` — it would compare the keys but not the function signatures.
 
-## h11-x — HMR-канал
+## h11-x — the HMR channel
 
-**Vite получает свой ws-сервер: пустой `node:http` на `127.0.0.1` со случайным портом.**
-Почему: в middleware-режиме vite иначе поднимает собственный сервер на 24678 и зашивает этот порт в клиента. Браузер идёт мимо origin приложения, и за обратным прокси с https канал не встаёт вовсе — порт наружу не проброшен, а `ws://` со страницы по `https` браузер блокирует. С переданным сервером зашитый порт становится `null`, и клиент соединяется туда, откуда взял страницу: тот же хост, порт и протокол.
-Цена: лишний слушающий сокет на петле. Наружу не торчит.
-Отклонено: `ws: {clientPort, protocol}` в конфиге приложения (публичный порт за прокси приложение не знает — за Caddy это 443, а Bun слушает другой) и отдельный маршрут в самом прокси (настройка на стороне деплоя, которую мы не контролируем).
+**Vite is given a ws server of its own: an empty `node:http` on `127.0.0.1` with a random port.**
+Why: in middleware mode vite otherwise starts its own server on 24678 and bakes that port into the client. The browser goes past the application's origin, and behind a reverse proxy with https the channel does not come up at all — the port is not exposed, and the browser blocks `ws://` from a page served over `https`. With a server passed in, the baked-in port becomes `null`, and the client connects back to wherever it got the page from: the same host, port and protocol.
+Cost: an extra listening socket on the loopback. It is not exposed.
+Rejected: `ws: {clientPort, protocol}` in the application's config (the application does not know the public port behind a proxy — behind Caddy that is 443, while Bun listens on another one) and a separate route in the proxy itself (configuration on the deployment side, which we do not control).
 
-**Кадры между браузером и vite перекладывает прокси на два сокета.** Апгрейд «на другой адрес» невозможен в принципе, поэтому соединений именно два, склеенных замыканием хендлера.
-Почему: рукопожатие по протоколу vite делает сам vite на своём хосте — нам не нужно реализовывать ни его, ни формат сообщений. Заодно vite видит локального клиента с `127.0.0.1` и не спрашивает ни `allowedHosts`, ни токен по `Origin`.
-Отклонено: свой `HotChannel` через transport-API vite — пришлось бы повторять протокол клиента руками и держаться за приватные детали.
+**Frames between the browser and vite are shuffled by a proxy over two sockets.** Upgrading "to another address" is impossible in principle, so there are exactly two connections, glued by the handler's closure.
+Why: the handshake over vite's protocol is done by vite itself on its own host — we need to implement neither it nor the message format. As a bonus vite sees a local client from `127.0.0.1` and asks for neither `allowedHosts` nor a token by `Origin`.
+Rejected: our own `HotChannel` through vite's transport API — we would have to reproduce the client's protocol by hand and hold on to private details.
 
-**Прокси регистрируется раньше connect-адаптера.** Апгрейд — обычный GET, и http-мидлвари vite ответили бы на него первыми.
+**The proxy is registered before the connect adapter.** An upgrade is an ordinary GET, and vite's http middlewares would have answered it first.
 
-**Оборвалась дальняя половина — клиентскую рвём через `terminate`, а не `close`.** Вежливое закрытие ждёт ответный кадр, а отвечать некому. Клиент vite на обрыв переподключается, так что терять нечего.
-Известная особенность Bun: соединение, чья дальняя половина оборвалась аварийно, иногда остаётся в `pendingWebSockets`, и `server.stop(true)` не дожидается его никогда. В живом деве это не воспроизводится (канал держится и в простое, и под правками), ловится только под нагрузкой в тестах — поэтому в тесте ожидание остановки ограничено по времени.
+**When the far half breaks, the client half is torn down with `terminate`, not `close`.** A polite close waits for a reply frame, and there is nobody to reply. Vite's client reconnects on a break, so there is nothing to lose.
+A known Bun quirk: a connection whose far half broke abnormally sometimes stays in `pendingWebSockets`, and `server.stop(true)` then never waits it out. In live dev this does not reproduce (the channel holds both while idle and under edits), it is only caught under load in the tests — which is why the test's wait for the stop is bounded by time.
 
-**`createApp` возвращает `close()`.** Dev держит два слушающих сокета, гасить их надо вместе; в проде это пустышка.
+**`createApp` returns `close()`.** Dev holds two listening sockets and they have to be shut down together; in production it is a no-op.
 
-## h11-x — раздача и страницы
+## h11-x — serving and pages
 
-**Корневой `/**` убран.** Ssg-страницы регистрируются поимённо из `pages`; wildcard остался только на `${prefix}/**`.
-Почему: ловушка открывала весь каталог сборки с корня сайта, отправляла каждый мусорный url в файловую систему и занимала единственный корневой слот, который может понадобиться приложению.
+**The root `/**` is gone.** Ssg pages are registered by name from `pages`; the wildcard remains only on `${prefix}/**`.
+Why: the catch-all opened the whole build directory from the site root, sent every junk url into the file system and occupied the one root slot the application might need.
 
-**Роут обязан иметь `.client` и один из `.ssr`/`.ssg`.** Любое другое сочетание — ошибка сборки.
-Почему: роут только с `.client` молча выпадал из сборки и из конфига.
+**A route must have a `.client` and one of `.ssr`/`.ssg`.** Any other combination is a build error.
+Why: a route with only a `.client` silently fell out of the build and out of the config.
 
-**Ssg-модуль экспортирует `pages` с готовой разметкой:** `[{pathname, html}]`. `html` и сам список могут быть промисами — `await` стоит в обоих местах.
-Отклонено: `getPages()` и пара `pages` + `getHtml` — список страниц и рендер одной страницы незачем склеивать в вызов.
-Цена: рендер всех страниц запускается при импорте модуля, а не по одной.
+**An ssg module exports `pages` with ready markup:** `[{pathname, html}]`. Both `html` and the list itself may be promises — there is an `await` in both places.
+Rejected: `getPages()` and the pair `pages` + `getHtml` — there is no point gluing the list of pages and the rendering of one page into a call.
+Cost: rendering all the pages starts when the module is imported, not one by one.
 
-**JSON данных гидрации экранируется** (`<` и `&` → `<`, `&`).
-Почему: строка `</template>` в пропсах закрывала шаблон, и всё после неё браузер разбирал как разметку — это XSS.
+**The hydration data JSON is escaped** (`<` and `&` → `&lt;`, `&amp;`).
+Why: the string `</template>` in props closed the template, and everything after it was parsed by the browser as markup — that is XSS.
 
-**`createPage` рендерит компонент с пропсами, `hydratePage` берёт их из того же `data.props`.**
-Почему: пропсы уезжали только в `data`, компонент на сервере их не видел, и типы обещали то, чего не было.
+**`createPage` renders the component with props, and `hydratePage` takes them from that same `data.props`.**
+Why: props only travelled in `data`, the component on the server did not see them, and the types promised something that was not there.
 
-**`Template` и `DataSet` не принимают данные пропсами** — берут из контекста рендера.
+**`Template` and `DataSet` do not take data through props** — they take it from the render context.
 
-**`Head` и `Body` узнаются `Template` по самому компоненту.** Пометка массива детей не работала: в regan дети приезжают неразвёрнутыми узлами.
-Фрагменты при поиске прозрачны, рекурсивно: обёртка во `<>` ставится по самым разным причинам, а `Head` внутри фрагмента — тот же `Head`. Раньше он не находился, и его содержимое молча уезжало в `<body>` — `title` там браузер ещё терпит, `viewport` уже нет.
-Потерянный `Head` или `Body` падает с ошибкой. `Template` забирает их содержимое, не выполняя сами компоненты, поэтому попавший в рендер `Head` — это всегда `Head` не на месте.
-Тип `Template` — просто `FC`, без описания `children`: дети в regan приезжают из `ctx`, а не из пропсов, и объявление `children?: Child` только мешало типам на стороне приложения.
+**`Head` and `Body` are recognized by `Template` by the component itself.** Marking the children array did not work: in regan children arrive as unexpanded nodes.
+Fragments are transparent to the search, recursively: a `<>` wrapper gets added for all sorts of reasons, and a `Head` inside a fragment is the same `Head`. It used to go unfound, and its content silently drifted into `<body>` — a `title` there is still tolerated by the browser, a `viewport` is not.
+A lost `Head` or `Body` throws. `Template` takes their content without executing the components themselves, so a `Head` that made it into the render is always a `Head` in the wrong place.
+`Template`'s type is simply `FC`, with no description of `children`: in regan children arrive from `ctx` and not from props, and declaring `children?: Child` only got in the way of the types on the application's side.
 
-**Имя ассета в `getAssets` — путь от папки роута** (`logo.svg`, `icons/logo.svg`), а не basename: два одноимённых файла из разных папок были неразличимы.
+**An asset's name in `getAssets` is its path relative to the route folder** (`logo.svg`, `icons/logo.svg`), not the basename: two files with the same name from different folders were indistinguishable.
 
-**В `config.json` нет абсолютных путей:** `src` считается от `root`, `server.out` и содержимое `client.out` — от `baseDir`.
-Почему: с абсолютными путями каталог сборки нельзя перенести — ни в другой каталог на той же машине, ни на боевую.
-Следствие: `App` носит с собой `root` и `baseDir`, а dev-сервер vite получает `root` проекта, и dev-url стали относительными (`/_vite/h11x/src/routes/about/about.client.tsx` вместо полного пути с диска).
+**There are no absolute paths in `config.json`:** `src` is counted from `root`, `server.out` and the contents of `client.out` — from `baseDir`.
+Why: with absolute paths a build directory cannot be moved — neither to another directory on the same machine nor to the live one.
+Consequence: `App` carries `root` and `baseDir` with it, the vite dev server gets the project's `root`, and dev urls became relative (`/_vite/h11x/src/routes/about/about.client.tsx` instead of a full path from the disk).
 
-**`createApp` собирает проект только в dev.** В проде он читает готовый `config.json`, сборка — отдельный шаг `buildH11X`.
-Почему: прод-старт звал vite и требовал исходники с node_modules рядом, из-за чего «собрать один раз и задеплоить» не работало.
-Отклонено: отдельный флаг `build` — режим и так задан через `prod`, второй рычаг про то же самое не нужен.
+**`createApp` builds the project in dev only.** In production it reads the finished `config.json`, and the build is a separate `buildH11X` step.
+Why: a production start called vite and demanded the sources with node_modules next to them, which is why "build once and deploy" did not work.
+Rejected: a separate `build` flag — the mode is already set through `prod`, and a second lever about the same thing is not needed.
 
-**В деве корневые стили подключаются ссылкой с `?direct`, а не модулем.**
-Почему: модуль вставляет css из js уже после разметки — страница моргает нестилизованной. Ссылка даёт стили сразу, и горячая замена не теряется: проверено на живом dev-сервере — на правку файла vite шлёт `css-update` на путь `?direct`, а его клиент подменяет `<link>` новым и удаляет старый.
-Отклонено: держать оба тега (ссылку для первой отрисовки, модуль для HMR) — вторая загрузка того же файла и вторая копия стилей в DOM, а выигрыша нет.
+**In dev the root styles are attached as a link with `?direct`, not as a module.**
+Why: a module inserts the css from js after the markup is already there — the page flashes unstyled. A link gives the styles right away, and hot replacement is not lost: verified on a live dev server — on a file change vite sends a `css-update` for the `?direct` path, and its client swaps the `<link>` for a new one and removes the old.
+Rejected: keeping both tags (a link for the first paint, a module for HMR) — that is a second load of the same file and a second copy of the styles in the DOM, with nothing gained.
 
-**Стили роутов в деве перечисляются обходом графа модулей vite.** Перед рендером `transformRequest` на клиентский вход, дальше рекурсия по `importedModules` — все css уходят в разметку ссылками с `?direct`, после корневых.
-Живёт это в `dev-styles.ts`, наружу — одна `getDevStylesTags({vite, prefix, entry, rootStyles})`, готовые теги строкой. `ssr.tsx` про граф модулей, `?direct` и порядок ссылок не знает.
-Почему: иначе css роута приезжал импортом внутри скрипта, то есть после первой отрисовки, и страница моргала. Css из общего компонента (`about.tsx`, а не `about.client.tsx`) виден только так.
-Цена: тот же css в деве приезжает дважды — ссылкой и тегом `style` от импорта. Содержимое одинаковое, видно не будет; убрать дубль нельзя, не ломая импорт в модуле. Первый рендер роута дороже на время обхода (44 мс на `h11-x-example`), дальше 0.3 мс — модули уже трансформированы.
-Css ищется по расширению, а не по `node.type`: тип `'css'` узел получает только у запроса с `?direct`, импортированный из js файл лежит в графе как обычный js-модуль.
-Отклонено: свой кеш списка со сбросом по HMR — кешем уже служит `transformResult` в самом узле, а горячая замена его обнуляет. Второй кеш пришлось бы инвалидировать вручную, и он бы расходился с графом.
+**Route styles in dev are enumerated by walking vite's module graph.** Before rendering, a `transformRequest` on the client entry, then recursion over `importedModules` — all the css goes into the markup as links with `?direct`, after the root ones.
+This lives in `dev-styles.ts`, with one thing exposed: `getDevStylesTags({vite, prefix, entry, rootStyles})`, returning ready tags as a string. `ssr.tsx` knows nothing about the module graph, `?direct` or the order of the links.
+Why: otherwise the route's css arrived as an import inside a script, meaning after the first paint, and the page flashed. The css of a shared component (`about.tsx` rather than `about.client.tsx`) is only visible this way.
+Cost: in dev the same css arrives twice — as a link and as a `style` tag from the import. The content is identical and it will not be visible; the duplicate cannot be removed without breaking the import in the module. The route's first render costs the walk time extra (44 ms on `h11-x-example`), after that 0.3 ms — the modules are already transformed.
+Css is looked up by extension and not by `node.type`: a node gets the type `'css'` only for a request with `?direct`, while a file imported from js sits in the graph as an ordinary js module.
+Rejected: our own cache of the list with a reset on HMR — the cache is already there as `transformResult` in the node itself, and hot replacement clears it. A second cache would have to be invalidated by hand, and it would drift out of sync with the graph.
 
-**Корневые стили проекта — `src/styles.css` по конвенции.** Собираются отдельным файлом и подключаются к каждой странице первым `<link>`, до стилей роута.
-Почему: общие переменные, шрифты и сброс некуда было положить — приходилось импортировать их в каждый клиентский файл.
-Отклонено: вшивать их в бандл каждого роута — один файл кешировался бы заново на каждой странице.
+**The project's root styles are `src/styles.css` by convention.** They are built into a separate file and attached to every page as the first `<link>`, before the route's styles.
+Why: there was nowhere to put shared variables, fonts and a reset — they had to be imported into every client file.
+Rejected: baking them into every route's bundle — one file would be cached anew on every page.
 
-**`root` и `baseDir` — разные параметры:** корень проекта и каталог сборки.
-Почему: `.env` искался внутри `.h11x`, который сборка сносит на каждом старте, то есть не читался никогда.
+**`root` and `baseDir` are different parameters:** the project root and the build directory.
+Why: `.env` was looked up inside `.h11x`, which the build wipes on every start, meaning it was never read.

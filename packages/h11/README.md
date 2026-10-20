@@ -1,8 +1,8 @@
 # h11
 
-Минималистичный HTTP-фреймворк на radix-роутере, с раздачей статики из коробки. Рантайм один — Bun; всё живёт в одной точке входа `h11`.
+A minimal HTTP framework on a radix router, with static file serving out of the box. One runtime — Bun; everything lives behind a single entry point, `h11`.
 
-## Пример
+## Example
 
 ```ts
 import { H11, createServer } from 'h11';
@@ -14,7 +14,7 @@ h11.get('/hello/:name', ({ params }) => {
 });
 
 h11.get('/files/**', ({ params }) => {
-  return new Response(`остаток пути: ${params.wild}`);
+  return new Response(`rest of the path: ${params.wild}`);
 });
 
 Bun.serve({
@@ -23,45 +23,45 @@ Bun.serve({
 });
 ```
 
-## Роутинг
+## Routing
 
-- `h11.get/post/put/delete/patch/head/options(pattern, ...handlers)` — обычные роуты на конкретный метод. Можно передать несколько хендлеров подряд — выполняются по очереди, пока один не вернёт `Response`. Повторная регистрация того же пути дописывает хендлеры в конец цепочки, а не заменяет её.
-- `:name` — именованный сегмент, попадает в `params.name`. Два разных имени на одном уровне (`/a/:x` и `/a/:y`) — ошибка при регистрации.
-- `/**` — wildcard-хвост, остаток пути — в `params.wild`.
-- Хвостовой слэш во входящем пути не важен: `/hello/` попадает в маршрут `/hello`. Параметры при этом не декодируются — что пришло в url, то и лежит в `params`.
-- `h11.use(pattern?, ...handlers)` — middleware. Выполняются для любого HTTP-метода, один раз на запрос, раньше всех маршрутов.
-- Паттерн всегда начинается со слэша и не кончается им: `users` и `/users/` — ошибка при регистрации. Исключение — корень `/`.
-- Форма `ctx.data` задаётся параметром класса (`new H11<{userId: string}>()`) либо расширяется модулями — см. ниже.
-- Хендлер, вернувший `undefined`/ничего, передаёт управление дальше; вернувший `Response` — останавливает всё.
+- `h11.get/post/put/delete/patch/head/options(pattern, ...handlers)` — plain routes for one method. Several handlers can be passed at once — they run in order until one returns a `Response`. Registering the same path again appends handlers to the end of the chain instead of replacing it.
+- `:name` — a named segment, lands in `params.name`. Two different names at the same level (`/a/:x` and `/a/:y`) is a registration error.
+- `/**` — a wildcard tail, the rest of the path goes to `params.wild`.
+- A trailing slash in the incoming path does not matter: `/hello/` matches the route `/hello`. Params are not decoded along the way — whatever arrived in the url is what sits in `params`.
+- `h11.use(pattern?, ...handlers)` — middleware. Runs for any HTTP method, once per request, before every route.
+- A pattern always starts with a slash and never ends with one: `users` and `/users/` are registration errors. The root `/` is the exception.
+- The shape of `ctx.data` is set by the class parameter (`new H11<{userId: string}>()`) or extended by modules — see below.
+- A handler that returns `undefined`/nothing passes control on; one that returns a `Response` stops everything.
 
-### Порядок маршрутов
+### Route order
 
-Подошедшие маршруты собираются все, а не только первый, и пробуются по приоритету:
+All matching routes are collected, not just the first one, and tried by priority:
 
-1. точный путь (`/users/new`);
-2. путь с параметром (`/users/:id`);
-3. `/**` — от самого глубокого к самому общему (`/api/**` раньше, чем `/**`).
+1. the exact path (`/users/new`);
+2. the path with a param (`/users/:id`);
+3. `/**` — from the deepest to the most general (`/api/**` before `/**`).
 
-Маршрут, все хендлеры которого вернули `undefined`, уступает ход следующему по списку. Поэтому раздача статики на `/**` не мешает точным роутам, а точный роут может «пропустить» запрос дальше, просто ничего не вернув. Если не ответил никто — `onNotFound`.
+A route whose handlers all returned `undefined` yields to the next candidate. That is why static file serving on `/**` does not get in the way of exact routes, and an exact route can "pass the request along" simply by returning nothing. If nobody answered — `onNotFound`.
 
-Метод учитывается при отборе: `/users/new` под `POST` не помешает запросу `GET /users/new` уйти в `/users/:id`.
+The method is taken into account during selection: `/users/new` registered for `POST` does not stop `GET /users/new` from reaching `/users/:id`.
 
-## Обработка ошибок
+## Error handling
 
 ```ts
 h11.onNotFound = ({ req }) => new Response('not found', { status: 404 });
 h11.onError = ({ error }) => new Response(error.message, { status: 500 });
 ```
 
-Хендлер может и просто `throw new Response(...)` — `exec()` перехватит `Response`-исключение и вернёт его как обычный ответ (полезно для ранних выходов из глубоко вложенной логики).
+A handler may also just `throw new Response(...)` — `exec()` catches a thrown `Response` and returns it as an ordinary answer (handy for early exits from deeply nested logic).
 
-## События
+## Events
 
-У инстанса есть шина `h11.ee`: `on(name, cb)` возвращает функцию отписки, рядом `off` и `emit`. Шина принимает любые имена, так что свои события приложение может гонять через неё же.
+The instance carries a bus, `h11.ee`: `on(name, cb)` returns an unsubscribe function, with `off` and `emit` next to it. The bus accepts any names, so an application can push its own events through it too.
 
-### request и response
+### request and response
 
-Кидает их само ядро, по два на запрос: `request` до обработки, `response` после того как ответ готов — во всех ветках, то есть и когда хендлер ответил, и когда брошен `Response`, и когда сработали `onNotFound` или `onError`.
+The core emits them itself, two per request: `request` before handling, `response` once the answer is ready — in every branch, meaning when a handler answered, when a `Response` was thrown, and when `onNotFound` or `onError` kicked in.
 
 ```ts
 h11.ee.on('request', ({ req, reqId, providers }) => { ... });
@@ -71,21 +71,21 @@ h11.ee.on('response', ({ req, res, reqId, providers, ms, error }) => {
 });
 ```
 
-События два, а не одно: запрос, который завис или уронил процесс, в `response` не приедет никогда — увидеть его можно только по `request` без пары.
+There are two events, not one: a request that hung or killed the process will never arrive at `response` — the only way to see it is a `request` without a pair.
 
-- `req`, `res` и `providers` лежат сырыми, как есть: заранее ничего не выбрано, что печатать или считать — решает подписчик. Из `providers` достают ip, см. `getIp`.
-- Подписчики зовутся синхронно, внутри `exec`: `res` из подписчика ещё можно испортить — не надо.
-- `ms` — всё время обработки, считается от `request`: медленный подписчик это тоже время запроса, и прятать его незачем.
-- `error` — только когда хендлер кинул исключение. Пятисотая, отданная хендлером осознанно, это обычный ответ, и `error` у неё нет; брошенный `Response` — тоже обычный ответ.
-- Апгрейд вебсокета приезжает со статусом `101` и временем до апгрейда.
+- `req`, `res` and `providers` are raw, as they are: nothing is picked in advance, and what to print or count is up to the subscriber. The ip comes out of `providers`, see `getIp`.
+- Subscribers are called synchronously, inside `exec`: a subscriber can still spoil `res` — don't.
+- `ms` is the whole handling time, measured from `request`: a slow subscriber is also request time, and there is no reason to hide it.
+- `error` — only when a handler threw. A 500 returned deliberately by a handler is an ordinary answer and has no `error`; a thrown `Response` is an ordinary answer too.
+- A websocket upgrade arrives with status `101` and the time up to the upgrade.
 
-Статус берётся из настоящего ответа, а кидает событие ядро, поэтому свои `onError` и `onNotFound` оно переживает.
+The status is read from the real response, and the core is the one emitting, so it survives your own `onError` and `onNotFound`.
 
-### Печать
+### Printing
 
-Своего логгера в h11 нет: шина есть, а что писать в stdout — дело приложения. Готовая строка с фильтром «страницы печатать, ассеты нет» живёт в [`h11-x`](../h11-x), потому что отличить одно от другого можно только зная префиксы раздачи.
+h11 has no logger of its own: there is a bus, and what goes to stdout is the application's business. A ready-made line with a "print pages, skip assets" filter lives in [`h11-x`](../h11-x), because telling one from the other is only possible when you know the serving prefixes.
 
-Руками это выглядит так:
+By hand it looks like this:
 
 ```ts
 import { getIp } from 'h11';
@@ -108,7 +108,7 @@ h11.ee.on('response', (event) => {
 GET 200 /about 75.2ms 203.0.113.7 a76d6b9b
 GET 404 /nope 0.1ms ::1 4a74aafd
 POST 500 /api 12.4ms 203.0.113.7 9ab31c02
-Error: внутри всё сломалось
+Error: everything broke inside
     at ...
 ```
 
@@ -122,37 +122,37 @@ h11.use(({ req, providers }) => {
 });
 ```
 
-Первый хоп из `x-forwarded-for`, а если заголовка нет — адрес сокета у провайдера. Именно в таком порядке: за обратным прокси в сокете всегда сам прокси (`127.0.0.1` за Caddy), и настоящего клиента видно только по заголовку. Берётся он у `ctx` и у любого из событий — поля те же.
+The first hop of `x-forwarded-for`, and if the header is missing — the socket address from the provider. In exactly that order: behind a reverse proxy the socket always holds the proxy itself (`127.0.0.1` behind Caddy), and the real client is only visible in the header. It takes either `ctx` or any of the events — the fields are the same.
 
-Заголовок приходит от клиента, то есть подделывается, если до приложения можно дойти напрямую, минуя прокси. Для строки лога это терпимо, для решений — нет: пускать по этому ip или банить нельзя.
+The header comes from the client, which means it can be forged if the application can be reached directly, bypassing the proxy. For a log line that is tolerable, for decisions it is not: never allow or ban by this ip.
 
 ## Request ID
 
-Каждый вызов `exec()` кладёт в контекст `reqId` — берётся из заголовка `x-request-id`, если он есть, иначе генерируется `crypto.randomUUID()`. Поле обязательное, настраивать нечего:
+Every `exec()` call puts a `reqId` into the context — taken from the `x-request-id` header if present, otherwise generated with `crypto.randomUUID()`. The field is mandatory and there is nothing to configure:
 
 ```ts
 h11.get('/hello', ({ reqId }) => {
-  console.log(reqId); // всегда есть, без .use()
+  console.log(reqId); // always there, no .use() needed
 });
 ```
 
-Источник один: `ctx.reqId`. Нужен другой заголовок или свой формат — читай его в своей миддлвари и клади в `ctx.data`, но помни, что `ctx.reqId` при этом останется своим.
+There is one source: `ctx.reqId`. If you need another header or your own format, read it in your own middleware and put it into `ctx.data` — but remember that `ctx.reqId` will keep its own value.
 
-## Утилиты
+## Utilities
 
-- `joinPath(a, b)` — склейка путей без дублирования слэшей.
-- `joinUserPath(base, userPath)` — то же самое, но для пользовательского ввода: отклоняет `..` и абсолютные пути (защита от path traversal), возвращает `''` при попытке выйти за пределы `base`.
-- `getMime(path)` / `getMimeHeaders(path)` — mime по пути файла; голое расширение тоже путь (`getMime('.html')`). На незнакомом расширении — `undefined` и пустой объект соответственно.
-- `getInit(mime?, code?, headers?)` или `getInit({mime, code, headers})` — `ResponseInit` для `new Response(body, init)`: `mime` это ключ таблицы (`'html'`, `'json'`, `'css'`…, проверяется компилятором), `code` — статус, `headers` — свои заголовки, к которым допишется `content-type`. Короткая форма для `getInit('json')` и `getInit('txt', 404)`, объектная — когда заполнено всё.
-- `copyReq(req, newBody?)` — клонирует `Request`, опционально подменяя тело (например при чтении и повторной раздаче потока).
-- `switchFunc(conditions, req)` — перебирает `{ check, handler }[]`, выполняет `handler` первого условия, чей `check(req)` вернул `true`.
-- `getIp({req, providers})` — ip клиента: первый хоп из `x-forwarded-for`, иначе адрес сокета. Подробно — в «События».
-- `parseCookies(req)` / `getCookie(req, name)` — читают заголовок `Cookie`.
-- `setCookie(res, name, value, options?)` / `deleteCookie(res, name, options?)` — пишут `Set-Cookie` в `res.headers` (через `append`, не перезатирая предыдущие).
+- `joinPath(a, b)` — joins paths without doubling slashes.
+- `joinUserPath(base, userPath)` — the same, but for user input: rejects `..` and absolute paths (path traversal protection), returns `''` on an attempt to escape `base`.
+- `getMime(path)` / `getMimeHeaders(path)` — mime by file path; a bare extension is a path too (`getMime('.html')`). On an unknown extension — `undefined` and an empty object respectively.
+- `getInit(mime?, code?, headers?)` or `getInit({mime, code, headers})` — a `ResponseInit` for `new Response(body, init)`: `mime` is a key of the table (`'html'`, `'json'`, `'css'`…, checked by the compiler), `code` is the status, `headers` are your own headers, to which `content-type` is added. The short form is for `getInit('json')` and `getInit('txt', 404)`, the object form — when everything is filled in.
+- `copyReq(req, newBody?)` — clones a `Request`, optionally swapping the body (for example when a stream is read and then served again).
+- `switchFunc(conditions, req)` — walks `{ check, handler }[]` and runs the `handler` of the first condition whose `check(req)` returned `true`.
+- `getIp({req, providers})` — the client ip: the first hop of `x-forwarded-for`, otherwise the socket address. Details in "Events".
+- `parseCookies(req)` / `getCookie(req, name)` — read the `Cookie` header.
+- `setCookie(res, name, value, options?)` / `deleteCookie(res, name, options?)` — write `Set-Cookie` into `res.headers` (via `append`, without overwriting previous ones).
 
-## Модули данных
+## Data modules
 
-Миддлварь, которая дописывает своё поле в `ctx.data`, помечается `createDataModule` — и тогда инстанс знает про это поле дальше по цепочке:
+A middleware that adds its own field to `ctx.data` is marked with `createDataModule` — and then the instance knows about that field further down the chain:
 
 ```ts
 import { createDataModule, H11 } from 'h11';
@@ -165,17 +165,17 @@ export const authModule = createDataModule<{ user: User }>(
 
 const h11 = new H11().use(authModule);
 
-h11.get('/me', ({ data }) => new Response(data.user.name)); // data.user типизирован
+h11.get('/me', ({ data }) => new Response(data.user.name)); // data.user is typed
 ```
 
-Тип полей указывается явно: вывести его из присваиваний внутри функции нельзя. Маркер существует только в типах, в рантайме `createDataModule` возвращает тот же хендлер. Обычная миддлварь без пометки форму `data` не меняет.
+The field types are stated explicitly: they cannot be inferred from the assignments inside the function. The marker exists only in the types, at runtime `createDataModule` returns the very same handler. An ordinary middleware without the mark does not change the shape of `data`.
 
-## Модули
+## Modules
 
-- `createSizeLimitModule(limit)` — ограничивает размер тела запроса. Лимит включительно: тело ровно в `limit` байт проходит. Если размер виден в `content-length` — сразу `413`; если превышение вскрылось уже посреди потока, чтение тела падает с `BodyTooLargeError` (экспортируется), и её ловит `onError`, где приложение решает, чем ответить. Размеры под рукой: `SIZE_1b`, `SIZE_1kb`, `SIZE_1mb`.
-- `proxyReq(req, url)` — пересобирает запрос на другой адрес, сохраняя метод, заголовки и тело.
+- `createSizeLimitModule(limit)` — limits the request body size. The limit is inclusive: a body of exactly `limit` bytes passes. If the size is visible in `content-length` — `413` right away; if the excess only showed up mid-stream, reading the body fails with `BodyTooLargeError` (exported), and `onError` catches it, where the application decides what to answer. Sizes are at hand: `SIZE_1b`, `SIZE_1kb`, `SIZE_1mb`.
+- `proxyReq(req, url)` — rebuilds the request for another address, keeping the method, headers and body.
 
-## Раздача статики
+## Static file serving
 
 ```ts
 import { serveFiles } from 'h11';
@@ -183,11 +183,11 @@ import { serveFiles } from 'h11';
 h11.get('/assets/**', serveFiles({ dir: './public', prefix: '/assets/' }));
 ```
 
-`prefix` обрезается от начала URL перед поиском файла в `dir`; путь пользователя проходит через `joinUserPath` (защита от `..`). Если файла нет, хендлер не отвечает и запрос идёт дальше по цепочке — до `onNotFound` приложения.
+`prefix` is cut off the start of the URL before the file is looked up in `dir`; the user path goes through `joinUserPath` (protection from `..`). If the file is missing, the handler does not answer and the request goes further down the chain — all the way to the application's `onNotFound`.
 
-Кроме точного совпадения ищутся `<путь>.html` и `<путь>/index.html`, поэтому `/blog` отдаёт `blog.html`, а `/` — `index.html`. Предсжатые соседи (`.br`, `.gz`, `.deflate`) выбираются по `Accept-Encoding`; сделать их можно `compressRecursive`.
+Besides the exact match, `<path>.html` and `<path>/index.html` are looked up, so `/blog` serves `blog.html` and `/` serves `index.html`. Pre-compressed neighbours (`.br`, `.gz`, `.deflate`) are picked by `Accept-Encoding`; `compressRecursive` can make them.
 
-## Сервер и connect-мидлвари
+## The server and connect middlewares
 
 ```ts
 import { createServer } from 'h11';
@@ -198,9 +198,9 @@ Bun.serve({
 });
 ```
 
-`createServer` отдаёт пару для `Bun.serve`: `fetch` и `websocket`. Спред отдаёт обе сразу — без второй вебсокеты не поднимутся, потому что таблицу коллбеков `Bun.serve` требует заранее.
+`createServer` returns the pair for `Bun.serve`: `fetch` and `websocket`. The spread hands over both at once — without the second one websockets will not come up, because `Bun.serve` wants the callback table up front.
 
-`createConnectAdapter` оборачивает connect-мидлварь (`(req, res, next) => void`) в обычный `Handler` — этим пользуется [`h11-x`](../h11-x), чтобы проксировать dev-сервер Vite:
+`createConnectAdapter` wraps a connect middleware (`(req, res, next) => void`) into an ordinary `Handler` — that is what [`h11-x`](../h11-x) uses to proxy the Vite dev server:
 
 ```ts
 import { createConnectAdapter } from 'h11';
@@ -209,23 +209,23 @@ h11.use(
   '/_dev',
   createConnectAdapter({
     prefixToRemove: '/_dev',
-    connectMiddleware: someConnectApp, // например vite.middlewares
+    connectMiddleware: someConnectApp, // vite.middlewares, for instance
   }),
 );
 ```
 
-Регистрировать именно через `h11.use()`, а не `h11.get(..., '/**')` — middleware матчится для любого HTTP-метода, а `.get()`-wildcard только для GET (у connect-приложений вроде Vite dev-сервера бывают не только GET-запросы).
+Register it through `h11.use()` and not `h11.get(..., '/**')` — middleware matches any HTTP method, while a `.get()` wildcard only matches GET (connect applications like the Vite dev server do get more than GET requests).
 
-## Вебсокеты
+## Websockets
 
-Вебсокет — не отдельная таблица маршрутов, а то, что может сделать обычный хендлер. Поэтому работают миддлвари, параметры и `data`-модули:
+A websocket is not a separate routing table, it is something an ordinary handler can do. So middlewares, params and `data` modules all work:
 
 ```ts
 h11.use('/room/**', authModule);
 
 h11.get('/room/:id', ({ params, data, upgrade }) => {
   if (data.user === undefined) {
-    return new Response('нельзя', { status: 401 });
+    return new Response('not allowed', { status: 401 });
   }
 
   return upgrade({
@@ -236,35 +236,35 @@ h11.get('/room/:id', ({ params, data, upgrade }) => {
 });
 ```
 
-Коллбеки создаются на каждое соединение заново, поэтому состояние соединения держат в замыкании хендлера — отдельного хранилища не нужно.
+The callbacks are created anew for every connection, so connection state is kept in the handler's closure — no separate store is needed.
 
-`upgrade` возвращает `undefined`, если запрос не был апгрейдом: хендлер тогда считается отказавшимся и ход переходит следующему варианту, как у любого другого хендлера. Обычный GET на тот же путь можно обслужить соседним маршрутом.
+`upgrade` returns `undefined` if the request was not an upgrade: the handler then counts as having declined, and the turn passes to the next candidate, like with any other handler. A plain GET on the same path can be served by a neighbouring route.
 
-Подпротокол Bun выбирает сам, повторяя запрошенный клиентом, — задавать `Sec-WebSocket-Protocol` руками не надо, от дубля заголовка браузер закрывает соединение.
+Bun picks the subprotocol itself, echoing the one the client asked for — there is no need to set `Sec-WebSocket-Protocol` by hand, a duplicated header makes the browser close the connection.
 
-## Сборка
+## Build
 
 ```bash
-bun test        # тесты пакета
+bun test        # the package's tests
 bun run build   # build:js (bun build src/h11.ts) + build:types (tsc)
 ```
 
-## Раскладка
+## Layout
 
-Каждая сущность — папка со своим файлом и тестом рядом.
+Every entity is a folder with its own file and a test next to it.
 
 ```
 src/
-  h11.ts             точка входа, только ре-экспорт
+  h11.ts             entry point, re-export only
   types.ts
-  core/              класс H11, события request/response, дефолтные onError/onNotFound
-    radix/           radix-роутер
-  static/            раздача файлов: serveFiles, поиск файла, content-type
-  server/            адаптер под Bun.serve
-  connect/           мост к connect-мидлварям
-  compress/          предсжатие файлов
+  core/              the H11 class, request/response events, default onError/onNotFound
+    radix/           the radix router
+  static/            file serving: serveFiles, file lookup, content-type
+  server/            the adapter for Bun.serve
+  connect/           the bridge to connect middlewares
+  compress/          file pre-compression
   cookies/
-  data-module/       модули, расширяющие форму ctx.data
+  data-module/       modules that extend the shape of ctx.data
   modules/           size-limit, proxy
   utils/             join, req, switch, content-type, ip
 ```
