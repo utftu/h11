@@ -12,17 +12,17 @@
     },
     "packages/h11": {
       "name": "h11",
-      "version": "1.0.13",
+      "version": "1.0.20",
       "dependencies": {
-        "utftu": "*",
+        "utftu": "^1.0.33",
       },
     },
     "packages/h11-x": {
       "name": "h11-x",
-      "version": "0.0.22",
+      "version": "0.0.35",
       "dependencies": {
         "defu": "^6.1.4",
-        "h11": "*",
+        "h11": "^1.0.20",
         "regan": "^0.0.17",
         "vite": ">=8",
       },

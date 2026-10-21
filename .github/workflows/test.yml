@@ -1,0 +1,20 @@
+name: test
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install --frozen-lockfile
+
+      # The h11-x tests build real projects that import the packages by name,
+      # so dist has to exist before bun test. dapes keeps the order: h11 → h11-x.
+      - run: bun run dapes.run.ts x build
+
+      - run: bun test

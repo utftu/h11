@@ -14,6 +14,27 @@ Why: the packages are published to npm, and English is the language of their rea
 **A package's entry point is a re-export only.** `h11.ts`, `h11-x.ts`, `h11-x.client.ts` hold no logic.
 Why: `buildH11X` lived in h11-x's entry point and dragged a circular import with `app.ts` behind it.
 
+## Repository — packaging and CI
+
+**MIT, one `LICENSE` at the root and a copy in every published package.** Copyright 2026 Aleksey Malyuta.
+Why a copy: npm puts `LICENSE` and `README.md` into the tarball on its own, even with `files: ["dist"]` — measured on `npm pack --dry-run` — so a package is self-contained without listing them.
+
+**One `SECURITY.md`, at the root only.** Private reporting through GitHub Security Advisories or by email, an answer within 7 days, and only the latest release of each package is supported.
+Why not per package: npm does not show `SECURITY.md` at all, and it is not in the tarball; two copies would drift apart. Both package READMEs link to the root one by absolute url, so the link survives on npmjs.com.
+Cost: the advisory link only works for outsiders once private vulnerability reporting is switched on in the repository settings.
+
+**Dependency ranges are explicit, `*` is not used.** `utftu: ^1.0.33` in h11, `h11: ^1.0.20` in h11-x.
+Why: `*` means any future major, so a published package would break on somebody else's release. The workspace link survives — bun links the local package while its version satisfies the range.
+
+**`vite` stays `>=8`, deliberately wide.** It is a dependency in name only: h11-x and the application must end up with one vite instance.
+Why: with a narrow range npm nests a second copy next to the application's vite, and the dev server breaks on two module graphs. A wide range lets the resolver dedupe to the application's one.
+
+**CI builds before it tests** (`.github/workflows/test.yml`: `bun install --frozen-lockfile`, `dapes x build`, `bun test`).
+Why: measured on a clean checkout — the h11-x tests build real projects that import `h11` and `h11-x` by name, those names resolve to `dist`, and without a build two tests fail on a missing entry point. Locally it passes only because `dist` is already there.
+
+**Test project directories are removed in `afterEach`, not at the end of the test.** `trash.push(path)` at creation, one `afterEach` per file.
+Why: cleanup as the last statement of a test is skipped whenever the test fails — 19 `.test-project-*` directories had piled up inside the package that way.
+
 ## h11 — the router
 
 **All matching routes are collected and tried in order.** Priority: the exact path, then the parametric one, then `/**` from the deepest to the most general. A route whose handlers returned `undefined` yields to the next one.

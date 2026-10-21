@@ -2,6 +2,16 @@
 
 A minimal HTTP framework on a radix router, with static file serving out of the box. One runtime — Bun; everything lives behind a single entry point, `h11`.
 
+## Install
+
+```bash
+npm i h11
+# or
+bun add h11
+```
+
+The runtime is Bun: the package calls `Bun.serve`, `Bun.file` and `Bun.write` directly.
+
 ## Example
 
 ```ts
@@ -268,3 +278,15 @@ src/
   modules/           size-limit, proxy
   utils/             join, req, switch, content-type, ip
 ```
+
+## License
+
+MIT — see [LICENSE](./LICENSE). Copyright 2026 Aleksey Malyuta.
+
+## Security
+
+Found a vulnerability? Report it privately, not in an issue — see [SECURITY.md](https://github.com/utftu/h11/blob/master/SECURITY.md).
+
+Source: [github.com/utftu/h11](https://github.com/utftu/h11)
+
+Maintainer: Aleksey Malyuta (@utftu)

@@ -1,15 +1,30 @@
 {
   "name": "h11",
-  "version": "1.0.19",
-  "description": "",
+  "version": "1.0.20",
+  "description": "Minimal HTTP framework for Bun: a radix router with middlewares, static file serving and websockets",
   "license": "MIT",
-  "author": "",
+  "author": "Aleksey Malyuta <overby999@gmail.com> (https://github.com/utftu)",
   "type": "module",
+  "homepage": "https://github.com/utftu/h11/tree/master/packages/h11#readme",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/utftu/h11.git",
     "directory": "packages/h11"
   },
+  "bugs": {
+    "url": "https://github.com/utftu/h11/issues"
+  },
+  "keywords": [
+    "http",
+    "server",
+    "framework",
+    "router",
+    "radix",
+    "middleware",
+    "static",
+    "websocket",
+    "bun"
+  ],
   "types": "dist/types/h11.d.ts",
   "main": "dist/h11.js",
   "exports": {
@@ -28,6 +43,6 @@
     "build:types": "tsc --project tsconfig.types.json"
   },
   "dependencies": {
-    "utftu": "*"
+    "utftu": "^1.0.33"
   }
 }

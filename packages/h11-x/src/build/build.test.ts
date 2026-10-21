@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'bun:test';
+import { afterEach, describe, expect, it } from 'bun:test';
 import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { pid } from 'node:process';
 import { readConfig } from '../assets/assets.ts';
@@ -11,9 +11,22 @@ import {
 } from './build.ts';
 import type { EditViteConfigProps } from '../types.ts';
 
+// Каталоги тестовых проектов. Уборка в afterEach, а не в конце теста: упавший
+// тест иначе оставляет их в пакете, и они копятся.
+const trash: string[] = [];
+
+afterEach(async () => {
+  for (const path of trash) {
+    await rm(path, { recursive: true, force: true });
+  }
+
+  trash.length = 0;
+});
+
 describe('editViteConfig', () => {
   it('получает режим роута, цель сборки и сам роут', async () => {
     const root = await mkdtemp(`${tmpdir()}/h11x-hook-`);
+    trash.push(root);
     const dir = `${root}/about`;
     await mkdir(dir, { recursive: true });
     await writeFile(
@@ -38,8 +51,6 @@ describe('editViteConfig', () => {
       { mode: 'ssr', target: 'server', route: { dir, name: 'about' } },
       { mode: 'ssr', target: 'client', route: { dir, name: 'about' } },
     ]);
-
-    await rm(root, { recursive: true, force: true });
   });
 });
 
@@ -101,6 +112,7 @@ describe('buildH11X: проверка файлов роута', () => {
   // ещё до того, как что-то соберётся — каталоги можно не наполнять.
   const makeRoute = async (files: string[]) => {
     const baseDir = await mkdtemp(`${tmpdir()}/h11x-routes-`);
+    trash.push(baseDir);
     const dir = `${baseDir}/about`;
     await mkdir(dir, { recursive: true });
 
@@ -118,24 +130,18 @@ describe('buildH11X: проверка файлов роута', () => {
     const { baseDir, dir } = await makeRoute([]);
 
     expect(build(baseDir, dir)).rejects.toThrow('No .client, .ssr or .ssg');
-
-    await rm(baseDir, { recursive: true, force: true });
   });
 
   it('только .client — рендерить нечего', async () => {
     const { baseDir, dir } = await makeRoute(['about.client.tsx']);
 
     expect(build(baseDir, dir)).rejects.toThrow('nothing to render');
-
-    await rm(baseDir, { recursive: true, force: true });
   });
 
   it('.ssr без .client — некому гидрировать', async () => {
     const { baseDir, dir } = await makeRoute(['about.ssr.tsx']);
 
     expect(build(baseDir, dir)).rejects.toThrow('but no .client file');
-
-    await rm(baseDir, { recursive: true, force: true });
   });
 
   it('.ssr и .ssg вместе — непонятно, какой режим', async () => {
@@ -146,8 +152,6 @@ describe('buildH11X: проверка файлов роута', () => {
     ]);
 
     expect(build(baseDir, dir)).rejects.toThrow('pick one mode');
-
-    await rm(baseDir, { recursive: true, force: true });
   });
 });
 
@@ -156,6 +160,7 @@ describe('алиасы приложения', () => {
     // Внутри пакета, а не в /tmp: снаружи воркспейса не разрешается импорт
     // h11-x, а серверному модулю роута он нужен.
     const root = `${import.meta.dir}/../../.test-project-alias-${pid}`;
+    trash.push(root);
     const dir = `${root}/src/routes/about`;
     await mkdir(`${root}/src/locales`, { recursive: true });
     await mkdir(dir, { recursive: true });
@@ -196,7 +201,6 @@ hydratePage(About);
 
     const server = await Bun.file(`${root}/.h11x/ssr/about.js`).text();
 
-    await rm(root, { recursive: true, force: true });
 
     // Строка вшита, импорта наружу не осталось: иначе прод падал бы при
     // старте, а сборка проходила молча.
@@ -208,6 +212,7 @@ hydratePage(About);
 
   it('не мешает приложению задать внешность самому', async () => {
     const root = await mkdtemp(`${tmpdir()}/h11x-ext-`);
+    trash.push(root);
     const dir = `${root}/about`;
     await mkdir(dir, { recursive: true });
     await writeFile(`${dir}/about.ssr.tsx`, `export const page = () => '';\n`);
@@ -228,7 +233,6 @@ hydratePage(About);
       },
     });
 
-    await rm(root, { recursive: true, force: true });
 
     expect(seen).toEqual([['своё']]);
   }, 60_000);

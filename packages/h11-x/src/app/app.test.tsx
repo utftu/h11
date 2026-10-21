@@ -1,15 +1,28 @@
-import { describe, expect, it, spyOn } from 'bun:test';
+import { afterEach, describe, expect, it, spyOn } from 'bun:test';
 import { cp, mkdir, rm, writeFile } from 'node:fs/promises';
 import { createServer, H11 } from 'h11';
 import { buildH11X } from '../build/build.ts';
 import { createApp } from './app.ts';
 import { renderSsr } from '../ssr.tsx';
 
+// Каталоги тестовых проектов. Уборка в afterEach, а не в конце теста: упавший
+// тест иначе оставляет их в пакете, и они копятся.
+const trash: string[] = [];
+
+afterEach(async () => {
+  for (const path of trash) {
+    await rm(path, { recursive: true, force: true });
+  }
+
+  trash.length = 0;
+});
+
 // Настоящий проект на диске: vite собирает его так же, как у пользователя,
 // поэтому тест ловит и раскладку файлов, и пути в разметке. Лежит внутри
 // пакета, а не в /tmp: снаружи воркспейса не разрешается импорт h11-x.
 const makeProject = async () => {
   const root = `${import.meta.dir}/../../.test-project-${process.pid}`;
+  trash.push(root);
   const about = `${root}/src/routes/about`;
   const blog = `${root}/src/routes/blog`;
 
@@ -167,7 +180,6 @@ describe('createApp в проде', () => {
     );
 
     await server.stop(true);
-    await rm(root, { recursive: true, force: true });
   }, 60_000);
 });
 
@@ -206,7 +218,6 @@ describe('перенос собранного', () => {
     expect(getHtml()).toContain('после переезда');
 
     await server.stop(true);
-    await rm(root, { recursive: true, force: true });
   }, 60_000);
 });
 
@@ -252,7 +263,6 @@ describe('стили в деве', () => {
     expect(html.indexOf(deepLink)).toBeLessThan(html.indexOf('<script'));
 
     await app.close();
-    await rm(root, { recursive: true, force: true });
   }, 60_000);
 });
 
@@ -287,7 +297,6 @@ describe('viteBase', () => {
     expect(seen).toContain('serve');
 
     await app.close();
-    await rm(root, { recursive: true, force: true });
   }, 60_000);
 
   it('домен из url уезжает в allowedHosts dev-сервера', async () => {
@@ -305,7 +314,6 @@ describe('viteBase', () => {
     );
 
     await app.close();
-    await rm(root, { recursive: true, force: true });
   }, 60_000);
 });
 
@@ -368,7 +376,6 @@ describe('HMR-канал в деве', () => {
     // оборвалась аварийно, и тогда stop(true) не дожидается никогда. На
     // проверки это не влияет — они все выше, — а тест из-за этого висел.
     await Promise.race([server.stop(true), Bun.sleep(2000)]);
-    await rm(root, { recursive: true, force: true });
   }, 60_000);
 });
 
@@ -412,7 +419,6 @@ describe('лог запросов', () => {
 
     await server.stop(true);
     await quietServer.stop(true);
-    await rm(root, { recursive: true, force: true });
 
     expect(await ping.text()).toBe('pong');
     expect(await ready.json()).toEqual([]);
@@ -451,7 +457,6 @@ describe('проверки готовности', () => {
     const upReady = await fetch(`${origin}/ready`);
 
     await server.stop(true);
-    await rm(root, { recursive: true, force: true });
 
     expect(downPing.status).toBe(200);
     expect(downReady.status).toBe(503);

@@ -2,6 +2,16 @@
 
 SSR/hydration on top of [`h11`](../h11) + Vite + [regan](https://www.npmjs.com/package/regan). An experimental, actively changing layer (version `0.0.x`) — for a working example see [`h11-x-example`](../h11-x-example).
 
+## Install
+
+```bash
+npm i h11-x
+# or
+bun add h11-x
+```
+
+The runtime is Bun, and Vite 8 or newer comes along as a dependency.
+
 ## The route file convention
 
 Every SSR route is a folder with three files (the extension is `.tsx` or `.ts`, both are checked):
@@ -531,3 +541,15 @@ src/
   log/              the log line and the asset filter
   env/  utils/
 ```
+
+## License
+
+MIT — see [LICENSE](./LICENSE). Copyright 2026 Aleksey Malyuta.
+
+## Security
+
+Found a vulnerability? Report it privately, not in an issue — see [SECURITY.md](https://github.com/utftu/h11/blob/master/SECURITY.md).
+
+Source: [github.com/utftu/h11](https://github.com/utftu/h11)
+
+Maintainer: Aleksey Malyuta (@utftu)

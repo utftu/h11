@@ -1,13 +1,29 @@
 {
   "name": "h11-x",
-  "version": "0.0.34",
+  "version": "0.0.35",
+  "description": "SSR and hydration for Bun on top of h11, Vite and regan: multi-page apps with per-route builds",
   "license": "MIT",
+  "author": "Aleksey Malyuta <overby999@gmail.com> (https://github.com/utftu)",
   "type": "module",
+  "homepage": "https://github.com/utftu/h11/tree/master/packages/h11-x#readme",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/utftu/h11.git",
     "directory": "packages/h11-x"
   },
+  "bugs": {
+    "url": "https://github.com/utftu/h11/issues"
+  },
+  "keywords": [
+    "ssr",
+    "hydration",
+    "mpa",
+    "vite",
+    "regan",
+    "jsx",
+    "h11",
+    "bun"
+  ],
   "scripts": {
     "build": "bun run build:js && bun run build:types",
     "build:js": "bun build ./src/h11-x.ts --target bun --packages external --outdir ./dist && bun build ./src/h11-x.client.ts --target browser --packages external --outdir ./dist",
@@ -28,7 +44,7 @@
   ],
   "dependencies": {
     "defu": "^6.1.4",
-    "h11": "*",
+    "h11": "^1.0.20",
     "regan": "^0.0.17",
     "vite": ">=8"
   }
