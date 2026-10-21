@@ -1,6 +1,6 @@
 {
   "name": "h11",
-  "version": "1.0.20",
+  "version": "1.0.21",
   "description": "Minimal HTTP framework for Bun: a radix router with middlewares, static file serving and websockets",
   "license": "MIT",
   "author": "Aleksey Malyuta <overby999@gmail.com> (https://github.com/utftu)",
